@@ -1,0 +1,32 @@
+{
+  "name": "capstone-e-07",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharonnakishaa/Capstone-E-07.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sharonnakishaa/Capstone-E-07/issues"
+  },
+  "homepage": "https://github.com/sharonnakishaa/Capstone-E-07#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

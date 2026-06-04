@@ -9,140 +9,63 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0F172A;
-    --surface:#1E293B;
-    --surface-2:#172033;
-    --border:#334155;
-    --border-soft:#243044;
-    --text:#F1F5F9;
-    --text-strong:#FFFFFF;
-    --muted:#94A3B8;
-    --muted-2:#64748B;
-    --sky:#38BDF8;
-    --emerald:#22C55E;
-    --amber:#F59E0B;
-    --red:#EF4444;
-    --violet:#A78BFA;
-    --sans:'Space Grotesk', system-ui, sans-serif;
-    --mono:'JetBrains Mono', ui-monospace, monospace;
-    --topbar-bg:#0F172A;
-    --bar-track:#0F172A;
-    --legend-bg:#0F172A;
-    --alert-bg:#052E16;
-    --alert-border:#14532D;
-    --alert-text:#86EFAC;
-    --alert-title:#4ADE80;
-    --table-head-bg:#172033;
-    --table-row-hover:rgba(56,189,248,.025);
-    --chart-grid:#1E293B;
-    --chart-dot-fill:#0F172A;
+    --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
+    --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
+    --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;--violet:#A78BFA;
+    --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --topbar-bg:#0F172A;--bar-track:#0F172A;--legend-bg:#0F172A;
+    --alert-bg:#052E16;--alert-border:#14532D;--alert-text:#86EFAC;--alert-title:#4ADE80;
+    --table-head-bg:#172033;--table-row-hover:rgba(56,189,248,.025);
+    --chart-grid:#1E293B;--chart-dot-fill:#0F172A;
   }
-
   [data-theme="light"]{
-    --bg:#F0F4F8;
-    --surface:#FFFFFF;
-    --surface-2:#F8FAFC;
-    --border:#E2E8F0;
-    --border-soft:#E2E8F0;
-    --text:#1E293B;
-    --text-strong:#0F172A;
-    --muted:#475569;
-    --muted-2:#64748B;
-    --topbar-bg:#FFFFFF;
-    --bar-track:#E2E8F0;
-    --legend-bg:#F8FAFC;
-    --alert-bg:#DCFCE7;
-    --alert-border:#86EFAC;
-    --alert-text:#15803D;
-    --alert-title:#16A34A;
-    --table-head-bg:#F1F5F9;
-    --table-row-hover:rgba(56,189,248,.04);
-    --chart-grid:#E2E8F0;
-    --chart-dot-fill:#FFFFFF;
+    --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
+    --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
+    --topbar-bg:#FFFFFF;--bar-track:#E2E8F0;--legend-bg:#F8FAFC;
+    --alert-bg:#DCFCE7;--alert-border:#86EFAC;--alert-text:#15803D;--alert-title:#16A34A;
+    --table-head-bg:#F1F5F9;--table-row-hover:rgba(56,189,248,.04);--chart-dot-fill:#FFFFFF;
   }
-
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
   body{min-height:100vh;font-size:14px;line-height:1.4;}
 
-  /* ----- TOPBAR ----- */
-  .topbar{
-    height:64px;
-    border-bottom:1px solid var(--border);
-    background:var(--topbar-bg);
-    display:flex;
-    align-items:center;
-    padding:0 32px;
-    gap:24px;
-    position:sticky;top:0;z-index:10;
-  }
+  .topbar{height:64px;border-bottom:1px solid var(--border);background:var(--topbar-bg);display:flex;align-items:center;padding:0 32px;gap:24px;position:sticky;top:0;z-index:10;}
   .brand{display:flex;align-items:center;gap:12px;min-width:0;}
-  .brand-logo{
-    width:36px;height:36px;border-radius:8px;background:var(--sky);
-    display:flex;align-items:center;justify-content:center;
-    color:#082F49;font-weight:700;font-size:14px;letter-spacing:.02em;
-  }
   .brand-text{display:flex;flex-direction:column;line-height:1.15}
   .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
   .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
 
-  .device-pill{
-    margin-left:auto;margin-right:auto;
-    display:inline-flex;align-items:center;gap:10px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:999px;
-    padding:7px 14px 7px 12px;
-  }
-  .dot{
-    width:8px;height:8px;border-radius:50%;background:var(--emerald);
-    box-shadow:0 0 0 0 rgba(34,197,94,.55);
-    animation:pulse 1.8s ease-out infinite;
-  }
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}
-    70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}
-    100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
-  }
-  .device-id{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.02em}
+  .device-pill{margin-left:auto;margin-right:auto;display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:7px 14px 7px 12px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 0 rgba(34,197,94,.55);animation:pulse 1.8s ease-out infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .device-select-wrap{position:relative;display:flex;align-items:center;}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.02em;max-width:220px;padding-right:18px;}
+  .device-select option{background:var(--surface);color:var(--text);}
+  .select-chevron{position:absolute;right:0;pointer-events:none;color:var(--muted-2);flex-shrink:0;}
   .device-state{font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:.06em}
 
-  /* ----- THEME TOGGLE ----- */
-  .theme-toggle{
-    width:36px;height:36px;border-radius:8px;
-    background:var(--surface);border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;color:var(--muted);
-    transition:background .15s,color .15s,border-color .15s;
-    flex-shrink:0;
-  }
+  .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s,border-color .15s;flex-shrink:0;}
   .theme-toggle:hover{background:var(--border);color:var(--text)}
   .theme-toggle svg{width:18px;height:18px}
 
-  /* ----- LAYOUT ----- */
   main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;display:flex;flex-direction:column;gap:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
 
-  .card{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:20px;
-  }
-
-  /* ----- ALERT BANNER ----- */
-  .alert{
-    background:var(--alert-bg);
-    border:1px solid var(--alert-border);
-    border-radius:12px;
-    padding:18px 22px;
-    display:flex;align-items:center;gap:20px;
-  }
-  .alert-icon{
-    width:48px;height:48px;border-radius:50%;
-    background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);
-    display:flex;align-items:center;justify-content:center;font-size:22px;
-    flex-shrink:0;
-  }
+  /* Alert */
+  .alert{background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:20px;transition:background .3s,border-color .3s;}
+  .alert[data-status="BERISIKO"]{background:#3B1F05;border-color:#78350F;}
+  .alert[data-status="BERBAHAYA"]{background:#3B0A0A;border-color:#7F1D1D;}
+  [data-theme="light"] .alert[data-status="BERISIKO"]{background:#FEF3C7;border-color:#FDE68A;}
+  [data-theme="light"] .alert[data-status="BERBAHAYA"]{background:#FEE2E2;border-color:#FECACA;}
+  .alert[data-status="BERISIKO"] .alert-label,.alert[data-status="BERISIKO"] .alert-desc,.alert[data-status="BERISIKO"] .alert-right-label,.alert[data-status="BERISIKO"] .alert-time,.alert[data-status="BERISIKO"] .alert-interval{color:#FDE68A;}
+  .alert[data-status="BERISIKO"] .alert-title{color:#F59E0B;}
+  .alert[data-status="BERBAHAYA"] .alert-label,.alert[data-status="BERBAHAYA"] .alert-desc,.alert[data-status="BERBAHAYA"] .alert-right-label,.alert[data-status="BERBAHAYA"] .alert-time,.alert[data-status="BERBAHAYA"] .alert-interval{color:#FECACA;}
+  .alert[data-status="BERBAHAYA"] .alert-title{color:#EF4444;}
+  [data-theme="light"] .alert[data-status="BERISIKO"] .alert-label,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-desc,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-right-label,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-time,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-interval{color:#92400E;}
+  [data-theme="light"] .alert[data-status="BERISIKO"] .alert-title{color:#B45309;}
+  [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-desc,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-right-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-time,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-interval{color:#991B1B;}
+  [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-title{color:#DC2626;}
+  .alert-icon{width:48px;height:48px;border-radius:50%;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
   .alert-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   .alert-label{font-size:10.5px;color:var(--alert-text);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
   .alert-title{font-size:22px;font-weight:700;color:var(--alert-title);letter-spacing:-.01em;line-height:1.25}
@@ -152,138 +75,75 @@
   .alert-time{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--alert-text)}
   .alert-interval{font-size:11px;color:var(--alert-text);opacity:.55}
 
-  /* ----- METRIC CARDS ----- */
+  /* Metrics */
   .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   .metric-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
   .metric-label-wrap{display:flex;flex-direction:column;gap:3px}
   .metric-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
   .metric-sub{font-size:11.5px;color:var(--muted-2)}
-  .metric-icon{
-    width:38px;height:38px;border-radius:10px;
-    display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;
-  }
+  .metric-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .metric-icon.sky{background:rgba(56,189,248,.12);color:var(--sky)}
   .metric-icon.amber{background:rgba(245,158,11,.12);color:var(--amber)}
   .metric-icon.blue{background:rgba(59,130,246,.14);color:#60A5FA}
   .metric-icon.red{background:rgba(239,68,68,.12);color:#F87171}
   .metric-icon.emerald{background:rgba(34,197,94,.12);color:#4ADE80}
   .metric-icon.violet{background:rgba(167,139,250,.12);color:var(--violet)}
-
   [data-theme="light"] .metric-icon.red{background:rgba(239,68,68,.1);color:#DC2626}
   [data-theme="light"] .metric-icon.emerald{background:rgba(34,197,94,.1);color:#16A34A}
   [data-theme="light"] .metric-icon.violet{background:rgba(167,139,250,.1);color:#7C3AED}
-
   .metric-value{display:flex;align-items:baseline;gap:8px;margin-bottom:14px}
-  .metric-value .num{
-    font-family:var(--mono);font-size:42px;font-weight:700;
-    color:var(--text-strong);letter-spacing:-.02em;line-height:1;
-  }
+  .metric-value .num{font-family:var(--mono);font-size:42px;font-weight:700;color:var(--text-strong);letter-spacing:-.02em;line-height:1;}
   .metric-value .unit{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.02em}
-
-  .bar{
-    height:6px;background:var(--bar-track);border-radius:999px;overflow:hidden;
-    border:1px solid var(--border-soft);
-  }
-  .bar > i{display:block;height:100%;border-radius:999px}
-  .bar.sky > i{background:var(--sky)}
-  .bar.amber > i{background:var(--amber)}
-  .bar.blue > i{background:#60A5FA}
-
+  .bar{height:6px;background:var(--bar-track);border-radius:999px;overflow:hidden;border:1px solid var(--border-soft);}
+  .bar>i{display:block;height:100%;border-radius:999px;transition:width .5s ease;}
+  .bar.sky>i{background:var(--sky)}.bar.amber>i{background:var(--amber)}.bar.blue>i{background:#60A5FA}
   .metric-foot{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
   .metric-foot .range{font-size:11.5px;color:var(--muted-2)}
-  .trend{
-    font-family:var(--mono);font-size:11px;font-weight:600;color:var(--emerald);
-    background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);
-    padding:3px 7px;border-radius:6px;letter-spacing:.02em;
-  }
+  .trend{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--emerald);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);padding:3px 7px;border-radius:6px;letter-spacing:.02em;}
   .trend.down{color:var(--red);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.22)}
   .trend.flat{color:var(--muted);background:rgba(148,163,184,.08);border-color:rgba(148,163,184,.22)}
 
-  /* ----- CHART + STATS ----- */
+  /* Chart */
   .chart-row{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-
   .chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
   .chart-title{font-size:16px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
   .chart-sub{font-size:12px;color:var(--muted-2);margin-top:2px}
   .legend{display:flex;gap:10px;flex-wrap:wrap}
-  .legend-pill{
-    display:inline-flex;align-items:center;gap:8px;
-    background:var(--legend-bg);border:1px solid var(--border-soft);
-    padding:5px 10px;border-radius:999px;
-    font-size:11px;color:var(--muted);font-weight:500;
-  }
+  .legend-pill{display:inline-flex;align-items:center;gap:8px;background:var(--legend-bg);border:1px solid var(--border-soft);padding:5px 10px;border-radius:999px;font-size:11px;color:var(--muted);font-weight:500;}
   .legend-pill .swatch{width:14px;height:2px;border-radius:1px}
-  .legend-pill .swatch.dashed{
-    background-image:linear-gradient(to right, currentColor 60%, transparent 0%);
-    background-size:5px 2px;background-repeat:repeat-x;background-position:left center;
-    height:2px;
-  }
-  .legend-pill.em{color:#4ADE80}
-  .legend-pill.am{color:#FBBF24}
-  .legend-pill.dn{color:#F87171}
-  [data-theme="light"] .legend-pill.em{color:#16A34A}
-  [data-theme="light"] .legend-pill.am{color:#B45309}
-  [data-theme="light"] .legend-pill.dn{color:#DC2626}
-
+  .legend-pill .swatch.dashed{background-image:linear-gradient(to right,currentColor 60%,transparent 0%);background-size:5px 2px;background-repeat:repeat-x;background-position:left center;height:2px;}
+  .legend-pill.em{color:#4ADE80}.legend-pill.dn{color:#F87171}
+  [data-theme="light"] .legend-pill.em{color:#16A34A}[data-theme="light"] .legend-pill.dn{color:#DC2626}
   .chart-wrap{position:relative;height:300px}
   .chart-wrap svg{display:block;width:100%;height:100%}
 
-  /* ----- STATS PANEL ----- */
+  /* Stats */
   .stats-title{font-size:16px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;margin-bottom:6px}
   .stats-sub{font-size:12px;color:var(--muted-2);margin-bottom:8px}
-  .stat-row{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:14px 0;border-bottom:1px solid var(--border-soft);gap:12px;
-  }
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-soft);gap:12px;}
   .stat-row:last-child{border-bottom:0;padding-bottom:0}
   .stat-row:first-of-type{padding-top:10px}
   .stat-left{display:flex;flex-direction:column;gap:4px;min-width:0}
   .stat-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
   .stat-value{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1}
-  .stat-value.red{color:#F87171}
-  .stat-value.em{color:#4ADE80}
-  .stat-value.sky{color:#7DD3FC}
-  .stat-value.violet{color:#C4B5FD}
-  [data-theme="light"] .stat-value.red{color:#DC2626}
-  [data-theme="light"] .stat-value.em{color:#16A34A}
-  [data-theme="light"] .stat-value.sky{color:#0284C7}
-  [data-theme="light"] .stat-value.violet{color:#7C3AED}
+  .stat-value.red{color:#F87171}.stat-value.em{color:#4ADE80}.stat-value.sky{color:#7DD3FC}.stat-value.violet{color:#C4B5FD}
+  [data-theme="light"] .stat-value.red{color:#DC2626}[data-theme="light"] .stat-value.em{color:#16A34A}
+  [data-theme="light"] .stat-value.sky{color:#0284C7}[data-theme="light"] .stat-value.violet{color:#7C3AED}
 
-  /* ----- DATA LOG TABLE ----- */
+  /* Table */
   .log-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
-  .link{color:var(--sky);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:-.01em}
-  .link:hover{text-decoration:underline}
-
   table{width:100%;border-collapse:collapse;font-size:13px}
-  thead th{
-    text-align:left;
-    font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;
-    background:var(--table-head-bg);
-    padding:11px 14px;
-    border-top:1px solid var(--border-soft);
-    border-bottom:1px solid var(--border-soft);
-  }
+  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);}
   thead th:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid var(--border-soft)}
   thead th:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid var(--border-soft);text-align:right}
   thead th.num{text-align:right}
-  tbody td{
-    padding:14px;border-bottom:1px solid var(--border-soft);
-    color:var(--text);font-family:var(--mono);font-size:13px;
-  }
+  tbody td{padding:14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;}
   tbody tr:last-child td{border-bottom:0}
   tbody tr:hover td{background:var(--table-row-hover)}
-  td.idx{color:var(--muted-2);width:48px}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.idx{color:var(--muted-2);width:48px}td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
   td.last{text-align:right}
-
-  .badge{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:4px 10px;border-radius:999px;
-    font-family:var(--sans);font-size:10.5px;font-weight:700;
-    letter-spacing:.08em;text-transform:uppercase;
-  }
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D}
   .badge.berisiko{background:#3B1F05;color:#FBBF24;border:1px solid #78350F}
   .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D}
@@ -291,54 +151,51 @@
   [data-theme="light"] .badge.berisiko{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
   [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
   .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor}
-
 </style>
 </head>
 <body>
 
-<!-- ================= TOPBAR ================= -->
 <header class="topbar">
   <div class="brand">
-<div class="brand-text">
+    <div class="brand-text">
       <span class="brand-title">EPEN DASHBOARD</span>
       <span class="brand-sub">Monitoring Kualitas Udara Lab DTETI</span>
     </div>
   </div>
 
-  <div class="device-pill" title="ESP32 connected">
+  <div class="device-pill">
     <span class="dot"></span>
-    <span class="device-id">ESP32-EPEN-LAB-01</span>
-    <span class="device-state">TERHUBUNG</span>
+    <div class="device-select-wrap">
+      <select id="deviceSelect" class="device-select">
+        <option>Memuat perangkat...</option>
+      </select>
+      <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <span class="device-state" id="connState">—</span>
   </div>
 
-  <button class="theme-toggle" id="themeToggle" title="Toggle tema" aria-label="Toggle tema">
-    <!-- icon injected by JS -->
-  </button>
+  <button class="theme-toggle" id="themeToggle" title="Toggle tema" aria-label="Toggle tema"></button>
 </header>
 
 <main>
 
-  <!-- ================= ALERT BANNER ================= -->
-  <section class="alert" aria-live="polite">
-    <div class="alert-icon" aria-hidden="true">
+  <section class="alert" id="alertBanner" aria-live="polite">
+    <div class="alert-icon" id="alertIcon" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alert-title)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     </div>
     <div class="alert-body">
       <span class="alert-label">Status Kondisi Udara Terkini</span>
-      <span class="alert-title">AMAN — Kualitas Udara Baik</span>
-      <span class="alert-desc">Seluruh parameter sensor berada dalam rentang aman. Sistem ventilasi beroperasi normal.</span>
+      <span class="alert-title" id="alertTitle">Memuat data...</span>
+      <span class="alert-desc" id="alertDesc">Menghubungkan ke sensor</span>
     </div>
     <div class="alert-right">
       <span class="alert-right-label">Pembaruan terakhir</span>
-      <span class="alert-time" id="lastUpdate">14:32:05</span>
+      <span class="alert-time" id="lastUpdate">—</span>
       <span class="alert-interval">Interval: setiap 5 detik</span>
     </div>
   </section>
 
-  <!-- ================= METRIC CARDS ================= -->
   <section class="metric-grid">
-
-    <!-- Gas -->
     <article class="card">
       <div class="metric-head">
         <div class="metric-label-wrap">
@@ -349,18 +206,14 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78 6 6 0 0 0-11.6 2.28A4 4 0 0 0 6 19h11.5Z"/></svg>
         </div>
       </div>
-      <div class="metric-value">
-        <span class="num">2473</span>
-        <span class="unit">ppb</span>
-      </div>
-      <div class="bar sky"><i style="width:82%"></i></div>
+      <div class="metric-value"><span class="num" id="tvocValue">—</span><span class="unit">ppb</span></div>
+      <div class="bar sky"><i id="tvocBar" style="width:0%"></i></div>
       <div class="metric-foot">
-        <span class="range">Ambang bahaya: 2.200 ppb</span>
-        <span class="trend">+3.2%</span>
+        <span class="range">Ambang bahaya: 2.500 ppb</span>
+        <span class="trend flat" id="tvocTrend">—</span>
       </div>
     </article>
 
-    <!-- Temperature -->
     <article class="card">
       <div class="metric-head">
         <div class="metric-label-wrap">
@@ -371,18 +224,14 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0Z"/></svg>
         </div>
       </div>
-      <div class="metric-value">
-        <span class="num">28.5</span>
-        <span class="unit">°C</span>
-      </div>
-      <div class="bar amber"><i style="width:70%"></i></div>
+      <div class="metric-value"><span class="num" id="suhuValue">—</span><span class="unit">°C</span></div>
+      <div class="bar amber"><i id="suhuBar" style="width:0%"></i></div>
       <div class="metric-foot">
         <span class="range">Rentang optimal: 18–28 °C</span>
-        <span class="trend down">+0.8%</span>
+        <span class="trend flat" id="suhuTrend">—</span>
       </div>
     </article>
 
-    <!-- Humidity -->
     <article class="card">
       <div class="metric-head">
         <div class="metric-label-wrap">
@@ -393,32 +242,25 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 1 1-12 0c0-4 6-11 6-11Z"/></svg>
         </div>
       </div>
-      <div class="metric-value">
-        <span class="num">65.2</span>
-        <span class="unit">%</span>
-      </div>
-      <div class="bar blue"><i style="width:65%"></i></div>
+      <div class="metric-value"><span class="num" id="kelembapanValue">—</span><span class="unit">%</span></div>
+      <div class="bar blue"><i id="kelembapanBar" style="width:0%"></i></div>
       <div class="metric-foot">
         <span class="range">Rentang optimal: 40–60 %</span>
-        <span class="trend down">−1.4%</span>
+        <span class="trend flat" id="kelembapanTrend">—</span>
       </div>
     </article>
-
   </section>
 
-  <!-- ================= CHART + STATS ================= -->
   <section class="chart-row">
-
     <article class="card">
       <div class="chart-head">
         <div>
-          <div class="chart-title">Tren TVOC</div>
-          <div class="chart-sub">30 data terakhir (interval 5 detik)</div>
+          <div class="chart-title">Tren eCO₂</div>
+          <div class="chart-sub">30 data terakhir</div>
         </div>
         <div class="legend">
-          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (220 ppb)</span>
-          <span class="legend-pill am"><span class="swatch dashed"></span>Berisiko (660 ppb)</span>
-          <span class="legend-pill dn"><span class="swatch dashed"></span>Bahaya (2.200 ppb)</span>
+          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (1.000 ppm)</span>
+          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (2.500 ppm)</span>
         </div>
       </div>
       <div class="chart-wrap" id="chartWrap"></div>
@@ -426,125 +268,48 @@
 
     <article class="card">
       <div class="stats-title">Statistik Sesi</div>
-      <div class="stats-sub">Data agregat 5 menit terakhir</div>
-
+      <div class="stats-sub">Agregat 30 pembacaan terakhir</div>
       <div class="stat-row">
-        <div class="stat-left">
-          <span class="stat-label">TVOC Tertinggi</span>
-          <span class="stat-value red">3124 ppb</span>
-        </div>
-        <div class="metric-icon red" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        </div>
+        <div class="stat-left"><span class="stat-label">eCO₂ Tertinggi</span><span class="stat-value red" id="eco2Max">—</span></div>
+        <div class="metric-icon red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
       </div>
-
       <div class="stat-row">
-        <div class="stat-left">
-          <span class="stat-label">TVOC Terendah</span>
-          <span class="stat-value em">872 ppb</span>
-        </div>
-        <div class="metric-icon emerald" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-        </div>
+        <div class="stat-left"><span class="stat-label">eCO₂ Terendah</span><span class="stat-value em" id="eco2Min">—</span></div>
+        <div class="metric-icon emerald"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>
       </div>
-
       <div class="stat-row">
-        <div class="stat-left">
-          <span class="stat-label">Rata-rata TVOC</span>
-          <span class="stat-value sky">1846 ppb</span>
-        </div>
-        <div class="metric-icon sky" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
-        </div>
+        <div class="stat-left"><span class="stat-label">Rata-rata eCO₂</span><span class="stat-value sky" id="eco2Avg">—</span></div>
+        <div class="metric-icon sky"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
       </div>
-
       <div class="stat-row">
-        <div class="stat-left">
-          <span class="stat-label">Duty Cycle Kipas</span>
-          <span class="stat-value violet">73%</span>
-        </div>
-        <div class="metric-icon violet" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
-        </div>
+        <div class="stat-left"><span class="stat-label">Duty Cycle Kipas</span><span class="stat-value violet" id="fanDuty">—</span></div>
+        <div class="metric-icon violet"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg></div>
       </div>
     </article>
-
   </section>
 
-  <!-- ================= DATA LOG TABLE ================= -->
   <section class="card">
     <div class="log-head">
       <div>
         <div class="chart-title">Log Data Terakhir</div>
         <div class="chart-sub">5 record terbaru dari sensor</div>
       </div>
-      <a href="#" class="link">Lihat Semua Data →</a>
     </div>
-
     <table>
       <thead>
         <tr>
           <th style="width:48px">#</th>
           <th>Waktu</th>
+          <th class="num">eCO₂ (ppm)</th>
           <th class="num">TVOC (ppb)</th>
-          <th class="num">eCO2 (ppm)</th>
           <th class="num">Suhu (°C)</th>
           <th class="num">Kelembapan (%)</th>
           <th>Status AI</th>
           <th class="num">Kipas</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td class="idx">1</td>
-          <td>14:32:05</td>
-          <td class="ppm">2473</td>
-          <td class="num">412</td>
-          <td class="num">28.5</td>
-          <td class="num">65.2</td>
-          <td><span class="badge aman"><span class="dot-s"></span>Aman</span></td>
-          <td class="last">73%</td>
-        </tr>
-        <tr>
-          <td class="idx">2</td>
-          <td>14:32:00</td>
-          <td class="ppm">2358</td>
-          <td class="num">408</td>
-          <td class="num">28.6</td>
-          <td class="num">65.0</td>
-          <td><span class="badge aman"><span class="dot-s"></span>Aman</span></td>
-          <td class="last">68%</td>
-        </tr>
-        <tr>
-          <td class="idx">3</td>
-          <td>14:31:55</td>
-          <td class="ppm">1984</td>
-          <td class="num">456</td>
-          <td class="num">28.4</td>
-          <td class="num">65.5</td>
-          <td><span class="badge berisiko"><span class="dot-s"></span>Berisiko</span></td>
-          <td class="last">52%</td>
-        </tr>
-        <tr>
-          <td class="idx">4</td>
-          <td>14:31:50</td>
-          <td class="ppm">1672</td>
-          <td class="num">443</td>
-          <td class="num">28.3</td>
-          <td class="num">66.1</td>
-          <td><span class="badge berisiko"><span class="dot-s"></span>Berisiko</span></td>
-          <td class="last">41%</td>
-        </tr>
-        <tr>
-          <td class="idx">5</td>
-          <td>14:31:45</td>
-          <td class="ppm">1439</td>
-          <td class="num">421</td>
-          <td class="num">28.5</td>
-          <td class="num">65.8</td>
-          <td><span class="badge aman"><span class="dot-s"></span>Aman</span></td>
-          <td class="last">35%</td>
-        </tr>
+      <tbody id="logTableBody">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Memuat data...</td></tr>
       </tbody>
     </table>
   </section>
@@ -552,157 +317,170 @@
 </main>
 
 <script>
-/* =========================================================
-   THEME TOGGLE
-   ========================================================= */
+/* THEME TOGGLE */
 (function(){
-  const root = document.documentElement;
-  const btn  = document.getElementById('themeToggle');
-
-  const MOON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
-  const SUN_SVG  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
-
-  function applyTheme(theme){
-    root.dataset.theme = theme;
-    // light mode → show moon (switch to dark); dark mode → show sun (switch to light)
-    btn.innerHTML = theme === 'light' ? MOON_SVG : SUN_SVG;
-    btn.title = theme === 'light' ? 'Beralih ke mode gelap' : 'Beralih ke mode terang';
-    try{ localStorage.setItem('epen-theme', theme); }catch(e){}
-    renderChart();
+  const root=document.documentElement, btn=document.getElementById('themeToggle');
+  const MOON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
+  const SUN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  function applyTheme(t){
+    root.dataset.theme=t;
+    btn.innerHTML=t==='light'?MOON:SUN;
+    btn.title=t==='light'?'Beralih ke mode gelap':'Beralih ke mode terang';
+    try{localStorage.setItem('epen-theme',t)}catch(e){}
+    if(window._chartData) renderChart(window._chartData);
   }
-
-  btn.addEventListener('click', () => {
-    applyTheme(root.dataset.theme === 'light' ? 'dark' : 'light');
-  });
-
-  // Init: respect saved preference, else default light
-  const saved = (()=>{ try{ return localStorage.getItem('epen-theme'); }catch(e){ return null; } })();
-  applyTheme(saved === 'dark' ? 'dark' : 'light');
+  btn.addEventListener('click',()=>applyTheme(root.dataset.theme==='light'?'dark':'light'));
+  const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
+  applyTheme(saved==='dark'?'dark':'light');
 })();
 
-/* =========================================================
-   CHART RENDER — 30-point area chart, sky blue, dashed thresholds
-   ========================================================= */
-function renderChart(){
-  const wrap = document.getElementById('chartWrap');
-  const W = wrap.clientWidth || 760;
-  const H = wrap.clientHeight || 300;
-  const pad = { t: 14, r: 14, b: 28, l: 44 };
-
-  const isLight = document.documentElement.dataset.theme === 'light';
-  const gridColor   = isLight ? '#E2E8F0' : '#1E293B';
-  const axisColor   = isLight ? '#94A3B8' : '#64748B';
-  const dotFill     = isLight ? '#FFFFFF' : '#0F172A';
-
-  const yMin = 0, yMax = 3000;
-  const N = 30;
-
-  const seedData = [
-    880, 920, 950, 910, 990, 1040, 1120, 1180, 1240, 1210,
-    1300, 1420, 1510, 1480, 1620, 1780, 1850, 1920, 1880, 2050,
-    2140, 2220, 2190, 2310, 2400, 2360, 2440, 2510, 2470, 2473
-  ];
-
-  const xAt = i => pad.l + (i/(N-1)) * (W - pad.l - pad.r);
-  const yAt = v => pad.t + (1 - (v - yMin)/(yMax - yMin)) * (H - pad.t - pad.b);
-
-  function smoothPath(pts){
-    if(pts.length < 2) return '';
-    let d = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
+/* CHART */
+function renderChart(points){
+  window._chartData=points;
+  const wrap=document.getElementById('chartWrap');
+  const W=wrap.clientWidth||760, H=wrap.clientHeight||300;
+  const pad={t:14,r:14,b:28,l:52};
+  const isLight=document.documentElement.dataset.theme==='light';
+  const gridColor=isLight?'#E2E8F0':'#1E293B';
+  const axisColor=isLight?'#94A3B8':'#64748B';
+  const dotFill=isLight?'#FFFFFF':'#0F172A';
+  const N=points.length;
+  if(!N) return;
+  const yMin=0, yMax=Math.max(3000,Math.max(...points)*1.2);
+  const xAt=i=>pad.l+(i/(N-1||1))*(W-pad.l-pad.r);
+  const yAt=v=>pad.t+(1-(v-yMin)/(yMax-yMin))*(H-pad.t-pad.b);
+  function sp(pts){
+    if(pts.length<2) return `M ${pts[0][0]} ${pts[0][1]}`;
+    let d=`M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
     for(let i=0;i<pts.length-1;i++){
-      const p0 = pts[i-1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i+1];
-      const p3 = pts[i+2] || p2;
-      const t = 0.18;
-      const c1x = p1[0] + (p2[0]-p0[0]) * t;
-      const c1y = p1[1] + (p2[1]-p0[1]) * t;
-      const c2x = p2[0] - (p3[0]-p1[0]) * t;
-      const c2y = p2[1] - (p3[1]-p1[1]) * t;
-      d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+      const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2,t=0.18;
+      const c1x=p1[0]+(p2[0]-p0[0])*t,c1y=p1[1]+(p2[1]-p0[1])*t;
+      const c2x=p2[0]-(p3[0]-p1[0])*t,c2y=p2[1]-(p3[1]-p1[1])*t;
+      d+=` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
     }
     return d;
   }
+  const pts=points.map((v,i)=>[xAt(i),yAt(v)]);
+  const line=sp(pts);
+  const area=line+` L ${xAt(N-1).toFixed(2)} ${yAt(0).toFixed(2)} L ${xAt(0).toFixed(2)} ${yAt(0).toFixed(2)} Z`;
+  const step=yMax<=3000?500:1000;
+  const ys=Array.from({length:Math.ceil(yMax/step)+1},(_,i)=>i*step).filter(v=>v<=yMax);
+  const grid=ys.map(v=>{const y=yAt(v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${gridColor}" stroke-width="1"/><text x="${pad.l-8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${v}</text>`;}).join('');
+  const thresh=[{v:1000,c:'#22C55E'},{v:2500,c:'#EF4444'}].filter(t=>t.v<=yMax).map(t=>{const y=yAt(t.v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.c}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.55"/>`;}).join('');
+  const lx=xAt(N-1).toFixed(2),ly=yAt(points[N-1]).toFixed(2);
+  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38BDF8" stop-opacity="0.32"/><stop offset="60%" stop-color="#38BDF8" stop-opacity="0.10"/><stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs>
+    <text x="${pad.l-10}" y="${pad.t-4}" text-anchor="end" fill="#38BDF8" font-family="JetBrains Mono" font-size="9" font-style="italic">ppm</text>
+    ${grid}${thresh}
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${line}" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lx}" cy="${ly}" r="4.5" fill="${dotFill}" stroke="#38BDF8" stroke-width="2"/>
+    <circle cx="${lx}" cy="${ly}" r="9" fill="none" stroke="#38BDF8" stroke-opacity="0.25" stroke-width="2">
+      <animate attributeName="r" values="6;12;6" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+  </svg>`;
+}
+let raf;
+window.addEventListener('resize',()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{if(window._chartData)renderChart(window._chartData);});});
 
-  const pts = seedData.map((v,i) => [xAt(i), yAt(v)]);
-  const linePath = smoothPath(pts);
-  const areaPath = linePath + ` L ${xAt(N-1).toFixed(2)} ${yAt(yMin).toFixed(2)} L ${xAt(0).toFixed(2)} ${yAt(yMin).toFixed(2)} Z`;
+/* STATUS CONFIG */
+const STATUS={
+  AMAN:{title:'AMAN — Kualitas Udara Baik',desc:'Seluruh parameter sensor berada dalam rentang aman.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alert-title)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`},
+  BERISIKO:{title:'BERISIKO — Kualitas Udara Perlu Perhatian',desc:'Kadar eCO₂ meningkat. Pastikan ventilasi ruangan berjalan baik.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
+  BERBAHAYA:{title:'BERBAHAYA — Kualitas Udara Buruk',desc:'Level eCO₂ berbahaya! Segera tingkatkan ventilasi atau evakuasi ruangan.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
+};
 
-  const ySteps = [0, 500, 1000, 1500, 2000, 2500, 3000];
-  const gridLines = ySteps.map(v => {
-    const y = yAt(v).toFixed(2);
-    return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>` +
-           `<text x="${pad.l - 8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${v}</text>`;
-  }).join('');
+/* DASHBOARD UPDATE */
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('id-ID',{timeZone:'Asia/Jakarta',hour12:false});}
+function calcTrend(curr,prev){
+  if(prev==null||prev===0) return{text:'—',cls:'flat'};
+  const p=((curr-prev)/prev*100).toFixed(1);
+  return p>0?{text:`+${p}%`,cls:'down'}:{text:`${p}%`,cls:''};
+}
+function setTrend(id,t){const el=document.getElementById(id);el.textContent=t.text;el.className='trend'+(t.cls?' '+t.cls:'');}
 
-  const thresholds = [
-    {v: 220,  color:'#22C55E'},
-    {v: 660,  color:'#F59E0B'},
-    {v: 2200, color:'#EF4444'}
-  ].map(t => {
-    const y = yAt(t.v).toFixed(2);
-    return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.color}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.55"/>`;
-  }).join('');
+function updateDashboard(data){
+  if(!data||!data.length) return;
+  const lat=data[0], prev=data[1]??null;
+  const status=lat.status??'AMAN';
+  const cfg=STATUS[status]??STATUS.AMAN;
 
-  const baseSec = 14*3600 + 32*5;
-  const xTickIdx = [0, 6, 12, 18, 24, 29];
-  const xTicks = xTickIdx.map(i => {
-    const t = baseSec - (29 - i) * 5;
-    const hh = String(Math.floor(t/3600)).padStart(2,'0');
-    const mm = String(Math.floor((t%3600)/60)).padStart(2,'0');
-    const ss = String(t%60).padStart(2,'0');
-    return `<text x="${xAt(i).toFixed(2)}" y="${H - 8}" text-anchor="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${hh}:${mm}:${ss}</text>`;
-  }).join('');
+  // Alert
+  const banner=document.getElementById('alertBanner');
+  banner.dataset.status=status;
+  document.getElementById('alertIcon').innerHTML=cfg.icon;
+  document.getElementById('alertTitle').textContent=cfg.title;
+  document.getElementById('alertDesc').textContent=cfg.desc;
+  document.getElementById('lastUpdate').textContent=fmtTime(lat.recorded_at);
 
-  const lastX = xAt(N-1).toFixed(2);
-  const lastY = yAt(seedData[N-1]).toFixed(2);
+  // Metrics
+  document.getElementById('tvocValue').textContent=lat.tvoc_pb.toLocaleString('id-ID');
+  document.getElementById('suhuValue').textContent=lat.temperature_celsius;
+  document.getElementById('kelembapanValue').textContent=lat.humidity_percent;
+  document.getElementById('tvocBar').style.width=Math.min(lat.tvoc_pb/3000*100,100)+'%';
+  document.getElementById('suhuBar').style.width=Math.min(lat.temperature_celsius/50*100,100)+'%';
+  document.getElementById('kelembapanBar').style.width=Math.min(lat.humidity_percent,100)+'%';
+  setTrend('tvocTrend',calcTrend(lat.tvoc_pb,prev?.tvoc_pb));
+  setTrend('suhuTrend',calcTrend(lat.temperature_celsius,prev?.temperature_celsius));
+  setTrend('kelembapanTrend',calcTrend(lat.humidity_percent,prev?.humidity_percent));
 
-  const svg = `
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#38BDF8" stop-opacity="0.32"/>
-          <stop offset="60%"  stop-color="#38BDF8" stop-opacity="0.10"/>
-          <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
-      <text x="${pad.l - 10}" y="${pad.t - 4}" text-anchor="end" fill="#38BDF8" font-family="JetBrains Mono" font-size="9" font-style="italic">ppb</text>
-      ${gridLines}
-      ${thresholds}
-      <path d="${areaPath}" fill="url(#areaFill)"/>
-      <path d="${linePath}" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${lastX}" cy="${lastY}" r="4.5" fill="${dotFill}" stroke="#38BDF8" stroke-width="2"/>
-      <circle cx="${lastX}" cy="${lastY}" r="9" fill="none" stroke="#38BDF8" stroke-opacity="0.25" stroke-width="2">
-        <animate attributeName="r" values="6;12;6" dur="2.4s" repeatCount="indefinite"/>
-        <animate attributeName="stroke-opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/>
-      </circle>
-      ${xTicks}
-    </svg>
-  `;
-  wrap.innerHTML = svg;
+  // Stats
+  const eco2s=data.map(d=>d.eco2_ppm);
+  document.getElementById('eco2Max').textContent=Math.max(...eco2s).toLocaleString('id-ID')+' ppm';
+  document.getElementById('eco2Min').textContent=Math.min(...eco2s).toLocaleString('id-ID')+' ppm';
+  document.getElementById('eco2Avg').textContent=Math.round(eco2s.reduce((a,b)=>a+b,0)/eco2s.length).toLocaleString('id-ID')+' ppm';
+  document.getElementById('fanDuty').textContent=lat.fan_duty_cycle+'%';
+
+  // Chart
+  renderChart([...data].reverse().map(d=>d.eco2_ppm));
+
+  // Table
+  const badgeMap={AMAN:'aman',BERISIKO:'berisiko',BERBAHAYA:'bahaya'};
+  document.getElementById('logTableBody').innerHTML=data.slice(0,5).map((d,i)=>`
+    <tr>
+      <td class="idx">${i+1}</td>
+      <td>${fmtTime(d.recorded_at)}</td>
+      <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
+      <td class="num">${d.tvoc_pb.toLocaleString('id-ID')}</td>
+      <td class="num">${d.temperature_celsius}</td>
+      <td class="num">${d.humidity_percent}</td>
+      <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
+      <td class="last">${d.fan_duty_cycle}%</td>
+    </tr>`).join('');
 }
 
-let raf;
-window.addEventListener('resize', () => {
-  cancelAnimationFrame(raf);
-  raf = requestAnimationFrame(renderChart);
-});
+/* FETCH */
+let currentDeviceId=null;
 
-/* =========================================================
-   LIVE CLOCK on the alert banner
-   ========================================================= */
-(function(){
-  const el = document.getElementById('lastUpdate');
-  let baseSec = 14*3600 + 32*5;
-  setInterval(() => {
-    baseSec += 5;
-    const hh = String(Math.floor(baseSec/3600) % 24).padStart(2,'0');
-    const mm = String(Math.floor((baseSec%3600)/60)).padStart(2,'0');
-    const ss = String(baseSec%60).padStart(2,'0');
-    el.textContent = `${hh}:${mm}:${ss}`;
-  }, 5000);
-})();
+async function loadSensorData(deviceId){
+  try{
+    const res=await fetch(`/api/sensor?device_id=${deviceId}&limit=30`);
+    const {data}=await res.json();
+    updateDashboard(data);
+  }catch(e){console.error('[sensor]',e);}
+}
+
+async function loadDevices(){
+  try{
+    const res=await fetch('/api/devices');
+    const {data}=await res.json();
+    const sel=document.getElementById('deviceSelect');
+    sel.innerHTML=data.map(d=>`<option value="${d.id}">${d.device_name} — ${d.location}</option>`).join('');
+    if(data.length){
+      currentDeviceId=data[0].id;
+      document.getElementById('connState').textContent='TERHUBUNG';
+      loadSensorData(currentDeviceId);
+    }
+    sel.addEventListener('change',()=>{currentDeviceId=sel.value;loadSensorData(currentDeviceId);});
+  }catch(e){
+    console.error('[devices]',e);
+    document.getElementById('connState').textContent='ERROR';
+  }
+}
+
+setInterval(()=>{if(currentDeviceId) loadSensorData(currentDeviceId);},5000);
+loadDevices();
 </script>
 
 </body>

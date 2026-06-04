@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model SensorReading {
+  id         String    @id @default(cuid())
+  deviceId   String
+  eco2       Int
+  tvoc       Int?
+  suhu       Float
+  kelembaban Float
+  status     EcoStatus
+  createdAt  DateTime  @default(now())
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@map("sensor_readings")
+}
+
+enum EcoStatus {
+  AMAN
+  SEDANG
+  BERISIKO
+  BAHAYA
+}
+
+model NotificationLog {
+  id       String    @id @default(cuid())
+  deviceId String
+  eco2     Int
+  status   EcoStatus
+  sentAt   DateTime  @default(now())
+
+  @@index([deviceId])
+  @@index([sentAt])
+  @@map("notification_logs")
+}

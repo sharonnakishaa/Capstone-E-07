@@ -4,8 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
   },
   "repository": {
     "type": "git",
@@ -19,12 +24,23 @@
   },
   "homepage": "https://github.com/sharonnakishaa/Capstone-E-07#readme",
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.107.0",
+    "@types/node": "^25.9.1",
+    "@types/nodemailer": "^8.0.0",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "pg": "^8.21.0"
+    "next": "^16.2.7",
+    "nodemailer": "^8.0.10",
+    "pg": "^8.21.0",
+    "prisma": "^6.19.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

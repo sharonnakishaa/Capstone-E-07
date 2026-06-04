@@ -53,6 +53,11 @@ interface SensorPayload {
 const NOTIF_COOLDOWN_MS = 15 * 60 * 1000
 
 export async function POST(req: NextRequest) {
+  const apiKey = req.headers.get('x-api-key')
+  if (!apiKey || apiKey !== process.env.API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   let body: SensorPayload
 
   try {

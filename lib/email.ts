@@ -1,12 +1,13 @@
 import nodemailer from 'nodemailer'
-import { EcoStatus, ECO2_THRESHOLDS } from './sensor'
+import { StatusLabel, ECO2_THRESHOLDS } from './sensor'
 
 export interface WarningEmailPayload {
-  deviceId: string
-  eco2: number
-  suhu: number
-  kelembaban: number
-  status: EcoStatus
+  device_id: string
+  eco2_ppm: number
+  tvoc_pb: number
+  temperature_celsius: number
+  humidity_percent: number
+  status: StatusLabel
   timestamp: Date
 }
 
@@ -21,11 +22,11 @@ const transporter = nodemailer.createTransport({
 })
 
 function buildHtml(p: WarningEmailPayload): string {
-  const { deviceId, eco2, suhu, kelembaban, status, timestamp } = p
+  const { device_id, eco2_ppm, tvoc_pb, temperature_celsius, humidity_percent, status, timestamp } = p
   const t = ECO2_THRESHOLDS[status]
-  const isCritical = status === 'BAHAYA'
+  const isCritical = status === 'BERBAHAYA'
 
-  const thresholdRows = (Object.entries(ECO2_THRESHOLDS) as [EcoStatus, typeof ECO2_THRESHOLDS[EcoStatus]][])
+  const thresholdRows = (Object.entries(ECO2_THRESHOLDS) as [StatusLabel, typeof ECO2_THRESHOLDS[StatusLabel]][])
     .map(([key, val]) => {
       const range = val.max === Infinity
         ? `≥ ${val.min.toLocaleString('id-ID')} ppm`
@@ -57,8 +58,8 @@ function buildHtml(p: WarningEmailPayload): string {
     <!-- Body -->
     <div style="padding:28px 32px;">
       <p style="color:#475569;margin-top:0;line-height:1.6;">
-        Perangkat <strong style="color:#0F172A;font-family:monospace;">${deviceId}</strong> mendeteksi
-        kadar eCO₂ sebesar <strong style="color:${t.color};font-family:monospace;">${eco2.toLocaleString('id-ID')} ppm</strong>
+        Perangkat <strong style="color:#0F172A;font-family:monospace;">${device_id}</strong> mendeteksi
+        kadar eCO₂ sebesar <strong style="color:${t.color};font-family:monospace;">${eco2_ppm.toLocaleString('id-ID')} ppm</strong>
         yang masuk kategori <strong style="color:${t.color};">${t.label}</strong>.
         Harap segera periksa kondisi ruangan.
       </p>
@@ -74,15 +75,19 @@ function buildHtml(p: WarningEmailPayload): string {
         <tbody>
           <tr style="border-bottom:1px solid #F1F5F9;">
             <td style="padding:13px 14px;color:#475569;">eCO₂</td>
-            <td style="padding:13px 14px;text-align:right;font-weight:700;color:${t.color};font-family:monospace;">${eco2.toLocaleString('id-ID')} ppm</td>
+            <td style="padding:13px 14px;text-align:right;font-weight:700;color:${t.color};font-family:monospace;">${eco2_ppm.toLocaleString('id-ID')} ppm</td>
+          </tr>
+          <tr style="border-bottom:1px solid #F1F5F9;">
+            <td style="padding:13px 14px;color:#475569;">TVOC</td>
+            <td style="padding:13px 14px;text-align:right;font-family:monospace;">${tvoc_pb.toLocaleString('id-ID')} ppb</td>
           </tr>
           <tr style="border-bottom:1px solid #F1F5F9;">
             <td style="padding:13px 14px;color:#475569;">Suhu</td>
-            <td style="padding:13px 14px;text-align:right;font-family:monospace;">${suhu} °C</td>
+            <td style="padding:13px 14px;text-align:right;font-family:monospace;">${temperature_celsius} °C</td>
           </tr>
           <tr>
             <td style="padding:13px 14px;color:#475569;">Kelembapan</td>
-            <td style="padding:13px 14px;text-align:right;font-family:monospace;">${kelembaban} %</td>
+            <td style="padding:13px 14px;text-align:right;font-family:monospace;">${humidity_percent} %</td>
           </tr>
         </tbody>
       </table>
@@ -116,15 +121,15 @@ export async function sendWarningEmail(payload: WarningEmailPayload): Promise<vo
     return
   }
 
-  const { status, eco2, deviceId } = payload
+  const { status, eco2_ppm, device_id } = payload
   const label = ECO2_THRESHOLDS[status].label
 
   await transporter.sendMail({
     from: `"EPEN Monitor 🌿" <${process.env.SMTP_USER}>`,
     to: recipients.join(', '),
-    subject: `[EPEN ${label.toUpperCase()}] eCO₂ ${eco2.toLocaleString('id-ID')} ppm — ${deviceId}`,
+    subject: `[EPEN ${label.toUpperCase()}] eCO₂ ${eco2_ppm.toLocaleString('id-ID')} ppm — ${device_id}`,
     html: buildHtml(payload),
   })
 
-  console.info(`[email] Warning sent to ${recipients.join(', ')} — ${status} (${eco2} ppm)`)
+  console.info(`[email] Warning sent to ${recipients.join(', ')} — ${status} (${eco2_ppm} ppm)`)
 }

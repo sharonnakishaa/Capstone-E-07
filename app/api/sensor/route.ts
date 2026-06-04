@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getEcoStatus, shouldNotify } from '@/lib/sensor'
+import { getStatusLabel, getConfidences, shouldNotify } from '@/lib/sensor'
 import { sendWarningEmail } from '@/lib/email'
 
 interface SensorPayload {
-  deviceID: string
-  eco2: number
-  tvoc?: number
-  suhu: number
-  kelembaban: number
+  device_id: string
+  tvoc_pb: number
+  eco2_ppm: number
+  temperature_celsius: number
+  humidity_percent: number
+  fan_duty_cycle: number
+  dust_density_ugm3?: number
 }
 
-// Cooldown: kirim notif maks 1x per 15 menit per device
 const NOTIF_COOLDOWN_MS = 15 * 60 * 1000
 
 export async function POST(req: NextRequest) {
@@ -23,65 +24,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Body bukan JSON valid' }, { status: 400 })
   }
 
-  const { deviceID, eco2, tvoc, suhu, kelembaban } = body
+  const { device_id, tvoc_pb, eco2_ppm, temperature_celsius, humidity_percent, fan_duty_cycle, dust_density_ugm3 } = body
 
-  if (!deviceID || eco2 == null || suhu == null || kelembaban == null) {
+  if (!device_id || eco2_ppm == null || tvoc_pb == null || temperature_celsius == null || humidity_percent == null || fan_duty_cycle == null) {
     return NextResponse.json(
-      { error: 'Field wajib tidak lengkap: deviceID, eco2, suhu, kelembaban' },
+      { error: 'Field wajib tidak lengkap: device_id, tvoc_pb, eco2_ppm, temperature_celsius, humidity_percent, fan_duty_cycle' },
       { status: 400 }
     )
   }
 
-  if (typeof eco2 !== 'number' || typeof suhu !== 'number' || typeof kelembaban !== 'number') {
-    return NextResponse.json({ error: 'eco2, suhu, kelembaban harus berupa angka' }, { status: 400 })
-  }
+  const status = getStatusLabel(eco2_ppm)
+  const confidences = getConfidences(status)
 
-  const status = getEcoStatus(eco2)
-
-  const reading = await prisma.sensorReading.create({
+  // Simpan data sensor
+  const log = await prisma.sensor_logs.create({
     data: {
-      deviceId: deviceID,
-      eco2,
-      tvoc: tvoc ?? null,
-      suhu,
-      kelembaban,
-      status,
+      device_id,
+      tvoc_pb,
+      eco2_ppm,
+      temperature_celsius,
+      humidity_percent,
+      fan_duty_cycle,
+      dust_density_ugm3: dust_density_ugm3 ?? null,
     },
   })
 
-  // Kirim email jika level BERISIKO atau BAHAYA
+  // Simpan prediksi kualitas udara
+  await prisma.air_quality_predictions.create({
+    data: {
+      sensor_log_id: log.id,
+      status_label: status,
+      ...confidences,
+    },
+  })
+
+  // Kirim email jika BERISIKO atau BERBAHAYA
   if (shouldNotify(status)) {
-    const recentNotif = await prisma.notificationLog.findFirst({
+    const recentNotif = await prisma.air_quality_predictions.findFirst({
       where: {
-        deviceId: deviceID,
-        sentAt: { gte: new Date(Date.now() - NOTIF_COOLDOWN_MS) },
+        sensor_log: { device_id },
+        status_label: { in: ['BERISIKO', 'BERBAHAYA'] },
+        predicted_at: { gte: new Date(Date.now() - NOTIF_COOLDOWN_MS) },
       },
-      orderBy: { sentAt: 'desc' },
+      orderBy: { predicted_at: 'desc' },
     })
 
-    if (!recentNotif) {
+    // Jika record ini sendiri — skip, cari yang sebelumnya
+    const isFirstAlert = !recentNotif || recentNotif.id === log.id
+
+    if (isFirstAlert) {
       try {
         await sendWarningEmail({
-          deviceId: deviceID,
-          eco2,
-          suhu,
-          kelembaban,
+          device_id,
+          eco2_ppm,
+          tvoc_pb,
+          temperature_celsius,
+          humidity_percent,
           status,
-          timestamp: reading.createdAt,
-        })
-
-        await prisma.notificationLog.create({
-          data: { deviceId: deviceID, eco2, status },
+          timestamp: log.recorded_at,
         })
       } catch (emailErr) {
-        // Gagal kirim email tidak boleh gagalkan penyimpanan data
         console.error('[sensor] Gagal kirim email:', emailErr)
       }
     }
   }
 
-  return NextResponse.json(
-    { success: true, id: reading.id, status },
-    { status: 201 }
-  )
+  return NextResponse.json({ success: true, id: log.id.toString(), status }, { status: 201 })
 }

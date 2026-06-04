@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>EPEN — Log Data Sensor</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
+    --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
+    --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;--violet:#A78BFA;
+    --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --topbar-bg:#0F172A;--table-head-bg:#172033;--table-row-hover:rgba(56,189,248,.025);
+  }
+  [data-theme="light"]{
+    --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
+    --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
+    --topbar-bg:#FFFFFF;--table-head-bg:#F1F5F9;--table-row-hover:rgba(56,189,248,.04);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  body{min-height:100vh;font-size:14px;}
+
+  /* TOPBAR */
+  .topbar{height:64px;border-bottom:1px solid var(--border);background:var(--topbar-bg);display:flex;align-items:center;padding:0 32px;gap:16px;position:sticky;top:0;z-index:10;}
+  .brand-text{display:flex;flex-direction:column;line-height:1.15}
+  .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
+  .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s,color .15s;margin-left:auto;}
+  .back-btn:hover{background:var(--border);color:var(--text)}
+  .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;flex-shrink:0;}
+  .theme-toggle:hover{background:var(--border);color:var(--text)}
+  .theme-toggle svg{width:18px;height:18px}
+
+  /* LAYOUT */
+  main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .toolbar-title{font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;}
+  .toolbar-sub{font-size:12px;color:var(--muted-2);margin-top:2px;}
+  .toolbar-info{margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  .device-select-wrap{position:relative;display:flex;align-items:center;}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 32px 8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer;outline:none;}
+  .device-select option{background:var(--surface);color:var(--text);}
+  .select-chevron{position:absolute;right:10px;pointer-events:none;color:var(--muted-2);}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);}
+  thead th:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid var(--border-soft);}
+  thead th:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid var(--border-soft);text-align:right;}
+  thead th.num{text-align:right;}
+  tbody td{padding:13px 14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;}
+  tbody tr:last-child td{border-bottom:0;}
+  tbody tr:hover td{background:var(--table-row-hover);}
+  td.idx{color:var(--muted-2);width:56px;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+  td.last{text-align:right;}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D;}
+  .badge.berisiko{background:#3B1F05;color:#FBBF24;border:1px solid #78350F;}
+  .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D;}
+  [data-theme="light"] .badge.aman{background:#DCFCE7;color:#15803D;border-color:#86EFAC;}
+  [data-theme="light"] .badge.berisiko{background:#FEF3C7;color:#92400E;border-color:#FDE68A;}
+  [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA;}
+  .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+  /* PAGINATION */
+  .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;flex-wrap:wrap;}
+  .pg-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s;font-family:var(--sans);}
+  .pg-btn:hover:not(:disabled){background:var(--border);color:var(--text);}
+  .pg-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .pg-btn.active{background:var(--sky);border-color:var(--sky);color:#082F49;}
+  .pg-sep{color:var(--muted-2);font-size:13px;padding:0 4px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-text">
+    <span class="brand-title">EPEN DASHBOARD</span>
+    <span class="brand-sub">Log Data Sensor</span>
+  </div>
+
+  <div class="device-select-wrap">
+    <select id="deviceSelect" class="device-select">
+      <option>Memuat...</option>
+    </select>
+    <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+
+  <a href="/index.html" class="back-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Dashboard
+  </a>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
+</header>
+
+<main>
+  <div class="card">
+    <div class="toolbar">
+      <div>
+        <div class="toolbar-title">Log Data Lengkap</div>
+        <div class="toolbar-sub" id="toolbarSub">Memuat data...</div>
+      </div>
+      <div class="toolbar-info" id="toolbarInfo"></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:56px">#</th>
+          <th>Waktu</th>
+          <th class="num">eCO₂ (ppm)</th>
+          <th class="num">TVOC (ppb)</th>
+          <th class="num">Suhu (°C)</th>
+          <th class="num">Kelembapan (%)</th>
+          <th>Status AI</th>
+          <th class="num">Kipas</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Memuat data...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<script>
+/* THEME */
+(function(){
+  const root=document.documentElement,btn=document.getElementById('themeToggle');
+  const MOON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
+  const SUN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  function apply(t){root.dataset.theme=t;btn.innerHTML=t==='light'?MOON:SUN;try{localStorage.setItem('epen-theme',t)}catch(e){}}
+  btn.addEventListener('click',()=>apply(root.dataset.theme==='light'?'dark':'light'));
+  const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
+  apply(saved==='dark'?'dark':'light');
+})();
+
+/* STATE */
+let currentDeviceId = null;
+let currentPage     = 1;
+let totalPages      = 1;
+let totalRecords    = 0;
+
+/* HELPERS */
+function fmtTime(iso){
+  return new Date(iso).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',hour12:false,
+    day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+/* RENDER TABLE */
+function renderTable(data, page) {
+  const badgeMap = {AMAN:'aman',BERISIKO:'berisiko',BERBAHAYA:'bahaya'};
+  const offset   = (page - 1) * 50;
+
+  document.getElementById('logTableBody').innerHTML = data.length
+    ? data.map((d, i) => `
+        <tr>
+          <td class="idx">${offset + i + 1}</td>
+          <td>${fmtTime(d.recorded_at)}</td>
+          <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
+          <td class="num">${d.tvoc_pb.toLocaleString('id-ID')}</td>
+          <td class="num">${d.temperature_celsius}</td>
+          <td class="num">${d.humidity_percent}</td>
+          <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
+          <td class="last">${d.fan_duty_cycle}%</td>
+        </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
+}
+
+/* RENDER PAGINATION */
+function renderPagination() {
+  const el  = document.getElementById('pagination');
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+  const pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('…');
+    for (let i = Math.max(2, currentPage-1); i <= Math.min(totalPages-1, currentPage+1); i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push('…');
+    pages.push(totalPages);
+  }
+
+  el.innerHTML = `
+    <button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    ${pages.map(p => p === '…'
+      ? `<span class="pg-sep">…</span>`
+      : `<button class="pg-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`
+    ).join('')}
+    <button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>`;
+}
+
+/* LOAD DATA */
+async function loadPage(page) {
+  if (!currentDeviceId) return;
+  currentPage = page;
+
+  document.getElementById('logTableBody').innerHTML =
+    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Memuat...</td></tr>';
+
+  const res  = await fetch(`/api/sensor?device_id=${currentDeviceId}&page=${page}`);
+  const json = await res.json();
+
+  totalRecords = json.total;
+  totalPages   = json.totalPages;
+
+  const from = (page - 1) * 50 + 1;
+  const to   = Math.min(page * 50, totalRecords);
+
+  document.getElementById('toolbarSub').textContent =
+    `Total ${totalRecords.toLocaleString('id-ID')} record`;
+  document.getElementById('toolbarInfo').textContent =
+    `Menampilkan ${from}–${to} dari ${totalRecords.toLocaleString('id-ID')}`;
+
+  renderTable(json.data, page);
+  renderPagination();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goPage(page) {
+  if (page < 1 || page > totalPages) return;
+  loadPage(page);
+}
+
+/* LOAD DEVICES */
+async function loadDevices() {
+  const res    = await fetch('/api/devices');
+  const {data} = await res.json();
+  const sel    = document.getElementById('deviceSelect');
+
+  sel.innerHTML = data.map(d =>
+    `<option value="${d.id}">${d.device_name} — ${d.location}</option>`
+  ).join('');
+
+  if (data.length) {
+    currentDeviceId = data[0].id;
+    loadPage(1);
+  }
+
+  sel.addEventListener('change', () => {
+    currentDeviceId = sel.value;
+    loadPage(1);
+  });
+}
+
+loadDevices();
+</script>
+</body>
+</html>

@@ -5,26 +5,23 @@ import { sendWarningEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const device_id = searchParams.get('device_id')
-  const limit = Math.min(Number(searchParams.get('limit') ?? 30), 100)
+  const device_id  = searchParams.get('device_id')
+  const pageParam  = searchParams.get('page')
 
-  const logs = await prisma.sensor_logs.findMany({
-    where: device_id ? { device_id } : undefined,
-    orderBy: { recorded_at: 'desc' },
-    take: limit,
-    include: {
-      predictions: {
-        select: {
-          status_label: true,
-          confidence_aman: true,
-          confidence_berisiko: true,
-          confidence_berbahaya: true,
-        },
+  const include = {
+    predictions: {
+      select: {
+        status_label: true,
+        confidence_aman: true,
+        confidence_berisiko: true,
+        confidence_berbahaya: true,
       },
     },
-  })
+  }
 
-  const data = logs.map(log => ({
+  const where = device_id ? { device_id } : undefined
+
+  const mapLog = (log: any) => ({
     id: log.id.toString(),
     device_id: log.device_id,
     eco2_ppm: log.eco2_ppm,
@@ -35,9 +32,43 @@ export async function GET(req: NextRequest) {
     dust_density_ugm3: log.dust_density_ugm3,
     recorded_at: log.recorded_at,
     status: log.predictions[0]?.status_label ?? null,
-  }))
+  })
 
-  return NextResponse.json({ data })
+  // Mode pagination — dipakai halaman logs
+  if (pageParam !== null) {
+    const page  = Math.max(1, Number(pageParam))
+    const limit = 50
+    const skip  = (page - 1) * limit
+
+    const [logs, total] = await Promise.all([
+      prisma.sensor_logs.findMany({
+        where,
+        orderBy: { recorded_at: 'desc' },
+        take: limit,
+        skip,
+        include,
+      }),
+      prisma.sensor_logs.count({ where }),
+    ])
+
+    return NextResponse.json({
+      data: logs.map(mapLog),
+      page,
+      total,
+      totalPages: Math.ceil(total / limit),
+    })
+  }
+
+  // Mode default — dipakai dashboard (limit max 100)
+  const limit = Math.min(Number(searchParams.get('limit') ?? 30), 100)
+  const logs  = await prisma.sensor_logs.findMany({
+    where,
+    orderBy: { recorded_at: 'desc' },
+    take: limit,
+    include,
+  })
+
+  return NextResponse.json({ data: logs.map(mapLog) })
 }
 
 interface SensorPayload {

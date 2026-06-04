@@ -3,6 +3,43 @@ import { prisma } from '@/lib/prisma'
 import { getStatusLabel, getConfidences, shouldNotify } from '@/lib/sensor'
 import { sendWarningEmail } from '@/lib/email'
 
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const device_id = searchParams.get('device_id')
+  const limit = Math.min(Number(searchParams.get('limit') ?? 30), 100)
+
+  const logs = await prisma.sensor_logs.findMany({
+    where: device_id ? { device_id } : undefined,
+    orderBy: { recorded_at: 'desc' },
+    take: limit,
+    include: {
+      predictions: {
+        select: {
+          status_label: true,
+          confidence_aman: true,
+          confidence_berisiko: true,
+          confidence_berbahaya: true,
+        },
+      },
+    },
+  })
+
+  const data = logs.map(log => ({
+    id: log.id.toString(),
+    device_id: log.device_id,
+    eco2_ppm: log.eco2_ppm,
+    tvoc_pb: log.tvoc_pb,
+    temperature_celsius: log.temperature_celsius,
+    humidity_percent: log.humidity_percent,
+    fan_duty_cycle: log.fan_duty_cycle,
+    dust_density_ugm3: log.dust_density_ugm3,
+    recorded_at: log.recorded_at,
+    status: log.predictions[0]?.status_label ?? null,
+  }))
+
+  return NextResponse.json({ data })
+}
+
 interface SensorPayload {
   device_id: string
   tvoc_pb: number

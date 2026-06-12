@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       select: {
         status_label: true,
         confidence_aman: true,
-        confidence_berisiko: true,
+        confidence_waspada: true,
         confidence_berbahaya: true,
       },
     },
@@ -131,12 +131,12 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Kirim email jika BERISIKO atau BERBAHAYA
+  // Kirim email jika WASPADA atau BERBAHAYA
   if (shouldNotify(status)) {
     const recentNotif = await prisma.air_quality_predictions.findFirst({
       where: {
         sensor_log: { device_id },
-        status_label: { in: ['BERISIKO', 'BERBAHAYA'] },
+        status_label: { in: ['WASPADA', 'BERBAHAYA'] },
         predicted_at: { gte: new Date(Date.now() - NOTIF_COOLDOWN_MS) },
       },
       orderBy: { predicted_at: 'desc' },

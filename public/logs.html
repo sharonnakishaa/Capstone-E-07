@@ -66,10 +66,10 @@
 
   .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D;}
-  .badge.berisiko{background:#3B1F05;color:#FBBF24;border:1px solid #78350F;}
+  .badge.waspada{background:#3B1F05;color:#FBBF24;border:1px solid #78350F;}
   .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D;}
   [data-theme="light"] .badge.aman{background:#DCFCE7;color:#15803D;border-color:#86EFAC;}
-  [data-theme="light"] .badge.berisiko{background:#FEF3C7;color:#92400E;border-color:#FDE68A;}
+  [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A;}
   [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA;}
   .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor;}
 
@@ -163,7 +163,7 @@ function fmtTime(iso){
 
 /* RENDER TABLE */
 function renderTable(data, page) {
-  const badgeMap = {AMAN:'aman',BERISIKO:'berisiko',BERBAHAYA:'bahaya'};
+  const badgeMap = {AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};
   const offset   = (page - 1) * 50;
 
   document.getElementById('logTableBody').innerHTML = data.length

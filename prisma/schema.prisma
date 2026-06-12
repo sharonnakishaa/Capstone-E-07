@@ -56,7 +56,7 @@ model air_quality_predictions {
   sensor_log_id         BigInt
   status_label          String    @db.VarChar
   confidence_aman       Float
-  confidence_berisiko   Float
+  confidence_waspada   Float
   confidence_berbahaya  Float
   predicted_at          DateTime  @default(now()) @db.Timestamp
 

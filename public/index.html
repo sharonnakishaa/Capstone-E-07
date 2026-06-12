@@ -53,16 +53,16 @@
 
   /* Alert */
   .alert{background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:20px;transition:background .3s,border-color .3s;}
-  .alert[data-status="BERISIKO"]{background:#3B1F05;border-color:#78350F;}
+  .alert[data-status="WASPADA"]{background:#3B1F05;border-color:#78350F;}
   .alert[data-status="BERBAHAYA"]{background:#3B0A0A;border-color:#7F1D1D;}
-  [data-theme="light"] .alert[data-status="BERISIKO"]{background:#FEF3C7;border-color:#FDE68A;}
+  [data-theme="light"] .alert[data-status="WASPADA"]{background:#FEF3C7;border-color:#FDE68A;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"]{background:#FEE2E2;border-color:#FECACA;}
-  .alert[data-status="BERISIKO"] .alert-label,.alert[data-status="BERISIKO"] .alert-desc,.alert[data-status="BERISIKO"] .alert-right-label,.alert[data-status="BERISIKO"] .alert-time,.alert[data-status="BERISIKO"] .alert-interval{color:#FDE68A;}
-  .alert[data-status="BERISIKO"] .alert-title{color:#F59E0B;}
+  .alert[data-status="WASPADA"] .alert-label,.alert[data-status="WASPADA"] .alert-desc,.alert[data-status="WASPADA"] .alert-right-label,.alert[data-status="WASPADA"] .alert-time,.alert[data-status="WASPADA"] .alert-interval{color:#FDE68A;}
+  .alert[data-status="WASPADA"] .alert-title{color:#F59E0B;}
   .alert[data-status="BERBAHAYA"] .alert-label,.alert[data-status="BERBAHAYA"] .alert-desc,.alert[data-status="BERBAHAYA"] .alert-right-label,.alert[data-status="BERBAHAYA"] .alert-time,.alert[data-status="BERBAHAYA"] .alert-interval{color:#FECACA;}
   .alert[data-status="BERBAHAYA"] .alert-title{color:#EF4444;}
-  [data-theme="light"] .alert[data-status="BERISIKO"] .alert-label,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-desc,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-right-label,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-time,[data-theme="light"] .alert[data-status="BERISIKO"] .alert-interval{color:#92400E;}
-  [data-theme="light"] .alert[data-status="BERISIKO"] .alert-title{color:#B45309;}
+  [data-theme="light"] .alert[data-status="WASPADA"] .alert-label,[data-theme="light"] .alert[data-status="WASPADA"] .alert-desc,[data-theme="light"] .alert[data-status="WASPADA"] .alert-right-label,[data-theme="light"] .alert[data-status="WASPADA"] .alert-time,[data-theme="light"] .alert[data-status="WASPADA"] .alert-interval{color:#92400E;}
+  [data-theme="light"] .alert[data-status="WASPADA"] .alert-title{color:#B45309;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-desc,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-right-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-time,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-interval{color:#991B1B;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-title{color:#DC2626;}
   .alert-icon{width:48px;height:48px;border-radius:50%;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
@@ -145,10 +145,10 @@
   td.last{text-align:right}
   .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D}
-  .badge.berisiko{background:#3B1F05;color:#FBBF24;border:1px solid #78350F}
+  .badge.waspada{background:#3B1F05;color:#FBBF24;border:1px solid #78350F}
   .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D}
   [data-theme="light"] .badge.aman{background:#DCFCE7;color:#15803D;border-color:#86EFAC}
-  [data-theme="light"] .badge.berisiko{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+  [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
   [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
   .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor}
 </style>
@@ -259,8 +259,8 @@
           <div class="chart-sub">30 data terakhir</div>
         </div>
         <div class="legend">
-          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (1.000 ppm)</span>
-          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (2.500 ppm)</span>
+          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (250)</span>
+          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (400)</span>
         </div>
       </div>
       <div class="chart-wrap" id="chartWrap"></div>
@@ -347,7 +347,7 @@ function renderChart(points){
   const dotFill=isLight?'#FFFFFF':'#0F172A';
   const N=points.length;
   if(!N) return;
-  const yMin=0, yMax=Math.max(3000,Math.max(...points)*1.2);
+  const yMin=0, yMax=Math.max(500,Math.max(...points)*1.2);
   const xAt=i=>pad.l+(i/(N-1||1))*(W-pad.l-pad.r);
   const yAt=v=>pad.t+(1-(v-yMin)/(yMax-yMin))*(H-pad.t-pad.b);
   function sp(pts){
@@ -364,10 +364,10 @@ function renderChart(points){
   const pts=points.map((v,i)=>[xAt(i),yAt(v)]);
   const line=sp(pts);
   const area=line+` L ${xAt(N-1).toFixed(2)} ${yAt(0).toFixed(2)} L ${xAt(0).toFixed(2)} ${yAt(0).toFixed(2)} Z`;
-  const step=yMax<=3000?500:1000;
+  const step=yMax<=500?50:yMax<=1000?100:500;
   const ys=Array.from({length:Math.ceil(yMax/step)+1},(_,i)=>i*step).filter(v=>v<=yMax);
   const grid=ys.map(v=>{const y=yAt(v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${gridColor}" stroke-width="1"/><text x="${pad.l-8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${v}</text>`;}).join('');
-  const thresh=[{v:1000,c:'#22C55E'},{v:2500,c:'#EF4444'}].filter(t=>t.v<=yMax).map(t=>{const y=yAt(t.v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.c}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.55"/>`;}).join('');
+  const thresh=[{v:250,c:'#22C55E'},{v:400,c:'#EF4444'}].filter(t=>t.v<=yMax).map(t=>{const y=yAt(t.v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.c}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.55"/>`;}).join('');
   const lx=xAt(N-1).toFixed(2),ly=yAt(points[N-1]).toFixed(2);
   wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38BDF8" stop-opacity="0.32"/><stop offset="60%" stop-color="#38BDF8" stop-opacity="0.10"/><stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs>
@@ -388,7 +388,7 @@ window.addEventListener('resize',()=>{cancelAnimationFrame(raf);raf=requestAnima
 /* STATUS CONFIG */
 const STATUS={
   AMAN:{title:'AMAN — Kualitas Udara Baik',desc:'Seluruh parameter sensor berada dalam rentang aman.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alert-title)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`},
-  BERISIKO:{title:'BERISIKO — Kualitas Udara Perlu Perhatian',desc:'Kadar eCO₂ meningkat. Pastikan ventilasi ruangan berjalan baik.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
+  WASPADA:{title:'WASPADA — Kualitas Udara Perlu Perhatian',desc:'Kadar eCO₂ meningkat. Pastikan ventilasi ruangan berjalan baik.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
   BERBAHAYA:{title:'BERBAHAYA — Kualitas Udara Buruk',desc:'Level eCO₂ berbahaya! Segera tingkatkan ventilasi atau evakuasi ruangan.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
 };
 
@@ -437,7 +437,7 @@ function updateDashboard(data){
   renderChart([...data].reverse().map(d=>d.eco2_ppm));
 
   // Table
-  const badgeMap={AMAN:'aman',BERISIKO:'berisiko',BERBAHAYA:'bahaya'};
+  const badgeMap={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};
   document.getElementById('logTableBody').innerHTML=data.slice(0,5).map((d,i)=>`
     <tr>
       <td class="idx">${i+1}</td>

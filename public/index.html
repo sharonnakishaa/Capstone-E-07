@@ -255,12 +255,12 @@
     <article class="card">
       <div class="chart-head">
         <div>
-          <div class="chart-title">Tren eCO₂</div>
+          <div class="chart-title">Tren TVOC</div>
           <div class="chart-sub">30 data terakhir</div>
         </div>
         <div class="legend">
-          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (250)</span>
-          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (400)</span>
+          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (250 ppb)</span>
+          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (400 ppb)</span>
         </div>
       </div>
       <div class="chart-wrap" id="chartWrap"></div>
@@ -270,15 +270,15 @@
       <div class="stats-title">Statistik Sesi</div>
       <div class="stats-sub">Agregat 30 pembacaan terakhir</div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">eCO₂ Tertinggi</span><span class="stat-value red" id="eco2Max">—</span></div>
+        <div class="stat-left"><span class="stat-label">TVOC Tertinggi</span><span class="stat-value red" id="eco2Max">—</span></div>
         <div class="metric-icon red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
       </div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">eCO₂ Terendah</span><span class="stat-value em" id="eco2Min">—</span></div>
+        <div class="stat-left"><span class="stat-label">TVOC Terendah</span><span class="stat-value em" id="eco2Min">—</span></div>
         <div class="metric-icon emerald"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>
       </div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">Rata-rata eCO₂</span><span class="stat-value sky" id="eco2Avg">—</span></div>
+        <div class="stat-left"><span class="stat-label">Rata-rata TVOC</span><span class="stat-value sky" id="eco2Avg">—</span></div>
         <div class="metric-icon sky"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
       </div>
       <div class="stat-row">
@@ -371,7 +371,7 @@ function renderChart(points){
   const lx=xAt(N-1).toFixed(2),ly=yAt(points[N-1]).toFixed(2);
   wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38BDF8" stop-opacity="0.32"/><stop offset="60%" stop-color="#38BDF8" stop-opacity="0.10"/><stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs>
-    <text x="${pad.l-10}" y="${pad.t-4}" text-anchor="end" fill="#38BDF8" font-family="JetBrains Mono" font-size="9" font-style="italic">ppm</text>
+    <text x="${pad.l-10}" y="${pad.t-4}" text-anchor="end" fill="#38BDF8" font-family="JetBrains Mono" font-size="9" font-style="italic">ppb</text>
     ${grid}${thresh}
     <path d="${area}" fill="url(#ag)"/>
     <path d="${line}" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -427,14 +427,14 @@ function updateDashboard(data){
   setTrend('kelembapanTrend',calcTrend(lat.humidity_percent,prev?.humidity_percent));
 
   // Stats
-  const eco2s=data.map(d=>d.eco2_ppm);
-  document.getElementById('eco2Max').textContent=Math.max(...eco2s).toLocaleString('id-ID')+' ppm';
-  document.getElementById('eco2Min').textContent=Math.min(...eco2s).toLocaleString('id-ID')+' ppm';
-  document.getElementById('eco2Avg').textContent=Math.round(eco2s.reduce((a,b)=>a+b,0)/eco2s.length).toLocaleString('id-ID')+' ppm';
+  const tvocs=data.map(d=>d.tvoc_pb);
+  document.getElementById('eco2Max').textContent=Math.max(...tvocs).toLocaleString('id-ID')+' ppb';
+  document.getElementById('eco2Min').textContent=Math.min(...tvocs).toLocaleString('id-ID')+' ppb';
+  document.getElementById('eco2Avg').textContent=Math.round(tvocs.reduce((a,b)=>a+b,0)/tvocs.length).toLocaleString('id-ID')+' ppb';
   document.getElementById('fanDuty').textContent=Math.round(lat.fan_duty_cycle/255*100)+'%';
 
   // Chart
-  renderChart([...data].reverse().map(d=>d.eco2_ppm));
+  renderChart([...data].reverse().map(d=>d.tvoc_pb));
 
   // Table
   const badgeMap={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};

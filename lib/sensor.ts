@@ -6,9 +6,9 @@ export const ECO2_THRESHOLDS = {
   BERBAHAYA: { min: 400, max: Infinity, label: 'Berbahaya', emoji: '🔴', color: '#EF4444' },
 } as const
 
-export function getStatusLabel(eco2_ppm: number): StatusLabel {
-  if (eco2_ppm < 250) return 'AMAN'
-  if (eco2_ppm < 400) return 'WASPADA'
+export function getStatusLabel(tvoc_ppb: number): StatusLabel {
+  if (tvoc_ppb < 250) return 'AMAN'
+  if (tvoc_ppb < 400) return 'WASPADA'
   return 'BERBAHAYA'
 }
 

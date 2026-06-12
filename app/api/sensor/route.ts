@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const status = getStatusLabel(eco2_ppm)
+  const status = getStatusLabel(tvoc_pb)
   const confidences = getConfidences(status)
 
   // Simpan data sensor

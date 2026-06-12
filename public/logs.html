@@ -176,7 +176,7 @@ function renderTable(data, page) {
           <td class="num">${d.temperature_celsius}</td>
           <td class="num">${d.humidity_percent}</td>
           <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
-          <td class="last">${d.fan_duty_cycle}%</td>
+          <td class="last">${Math.round(d.fan_duty_cycle/255*100)}%</td>
         </tr>`).join('')
     : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
 }

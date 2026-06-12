@@ -431,7 +431,7 @@ function updateDashboard(data){
   document.getElementById('eco2Max').textContent=Math.max(...eco2s).toLocaleString('id-ID')+' ppm';
   document.getElementById('eco2Min').textContent=Math.min(...eco2s).toLocaleString('id-ID')+' ppm';
   document.getElementById('eco2Avg').textContent=Math.round(eco2s.reduce((a,b)=>a+b,0)/eco2s.length).toLocaleString('id-ID')+' ppm';
-  document.getElementById('fanDuty').textContent=lat.fan_duty_cycle+'%';
+  document.getElementById('fanDuty').textContent=Math.round(lat.fan_duty_cycle/255*100)+'%';
 
   // Chart
   renderChart([...data].reverse().map(d=>d.eco2_ppm));
@@ -447,7 +447,7 @@ function updateDashboard(data){
       <td class="num">${d.temperature_celsius}</td>
       <td class="num">${d.humidity_percent}</td>
       <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
-      <td class="last">${d.fan_duty_cycle}%</td>
+      <td class="last">${Math.round(d.fan_duty_cycle/255*100)}%</td>
     </tr>`).join('');
 }
 

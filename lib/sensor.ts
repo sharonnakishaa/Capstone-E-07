@@ -1,25 +1,70 @@
-export type StatusLabel = 'AMAN' | 'WASPADA' | 'BERBAHAYA'
+// Satu sumber konfigurasi untuk status udara, level fuzzy, dan ambang referensi.
+// Status sebenarnya ditentukan oleh fuzzy di ESP32 — server hanya menyimpan dan menampilkan.
 
-export const ECO2_THRESHOLDS = {
-  AMAN:      { min: 0,   max: 249,      label: 'Aman',      emoji: '🟢', color: '#22C55E' },
-  WASPADA:  { min: 250, max: 399,      label: 'Waspada',  emoji: '🟠', color: '#F97316' },
-  BERBAHAYA: { min: 400, max: Infinity, label: 'Berbahaya', emoji: '🔴', color: '#EF4444' },
-} as const
+export const AIR_STATUSES = ['AMAN', 'WASPADA', 'BERBAHAYA'] as const
+export type StatusLabel = typeof AIR_STATUSES[number]
 
-export function getStatusLabel(tvoc_ppb: number): StatusLabel {
-  if (tvoc_ppb < 250) return 'AMAN'
-  if (tvoc_ppb < 400) return 'WASPADA'
-  return 'BERBAHAYA'
+export const FUZZY_LEVELS = ['MIN', 'LOW', 'MED', 'FAST'] as const
+export type FuzzyLevel = typeof FUZZY_LEVELS[number]
+
+export const STATUS_META: Record<StatusLabel, {
+  label: string
+  emoji: string
+  color: string      // aksen (ikon, garis, badge tema gelap)
+  text_light: string // teks di latar terang, termasuk email
+  description: string
+}> = {
+  AMAN: {
+    label: 'Aman', emoji: '🟢', color: '#22C55E', text_light: '#15803D',
+    description: 'Kadar TVOC rendah. Ekstraktor bekerja normal.',
+  },
+  WASPADA: {
+    label: 'Waspada', emoji: '🟠', color: '#F59E0B', text_light: '#B45309',
+    description: 'Asap solder terdeteksi. Pastikan inlet dekat titik solder dan menghadap sumber asap.',
+  },
+  BERBAHAYA: {
+    label: 'Berbahaya', emoji: '🔴', color: '#EF4444', text_light: '#DC2626',
+    description: 'Kadar TVOC tinggi! Jeda menyolder, periksa posisi alat dan kondisi filter.',
+  },
 }
 
-export function getConfidences(status: StatusLabel) {
-  return {
-    confidence_aman:      status === 'AMAN'      ? 1.0 : 0.0,
-    confidence_waspada:  status === 'WASPADA'  ? 1.0 : 0.0,
-    confidence_berbahaya: status === 'BERBAHAYA' ? 1.0 : 0.0,
-  }
+export const FUZZY_LEVEL_META: Record<FuzzyLevel, { label: string; duty_percent: number }> = {
+  MIN:  { label: 'Minimum', duty_percent: 25 },
+  LOW:  { label: 'Rendah',  duty_percent: 60 },
+  MED:  { label: 'Sedang',  duty_percent: 85 },
+  FAST: { label: 'Cepat',   duty_percent: 100 },
+}
+
+// Ambang TVOC (Kalman) untuk garis referensi grafik dan panduan email.
+// Samakan dengan fungsi keanggotaan fuzzy di firmware.
+export const TVOC_REFERENCE_PPB = {
+  waspada:   250,
+  berbahaya: 400,
+}
+
+export const SAMPLE_INTERVAL_SEC = 5
+export const OFFLINE_AFTER_MS    = 15_000
+export const ALERT_COOLDOWN_MS   = 15 * 60 * 1000
+
+export function isAirStatus(v: unknown): v is StatusLabel {
+  return typeof v === 'string' && (AIR_STATUSES as readonly string[]).includes(v)
+}
+
+export function isFuzzyLevel(v: unknown): v is FuzzyLevel {
+  return typeof v === 'string' && (FUZZY_LEVELS as readonly string[]).includes(v)
 }
 
 export function shouldNotify(status: StatusLabel): boolean {
   return status === 'WASPADA' || status === 'BERBAHAYA'
+}
+
+/** Konfigurasi yang dikirim ke frontend lewat GET /api/config. */
+export function getPublicConfig() {
+  return {
+    statuses:           STATUS_META,
+    fuzzy_levels:       FUZZY_LEVEL_META,
+    tvoc_reference_ppb: TVOC_REFERENCE_PPB,
+    poll_interval_ms:   SAMPLE_INTERVAL_SEC * 1000,
+    offline_after_ms:   OFFLINE_AFTER_MS,
+  }
 }

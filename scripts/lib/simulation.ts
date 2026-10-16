@@ -1,24 +1,27 @@
 // Model fisik sederhana untuk simulator ESP32 dan seed data.
 // Dipakai bersama oleh scripts/seed.ts dan scripts/simulate.ts supaya pola datanya sama.
 
-export type Scenario   = 'normal' | 'spike' | 'offline'
-export type AirStatus  = 'AMAN' | 'WASPADA' | 'BERBAHAYA'
-export type FuzzyLevel = 'MIN' | 'LOW' | 'MED' | 'FAST'
+import {
+  StatusLabel as AirStatus, FuzzyLevel,
+  TVOC_REFERENCE_PPB, FUZZY_LEVEL_META, SAMPLE_INTERVAL_SEC,
+} from '../../lib/sensor'
+
+export type Scenario = 'normal' | 'spike' | 'offline'
 
 // ─── Konfigurasi (ubah di sini) ──────────────────────────────────────────────
+// Ambang status dan duty per level diambil dari lib/sensor.ts (satu sumber konfigurasi).
 
-export const TICK_SEC = 5
+export const TICK_SEC = SAMPLE_INTERVAL_SEC
 
-/** Ambang sementara pada TVOC Kalman. Samakan dengan fungsi keanggotaan fuzzy di firmware. */
-export const STATUS_THRESHOLDS_PPB = {
-  waspada:   250, // ≥ ini → WASPADA
-  berbahaya: 400, // ≥ ini → BERBAHAYA
-}
+/** Ambang pada TVOC Kalman: ≥ waspada → WASPADA, ≥ berbahaya → BERBAHAYA. */
+export const STATUS_THRESHOLDS_PPB = TVOC_REFERENCE_PPB
 
 /** Saat AMAN: di bawah nilai ini kipas di level MIN, di atasnya LOW. */
 export const LOW_LEVEL_FROM_PPB = 150
 
-export const LEVEL_DUTY_PERCENT: Record<FuzzyLevel, number> = { MIN: 25, LOW: 60, MED: 85, FAST: 100 }
+const LEVEL_DUTY_PERCENT = Object.fromEntries(
+  Object.entries(FUZZY_LEVEL_META).map(([level, meta]) => [level, meta.duty_percent])
+) as Record<FuzzyLevel, number>
 
 export const FAN_MAX_RPM = 3300
 

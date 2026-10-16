@@ -172,11 +172,11 @@ function renderTable(data, page) {
           <td class="idx">${offset + i + 1}</td>
           <td>${fmtTime(d.recorded_at)}</td>
           <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
-          <td class="num">${d.tvoc_pb.toLocaleString('id-ID')}</td>
+          <td class="num">${d.tvoc_raw_ppb.toLocaleString('id-ID')}</td>
           <td class="num">${d.temperature_celsius}</td>
           <td class="num">${d.humidity_percent}</td>
-          <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
-          <td class="last">${Math.round(d.fan_duty_cycle/255*100)}%</td>
+          <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${d.air_status??'AMAN'}</span></td>
+          <td class="last">${Math.round(d.fan_duty_percent)}%</td>
         </tr>`).join('')
     : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
 }

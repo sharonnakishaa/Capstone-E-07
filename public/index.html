@@ -404,7 +404,7 @@ function setTrend(id,t){const el=document.getElementById(id);el.textContent=t.te
 function updateDashboard(data){
   if(!data||!data.length) return;
   const lat=data[0], prev=data[1]??null;
-  const status=lat.status??'AMAN';
+  const status=lat.air_status??'AMAN';
   const cfg=STATUS[status]??STATUS.AMAN;
 
   // Alert
@@ -416,25 +416,25 @@ function updateDashboard(data){
   document.getElementById('lastUpdate').textContent=fmtTime(lat.recorded_at);
 
   // Metrics
-  document.getElementById('tvocValue').textContent=lat.tvoc_pb.toLocaleString('id-ID');
+  document.getElementById('tvocValue').textContent=lat.tvoc_raw_ppb.toLocaleString('id-ID');
   document.getElementById('suhuValue').textContent=lat.temperature_celsius;
   document.getElementById('kelembapanValue').textContent=lat.humidity_percent;
-  document.getElementById('tvocBar').style.width=Math.min(lat.tvoc_pb/3000*100,100)+'%';
+  document.getElementById('tvocBar').style.width=Math.min(lat.tvoc_raw_ppb/3000*100,100)+'%';
   document.getElementById('suhuBar').style.width=Math.min(lat.temperature_celsius/50*100,100)+'%';
   document.getElementById('kelembapanBar').style.width=Math.min(lat.humidity_percent,100)+'%';
-  setTrend('tvocTrend',calcTrend(lat.tvoc_pb,prev?.tvoc_pb));
+  setTrend('tvocTrend',calcTrend(lat.tvoc_raw_ppb,prev?.tvoc_raw_ppb));
   setTrend('suhuTrend',calcTrend(lat.temperature_celsius,prev?.temperature_celsius));
   setTrend('kelembapanTrend',calcTrend(lat.humidity_percent,prev?.humidity_percent));
 
   // Stats
-  const tvocs=data.map(d=>d.tvoc_pb);
+  const tvocs=data.map(d=>d.tvoc_raw_ppb);
   document.getElementById('eco2Max').textContent=Math.max(...tvocs).toLocaleString('id-ID')+' ppb';
   document.getElementById('eco2Min').textContent=Math.min(...tvocs).toLocaleString('id-ID')+' ppb';
   document.getElementById('eco2Avg').textContent=Math.round(tvocs.reduce((a,b)=>a+b,0)/tvocs.length).toLocaleString('id-ID')+' ppb';
-  document.getElementById('fanDuty').textContent=Math.round(lat.fan_duty_cycle/255*100)+'%';
+  document.getElementById('fanDuty').textContent=Math.round(lat.fan_duty_percent)+'%';
 
   // Chart
-  renderChart([...data].reverse().map(d=>d.tvoc_pb));
+  renderChart([...data].reverse().map(d=>d.tvoc_raw_ppb));
 
   // Table
   const badgeMap={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};
@@ -443,11 +443,11 @@ function updateDashboard(data){
       <td class="idx">${i+1}</td>
       <td>${fmtTime(d.recorded_at)}</td>
       <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
-      <td class="num">${d.tvoc_pb.toLocaleString('id-ID')}</td>
+      <td class="num">${d.tvoc_raw_ppb.toLocaleString('id-ID')}</td>
       <td class="num">${d.temperature_celsius}</td>
       <td class="num">${d.humidity_percent}</td>
-      <td><span class="badge ${badgeMap[d.status]??'aman'}"><span class="dot-s"></span>${d.status??'AMAN'}</span></td>
-      <td class="last">${Math.round(d.fan_duty_cycle/255*100)}%</td>
+      <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${d.air_status??'AMAN'}</span></td>
+      <td class="last">${Math.round(d.fan_duty_percent)}%</td>
     </tr>`).join('');
 }
 

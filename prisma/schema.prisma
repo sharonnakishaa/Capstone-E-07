@@ -22,43 +22,39 @@ model users {
 
 // 2. Tabel DEVICES
 model devices {
-  id            String    @id @default(uuid()) @db.Uuid
-  device_name   String    @db.VarChar
-  location      String    @db.VarChar
-  mac_address   String    @unique @db.VarChar
-  is_active     Boolean   @default(true)
-  registered_by String    @db.Uuid
-  created_at    DateTime  @default(now()) @db.Timestamp
+  id                  String    @id @default(uuid()) @db.Uuid
+  device_name         String    @db.VarChar
+  location            String    @db.VarChar
+  mac_address         String    @unique @db.VarChar
+  is_active           Boolean   @default(true)
+  registered_by       String    @db.Uuid
+  created_at          DateTime  @default(now()) @db.Timestamp
+  last_alert_at       DateTime? @db.Timestamptz // Waktu email peringatan terakhir (cooldown)
+  last_alert_status   String?                   // Status saat email terakhir dikirim (deteksi eskalasi)
+  filter_installed_at DateTime? @db.Timestamptz // Waktu filter terakhir dipasang
+  inlet_distance_cm   Float     @default(5)     // Jarak inlet yang direkomendasikan dari titik solder
 
-  user          users     @relation(fields: [registered_by], references: [id], onDelete: Cascade)
-  sensor_logs   sensor_logs[]
+  user                users     @relation(fields: [registered_by], references: [id], onDelete: Cascade)
+  sensor_logs         sensor_logs[]
 }
 
 // 3. Tabel SENSOR_LOGS
 model sensor_logs {
   id                  BigInt    @id @default(autoincrement())
   device_id           String    @db.Uuid
-  tvoc_pb             Float
+  tvoc_raw_ppb        Float                     // TVOC mentah dari SGP30
+  tvoc_kalman_ppb     Float?                    // TVOC setelah Kalman filter di ESP32
   eco2_ppm            Float
-  dust_density_ugm3   Float?    // Opsional, disesuaikan jika sensor debu belum ada
+  dust_outlet_ugm3    Float?                    // Debu di outlet (GP2Y), indikator efektivitas filter
   temperature_celsius Float
   humidity_percent    Float
-  fan_duty_cycle      Int
-  recorded_at         DateTime  @default(now()) @db.Timestamp
+  air_status          String    @default("AMAN") // Keluaran fuzzy ESP32: AMAN | WASPADA | BERBAHAYA
+  fuzzy_level         String?                   // MIN | LOW | MED | FAST
+  fan_duty_percent    Float                     // 0–100 %
+  fan_rpm             Int?                      // Dari sinyal tacho kipas
+  recorded_at         DateTime  @default(now()) @db.Timestamptz
 
   device              devices   @relation(fields: [device_id], references: [id], onDelete: Cascade)
-  predictions         air_quality_predictions[]
-}
 
-// 4. Tabel AIR_QUALITY_PREDICTIONS
-model air_quality_predictions {
-  id                    BigInt    @id @default(autoincrement())
-  sensor_log_id         BigInt
-  status_label          String    @db.VarChar
-  confidence_aman       Float
-  confidence_waspada   Float
-  confidence_berbahaya  Float
-  predicted_at          DateTime  @default(now()) @db.Timestamp
-
-  sensor_log            sensor_logs @relation(fields: [sensor_log_id], references: [id], onDelete: Cascade)
+  @@index([device_id, recorded_at])
 }

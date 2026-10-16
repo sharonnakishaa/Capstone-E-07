@@ -1,37 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { sensor_logs } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getStatusLabel, getConfidences, shouldNotify } from '@/lib/sensor'
-import { sendWarningEmail } from '@/lib/email'
+import { StatusLabel } from '@/lib/sensor'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const device_id  = searchParams.get('device_id')
   const pageParam  = searchParams.get('page')
 
-  const include = {
-    predictions: {
-      select: {
-        status_label: true,
-        confidence_aman: true,
-        confidence_waspada: true,
-        confidence_berbahaya: true,
-      },
-    },
-  }
-
   const where = device_id ? { device_id } : undefined
 
-  const mapLog = (log: any) => ({
+  const mapLog = (log: sensor_logs) => ({
     id: log.id.toString(),
     device_id: log.device_id,
+    tvoc_raw_ppb: log.tvoc_raw_ppb,
+    tvoc_kalman_ppb: log.tvoc_kalman_ppb,
     eco2_ppm: log.eco2_ppm,
-    tvoc_pb: log.tvoc_pb,
     temperature_celsius: log.temperature_celsius,
     humidity_percent: log.humidity_percent,
-    fan_duty_cycle: log.fan_duty_cycle,
-    dust_density_ugm3: log.dust_density_ugm3,
+    dust_outlet_ugm3: log.dust_outlet_ugm3,
+    air_status: log.air_status,
+    fuzzy_level: log.fuzzy_level,
+    fan_duty_percent: log.fan_duty_percent,
+    fan_rpm: log.fan_rpm,
     recorded_at: log.recorded_at,
-    status: log.predictions[0]?.status_label ?? null,
   })
 
   // Mode pagination — dipakai halaman logs
@@ -46,7 +38,6 @@ export async function GET(req: NextRequest) {
         orderBy: { recorded_at: 'desc' },
         take: limit,
         skip,
-        include,
       }),
       prisma.sensor_logs.count({ where }),
     ])
@@ -65,7 +56,6 @@ export async function GET(req: NextRequest) {
     where,
     orderBy: { recorded_at: 'desc' },
     take: limit,
-    include,
   })
 
   return NextResponse.json({ data: logs.map(mapLog) })
@@ -73,15 +63,17 @@ export async function GET(req: NextRequest) {
 
 interface SensorPayload {
   device_id: string
-  tvoc_pb: number
+  tvoc_raw_ppb: number
+  tvoc_kalman_ppb?: number | null
   eco2_ppm: number
   temperature_celsius: number
   humidity_percent: number
-  fan_duty_cycle: number
-  dust_density_ugm3?: number
+  dust_outlet_ugm3?: number | null
+  air_status: StatusLabel
+  fuzzy_level?: string | null
+  fan_duty_percent: number
+  fan_rpm?: number | null
 }
-
-const NOTIF_COOLDOWN_MS = 15 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get('x-api-key')
@@ -97,70 +89,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Body bukan JSON valid' }, { status: 400 })
   }
 
-  const { device_id, tvoc_pb, eco2_ppm, temperature_celsius, humidity_percent, fan_duty_cycle, dust_density_ugm3 } = body
+  const {
+    device_id, tvoc_raw_ppb, tvoc_kalman_ppb, eco2_ppm, temperature_celsius, humidity_percent,
+    dust_outlet_ugm3, air_status, fuzzy_level, fan_duty_percent, fan_rpm,
+  } = body
 
-  if (!device_id || eco2_ppm == null || tvoc_pb == null || temperature_celsius == null || humidity_percent == null || fan_duty_cycle == null) {
+  // Validasi lengkap (tipe, rentang, enum) menyusul di Tahap 4
+  if (!device_id || tvoc_raw_ppb == null || eco2_ppm == null || temperature_celsius == null || humidity_percent == null || fan_duty_percent == null || !air_status) {
     return NextResponse.json(
-      { error: 'Field wajib tidak lengkap: device_id, tvoc_pb, eco2_ppm, temperature_celsius, humidity_percent, fan_duty_cycle' },
+      { error: 'Field wajib tidak lengkap: device_id, tvoc_raw_ppb, eco2_ppm, temperature_celsius, humidity_percent, fan_duty_percent, air_status' },
       { status: 400 }
     )
   }
 
-  const status = getStatusLabel(tvoc_pb)
-  const confidences = getConfidences(status)
-
-  // Simpan data sensor
+  // Status berasal dari fuzzy di ESP32 — disimpan apa adanya
   const log = await prisma.sensor_logs.create({
     data: {
       device_id,
-      tvoc_pb,
+      tvoc_raw_ppb,
+      tvoc_kalman_ppb: tvoc_kalman_ppb ?? null,
       eco2_ppm,
       temperature_celsius,
       humidity_percent,
-      fan_duty_cycle,
-      dust_density_ugm3: dust_density_ugm3 ?? null,
+      dust_outlet_ugm3: dust_outlet_ugm3 ?? null,
+      air_status,
+      fuzzy_level: fuzzy_level ?? null,
+      fan_duty_percent,
+      fan_rpm: fan_rpm ?? null,
     },
   })
 
-  // Simpan prediksi kualitas udara
-  await prisma.air_quality_predictions.create({
-    data: {
-      sensor_log_id: log.id,
-      status_label: status,
-      ...confidences,
-    },
-  })
+  // TODO(Tahap 4): notifikasi email dengan cooldown atomic via devices.last_alert_at.
+  // Sementara dinonaktifkan — logika lama bergantung pada tabel air_quality_predictions.
 
-  // Kirim email jika WASPADA atau BERBAHAYA
-  if (shouldNotify(status)) {
-    const recentNotif = await prisma.air_quality_predictions.findFirst({
-      where: {
-        sensor_log: { device_id },
-        status_label: { in: ['WASPADA', 'BERBAHAYA'] },
-        predicted_at: { gte: new Date(Date.now() - NOTIF_COOLDOWN_MS) },
-      },
-      orderBy: { predicted_at: 'desc' },
-    })
-
-    // Jika record ini sendiri — skip, cari yang sebelumnya
-    const isFirstAlert = !recentNotif || recentNotif.id === log.id
-
-    if (isFirstAlert) {
-      try {
-        await sendWarningEmail({
-          device_id,
-          eco2_ppm,
-          tvoc_pb,
-          temperature_celsius,
-          humidity_percent,
-          status,
-          timestamp: log.recorded_at,
-        })
-      } catch (emailErr) {
-        console.error('[sensor] Gagal kirim email:', emailErr)
-      }
-    }
-  }
-
-  return NextResponse.json({ success: true, id: log.id.toString(), status }, { status: 201 })
+  return NextResponse.json({ success: true, id: log.id.toString(), air_status }, { status: 201 })
 }

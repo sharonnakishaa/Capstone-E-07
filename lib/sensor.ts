@@ -50,6 +50,10 @@ export const OUTLET_DUST = {
   window:    30,
 }
 
+// Data mentah (per 5 detik) yang lebih tua dari ini diringkas per jam ke sensor_hourly lalu dihapus.
+// Dijalankan oleh `npm run db:retention`. Menurunkan angka ini aman; data yang sudah dihapus tidak bisa kembali.
+export const RAW_RETENTION_DAYS = 60
+
 export const SAMPLE_INTERVAL_SEC = 5
 export const OFFLINE_AFTER_MS    = 15_000
 export const ALERT_COOLDOWN_MS   = 15 * 60 * 1000

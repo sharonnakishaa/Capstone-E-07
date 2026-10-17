@@ -36,6 +36,7 @@ model devices {
 
   user                users     @relation(fields: [registered_by], references: [id], onDelete: Cascade)
   sensor_logs         sensor_logs[]
+  sensor_hourly       sensor_hourly[]
 }
 
 // 3. Tabel SENSOR_LOGS
@@ -57,4 +58,27 @@ model sensor_logs {
   device              devices   @relation(fields: [device_id], references: [id], onDelete: Cascade)
 
   @@index([device_id, recorded_at])
+}
+
+// 4. Tabel SENSOR_HOURLY — ringkasan per jam dari sensor_logs yang sudah melewati masa retensi.
+// Diisi oleh scripts/retention.ts. TVOC memakai nilai Kalman, atau nilai mentah kalau Kalman kosong.
+model sensor_hourly {
+  device_id               String   @db.Uuid
+  hour_start              DateTime @db.Timestamptz // Awal jam (dibulatkan ke bawah)
+  samples                 Int                      // Jumlah log dalam jam ini
+  fan_running_samples     Int                      // Log dengan fan_duty_percent > 0 (untuk jam operasi filter)
+  tvoc_avg_ppb            Float
+  tvoc_max_ppb            Float
+  tvoc_raw_max_ppb        Float
+  dust_outlet_avg_ugm3    Float?
+  dust_outlet_max_ugm3    Float?
+  temperature_avg_celsius Float
+  humidity_avg_percent    Float
+  aman_samples            Int
+  waspada_samples         Int
+  berbahaya_samples       Int
+
+  device                  devices  @relation(fields: [device_id], references: [id], onDelete: Cascade)
+
+  @@id([device_id, hour_start])
 }

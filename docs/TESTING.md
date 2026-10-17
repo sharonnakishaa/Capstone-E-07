@@ -150,6 +150,17 @@ Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan `device_id` 
 | J-04 | Ponsel 375 px | DevTools → *device toolbar* → iPhone SE. | Kartu 1 kolom dan topbar terlipat. Tidak ada scroll horizontal di halaman; tabel bisa digeser di dalam kartunya sendiri. | | |
 | J-05 | Halaman log 375 px | Ulangi J-04 di `/logs.html`. | Form ekspor tersusun rapi, tombol Ekspor selebar layar, dan tabel bisa digeser di dalam kartu. | | |
 
+## K. Retensi data
+
+Uji ini memakai `--days=0` supaya data hasil seed langsung diproses. **Data mentah selain jam berjalan akan terhapus.** Jalankan hanya di database dummy, lalu `npm run db:seed` untuk memulihkan data.
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| K-01 | Dry-run | `npm run db:retention -- --dry-run --days=0` | Menampilkan batas waktu, jumlah log, dan jumlah ringkasan per jam. Jumlah baris di `sensor_logs` tidak berubah (cek di Prisma Studio). | | |
+| K-02 | Ringkas dan hapus | Catat jam operasi filter di dashboard, lalu jalankan `npm run db:retention -- --days=0`. | Script melaporkan N ringkasan ditulis dan M log dihapus, dengan angka yang sama seperti K-01. Di Prisma Studio, `sensor_hourly` berisi N baris dan `sensor_logs` hanya berisi data jam berjalan. | | |
+| K-03 | Jam operasi filter tetap | Muat ulang dashboard setelah K-02. | Jam operasi filter sama dengan sebelum K-02 (selisih ≤ 1 jam). | | |
+| K-04 | Dijalankan ulang | Jalankan lagi `npm run db:retention -- --days=0` dalam jam yang sama. | Muncul "Tidak ada data yang melewati masa retensi", dan tidak ada ringkasan ganda. | | |
+
 ---
 
 ## Ringkasan hasil
@@ -166,4 +177,5 @@ Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan `device_id` 
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 5 | | | |
 | J. Tampilan | 5 | | | |
-| **Total** | **62** | | | |
+| K. Retensi data | 4 | | | |
+| **Total** | **66** | | | |

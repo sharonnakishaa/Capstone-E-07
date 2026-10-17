@@ -13,7 +13,8 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:seed": "tsx scripts/seed.ts",
-    "simulate": "tsx scripts/simulate.ts"
+    "simulate": "tsx scripts/simulate.ts",
+    "db:retention": "tsx scripts/retention.ts"
   },
   "repository": {
     "type": "git",

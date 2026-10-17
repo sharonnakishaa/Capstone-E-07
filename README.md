@@ -66,6 +66,7 @@ npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 det
 | `npm run db:generate` | Generate ulang Prisma Client |
 | `npm run db:seed` | Isi data awal untuk pengujian |
 | `npm run simulate` | Jalankan simulator ESP32 |
+| `npm run db:retention` | Ringkas data mentah lama per jam lalu hapus (lihat [Retensi data](#retensi-data)) |
 
 Halaman:
 - `/` → dialihkan ke `/index.html` (dashboard)
@@ -116,6 +117,25 @@ Cara kerja model ada di `scripts/lib/simulation.ts`:
 - **Status, level, dan duty** meniru keluaran fuzzy firmware: ambang Kalman < 250 AMAN (MIN/LOW), 250–399 WASPADA (MED), ≥ 400 BERBAHAYA (FAST). Ambangnya diambil dari `lib/sensor.ts`.
 - **RPM** mengikuti duty dengan sedikit inersia. Suhu mengikuti siklus harian, dan debu outlet berasal dari partikel yang lolos HEPA.
 
+## Retensi data
+
+Data mentah dikirim tiap 5 detik, yaitu 17.280 baris per hari per device kalau alat menyala terus. Supaya database tidak penuh, data mentah yang lebih tua dari **60 hari** (`RAW_RETENTION_DAYS` di `lib/sensor.ts`) diringkas per jam ke tabel `sensor_hourly`, lalu dihapus dari `sensor_logs`.
+
+```bash
+npm run db:retention -- --dry-run     # lihat apa yang akan diproses, tanpa mengubah database
+npm run db:retention                  # jalankan
+npm run db:retention -- --days=0      # khusus pengujian: ringkas semua jam yang sudah lewat
+```
+
+- Ringkas dan hapus dijalankan dalam **satu transaksi**. Kalau salah satu gagal, tidak ada yang berubah.
+- Hanya jam yang **lengkap** yang diproses, karena batasnya dibulatkan ke awal jam.
+- Script **aman dijalankan berulang kali**. Kalau jam yang sama sudah pernah diringkas, hasilnya digabung, bukan diduplikasi.
+- Isi setiap baris ringkasan: jumlah sampel, sampel saat kipas menyala, rata-rata dan maksimum TVOC (Kalman, atau mentah kalau Kalman kosong), maksimum TVOC mentah, rata-rata dan maksimum debu outlet, rata-rata suhu dan RH, serta jumlah sampel per status.
+- `filter_runtime_hours` menjumlahkan sampel kipas menyala dari log mentah **dan** dari ringkasan per jam, jadi jam operasi filter tetap benar setelah data mentah dihapus.
+- Ekspor CSV dan halaman log hanya membaca data mentah. Ekspor CSV setiap sesi uji penting segera setelah selesai.
+
+Belum ada penjadwalan otomatis. Untuk sementara, jalankan script ini manual (misalnya seminggu sekali). Setelah lokasi deploy ditentukan, script bisa dijadwalkan lewat cron di server, Vercel Cron, atau `pg_cron` di Supabase.
+
 ## Struktur folder
 
 ```
@@ -134,7 +154,7 @@ lib/
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
-  schema.prisma         Skema database (users, devices, sensor_logs)
+  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly)
 public/
   index.html            Dashboard (HTML/CSS/JS murni, grafik SVG)
   logs.html             Halaman log + ekspor CSV
@@ -142,6 +162,7 @@ scripts/
   lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
   seed.ts               Seed user, device, dan data historis
   simulate.ts           Simulator ESP32
+  retention.ts          Retensi data: ringkas per jam lalu hapus data mentah lama
 docs/
   TESTING.md            Checklist uji manual fungsional dashboard
 ```
@@ -399,7 +420,7 @@ recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidi
 | `inlet_distance_cm` | Jarak inlet yang direkomendasikan dari titik solder (default 5) |
 | `filter_installed_at` | Waktu filter terakhir dipasang. `null` kalau belum dicatat. |
 | `last_seen_at` | `recorded_at` dari log terakhir. `null` kalau belum ada data. |
-| `filter_runtime_hours` | Perkiraan jam operasi filter: jumlah log dengan `fan_duty_percent > 0` sejak `filter_installed_at`, dikali 5 detik, dibagi 3600. Nilainya `null` kalau `filter_installed_at` kosong. |
+| `filter_runtime_hours` | Perkiraan jam operasi filter: jumlah sampel dengan `fan_duty_percent > 0` sejak `filter_installed_at` (dari log mentah ditambah ringkasan per jam), dikali 5 detik, dibagi 3600. Nilainya `null` kalau `filter_installed_at` kosong. |
 
 ---
 

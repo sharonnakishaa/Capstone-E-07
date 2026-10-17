@@ -1,5 +1,5 @@
 // Seed database: 1 user, 1 device, dan ±3 jam data historis (interval 5 detik).
-// Menjalankan ulang aman: user & device di-upsert, log lama milik device ini dihapus dulu.
+// Menjalankan ulang aman: user & device di-upsert, log dan ringkasan lama milik device ini dihapus dulu.
 //
 //   npm run db:seed
 
@@ -46,8 +46,13 @@ async function main() {
     create: { ...DEVICE, registered_by: user.id, filter_installed_at: new Date(startMs), inlet_distance_cm: 5 },
   })
 
-  const { count: deleted } = await prisma.sensor_logs.deleteMany({ where: { device_id: device.id } })
-  if (deleted) console.log(`Menghapus ${deleted} log lama milik device ini`)
+  const [{ count: deleted }, { count: deletedHourly }] = await Promise.all([
+    prisma.sensor_logs.deleteMany({ where: { device_id: device.id } }),
+    prisma.sensor_hourly.deleteMany({ where: { device_id: device.id } }),
+  ])
+  if (deleted || deletedHourly) {
+    console.log(`Menghapus ${deleted} log dan ${deletedHourly} ringkasan per jam milik device ini`)
+  }
 
   const sim  = new DeviceSimulator('normal')
   const rows = Array.from({ length: ticks }, (_, i) => {

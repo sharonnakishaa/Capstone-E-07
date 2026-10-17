@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <title>EPEN — Log Data Sensor</title>
-<meta name="viewport" content="width=1440" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,13 +12,17 @@
     --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
     --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
     --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;--violet:#A78BFA;
+    --accent:#38BDF8;--accent-ink:#082F49;
     --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
     --topbar-bg:#0F172A;--table-head-bg:#172033;--table-row-hover:rgba(56,189,248,.025);
+    --err-bg:#3B0A0A;--err-border:#7F1D1D;--err-text:#FECACA;
   }
   [data-theme="light"]{
     --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
     --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
+    --accent:#0284C7;--accent-ink:#FFFFFF;
     --topbar-bg:#FFFFFF;--table-head-bg:#F1F5F9;--table-row-hover:rgba(56,189,248,.04);
+    --err-bg:#FEE2E2;--err-border:#FECACA;--err-text:#991B1B;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
@@ -29,7 +33,7 @@
   .brand-text{display:flex;flex-direction:column;line-height:1.15}
   .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
   .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
-  .back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s,color .15s;margin-left:auto;}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s,color .15s;margin-left:auto;white-space:nowrap;}
   .back-btn:hover{background:var(--border);color:var(--text)}
   .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;flex-shrink:0;}
   .theme-toggle:hover{background:var(--border);color:var(--text)}
@@ -37,31 +41,49 @@
 
   /* LAYOUT */
   main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
 
   /* TOOLBAR */
-  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .toolbar{display:flex;align-items:flex-end;gap:12px 16px;margin-bottom:16px;flex-wrap:wrap;}
   .toolbar-title{font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;}
   .toolbar-sub{font-size:12px;color:var(--muted-2);margin-top:2px;}
   .toolbar-info{margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono);}
 
-  .device-select-wrap{position:relative;display:flex;align-items:center;}
-  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 32px 8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer;outline:none;}
+  .device-select-wrap{position:relative;display:flex;align-items:center;min-width:0;}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 32px 8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer;outline:none;max-width:260px;min-width:0;text-overflow:ellipsis;}
   .device-select option{background:var(--surface);color:var(--text);}
   .select-chevron{position:absolute;right:10px;pointer-events:none;color:var(--muted-2);}
 
+  /* EKSPOR */
+  .export{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px 16px;margin-bottom:20px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;}
+  .export-title{font-size:13px;font-weight:700;color:var(--text-strong);width:100%;margin-bottom:-2px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .field input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:12px;color:var(--text);outline:none;color-scheme:light dark;min-width:0}
+  .field input:focus{border-color:var(--accent)}
+  .btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+  .btn:hover:not(:disabled){opacity:.9}
+  .btn:disabled{opacity:.55;cursor:progress}
+  .export-note{font-size:11.5px;color:var(--muted-2);flex:1;min-width:200px;align-self:center}
+  .export-msg{width:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;display:none;line-height:1.45}
+  .export-msg.err{display:block;background:var(--err-bg);border:1px solid var(--err-border);color:var(--err-text)}
+  .export-msg.ok{display:block;color:var(--muted)}
+
   /* TABLE */
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1020px;}
+  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);white-space:nowrap;}
   thead th:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid var(--border-soft);}
   thead th:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid var(--border-soft);text-align:right;}
   thead th.num{text-align:right;}
-  tbody td{padding:13px 14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;}
+  .nocase{text-transform:none}
+  tbody td{padding:13px 14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;white-space:nowrap;}
   tbody tr:last-child td{border-bottom:0;}
   tbody tr:hover td{background:var(--table-row-hover);}
   td.idx{color:var(--muted-2);width:56px;}
   td.num{text-align:right;font-variant-numeric:tabular-nums;}
   td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+  td.dim{color:var(--muted-2)}
   td.last{text-align:right;}
 
   .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
@@ -80,6 +102,23 @@
   .pg-btn:disabled{opacity:.35;cursor:not-allowed;}
   .pg-btn.active{background:var(--sky);border-color:var(--sky);color:#082F49;}
   .pg-sep{color:var(--muted-2);font-size:13px;padding:0 4px;}
+
+  /* RESPONSIF */
+  @media (max-width:720px){
+    .topbar{height:auto;flex-wrap:wrap;padding:10px 16px;gap:10px}
+    .topbar .device-select-wrap{order:3;width:100%}
+    .topbar .device-select{max-width:none;width:100%}
+    main{padding:16px 16px 40px}
+    .card{padding:16px}
+    .toolbar-info{margin-left:0;width:100%}
+    .export .field{flex:1 1 130px}
+    .export .field input{width:100%}
+    .export .btn{width:100%;justify-content:center}
+    .pg-btn{min-width:32px;height:32px;padding:0 8px}
+  }
+  @media (max-width:420px){
+    .brand-sub{display:none}
+  }
 </style>
 </head>
 <body>
@@ -91,7 +130,7 @@
   </div>
 
   <div class="device-select-wrap">
-    <select id="deviceSelect" class="device-select">
+    <select id="deviceSelect" class="device-select" aria-label="Pilih perangkat">
       <option>Memuat...</option>
     </select>
     <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -115,23 +154,46 @@
       <div class="toolbar-info" id="toolbarInfo"></div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th style="width:56px">#</th>
-          <th>Waktu</th>
-          <th class="num">eCO₂ (ppm)</th>
-          <th class="num">TVOC (ppb)</th>
-          <th class="num">Suhu (°C)</th>
-          <th class="num">Kelembapan (%)</th>
-          <th>Status AI</th>
-          <th class="num">Kipas</th>
-        </tr>
-      </thead>
-      <tbody id="logTableBody">
-        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Memuat data...</td></tr>
-      </tbody>
-    </table>
+    <form class="export" id="exportForm" novalidate>
+      <div class="export-title">Ekspor CSV</div>
+      <div class="field">
+        <label for="fromDate">Dari tanggal</label>
+        <input type="date" id="fromDate" required>
+      </div>
+      <div class="field">
+        <label for="toDate">Sampai tanggal</label>
+        <input type="date" id="toDate" required>
+      </div>
+      <button type="submit" class="btn" id="exportBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="exportLabel">Ekspor CSV</span>
+      </button>
+      <span class="export-note">Waktu dalam WIB, mencakup seluruh hari pada kedua tanggal. Maksimal 50.000 baris per ekspor.</span>
+      <div class="export-msg" id="exportMsg" role="status"></div>
+    </form>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:56px">#</th>
+            <th>Waktu (WIB)</th>
+            <th class="num">TVOC Mentah (ppb)</th>
+            <th class="num">TVOC Kalman (ppb)</th>
+            <th class="num">Suhu (°C)</th>
+            <th class="num">RH (%)</th>
+            <th class="num">Debu Outlet (<span class="nocase">µg/m³</span>)</th>
+            <th>Status Fuzzy</th>
+            <th>Level</th>
+            <th class="num">Duty (%)</th>
+            <th class="num">RPM</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="pagination" id="pagination"></div>
   </div>
@@ -150,40 +212,53 @@
 })();
 
 /* STATE */
+const PAGE_SIZE = 50;
 let currentDeviceId = null;
 let currentPage     = 1;
 let totalPages      = 1;
 let totalRecords    = 0;
 
 /* HELPERS */
+const $   = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmtNum(v, d = 0){
+  return v == null ? '—' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:d, maximumFractionDigits:d});
+}
 function fmtTime(iso){
   return new Date(iso).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',hour12:false,
     day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+/** Tanggal hari ini di WIB, format YYYY-MM-DD (untuk nilai default input date). */
+function todayWib(){
+  return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
 /* RENDER TABLE */
 function renderTable(data, page) {
   const badgeMap = {AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};
-  const offset   = (page - 1) * 50;
+  const offset   = (page - 1) * PAGE_SIZE;
 
-  document.getElementById('logTableBody').innerHTML = data.length
+  $('logTableBody').innerHTML = data.length
     ? data.map((d, i) => `
         <tr>
           <td class="idx">${offset + i + 1}</td>
           <td>${fmtTime(d.recorded_at)}</td>
-          <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
-          <td class="num">${d.tvoc_raw_ppb.toLocaleString('id-ID')}</td>
-          <td class="num">${d.temperature_celsius}</td>
-          <td class="num">${d.humidity_percent}</td>
-          <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${d.air_status??'AMAN'}</span></td>
-          <td class="last">${Math.round(d.fan_duty_percent)}%</td>
+          <td class="num dim">${fmtNum(d.tvoc_raw_ppb)}</td>
+          <td class="ppm">${fmtNum(d.tvoc_kalman_ppb, 1)}</td>
+          <td class="num">${fmtNum(d.temperature_celsius, 1)}</td>
+          <td class="num">${fmtNum(d.humidity_percent, 1)}</td>
+          <td class="num">${fmtNum(d.dust_outlet_ugm3, 1)}</td>
+          <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${esc(d.air_status)}</span></td>
+          <td>${esc(d.fuzzy_level ?? '—')}</td>
+          <td class="num">${fmtNum(d.fan_duty_percent)}</td>
+          <td class="last">${fmtNum(d.fan_rpm)}</td>
         </tr>`).join('')
-    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
+    : '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
 }
 
 /* RENDER PAGINATION */
 function renderPagination() {
-  const el  = document.getElementById('pagination');
+  const el  = $('pagination');
   if (totalPages <= 1) { el.innerHTML = ''; return; }
 
   const pages = [];
@@ -198,42 +273,49 @@ function renderPagination() {
   }
 
   el.innerHTML = `
-    <button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>
+    <button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''} aria-label="Halaman sebelumnya">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     ${pages.map(p => p === '…'
       ? `<span class="pg-sep">…</span>`
       : `<button class="pg-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`
     ).join('')}
-    <button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>
+    <button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''} aria-label="Halaman berikutnya">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>`;
 }
 
 /* LOAD DATA */
 async function loadPage(page) {
-  if (!currentDeviceId) return;
+  const deviceId = currentDeviceId;
+  if (!deviceId) return;
   currentPage = page;
 
-  document.getElementById('logTableBody').innerHTML =
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Memuat...</td></tr>';
+  $('logTableBody').innerHTML =
+    '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Memuat...</td></tr>';
 
-  const res  = await fetch(`/api/sensor?device_id=${currentDeviceId}&page=${page}`);
-  const json = await res.json();
+  try {
+    const res = await fetch(`/api/sensor?device_id=${encodeURIComponent(deviceId)}&page=${page}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if (deviceId !== currentDeviceId || page !== currentPage) return; // sudah pindah device/halaman
 
-  totalRecords = json.total;
-  totalPages   = json.totalPages;
+    totalRecords = json.total;
+    totalPages   = json.totalPages;
 
-  const from = (page - 1) * 50 + 1;
-  const to   = Math.min(page * 50, totalRecords);
+    const from = totalRecords ? (page - 1) * PAGE_SIZE + 1 : 0;
+    const to   = Math.min(page * PAGE_SIZE, totalRecords);
 
-  document.getElementById('toolbarSub').textContent =
-    `Total ${totalRecords.toLocaleString('id-ID')} record`;
-  document.getElementById('toolbarInfo').textContent =
-    `Menampilkan ${from}–${to} dari ${totalRecords.toLocaleString('id-ID')}`;
+    $('toolbarSub').textContent  = `Total ${totalRecords.toLocaleString('id-ID')} record`;
+    $('toolbarInfo').textContent = `Menampilkan ${from.toLocaleString('id-ID')}–${to.toLocaleString('id-ID')} dari ${totalRecords.toLocaleString('id-ID')}`;
 
-  renderTable(json.data, page);
-  renderPagination();
+    renderTable(json.data, page);
+    renderPagination();
+  } catch (e) {
+    console.error('[logs]', e);
+    $('logTableBody').innerHTML =
+      '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Gagal memuat data. Coba muat ulang halaman.</td></tr>';
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -243,27 +325,101 @@ function goPage(page) {
   loadPage(page);
 }
 
-/* LOAD DEVICES */
-async function loadDevices() {
-  const res    = await fetch('/api/devices');
-  const {data} = await res.json();
-  const sel    = document.getElementById('deviceSelect');
-
-  sel.innerHTML = data.map(d =>
-    `<option value="${d.id}">${d.device_name} — ${d.location}</option>`
-  ).join('');
-
-  if (data.length) {
-    currentDeviceId = data[0].id;
-    loadPage(1);
-  }
-
-  sel.addEventListener('change', () => {
-    currentDeviceId = sel.value;
-    loadPage(1);
-  });
+/* EKSPOR CSV */
+function showExportMsg(text, kind) {
+  const el = $('exportMsg');
+  el.textContent = text;
+  el.className = 'export-msg' + (kind ? ' ' + kind : '');
 }
 
+async function exportCsv(e) {
+  e.preventDefault();
+  if (!currentDeviceId) return;
+
+  const fromDate = $('fromDate').value, toDate = $('toDate').value;
+  if (!fromDate || !toDate) return showExportMsg('Isi kedua tanggal terlebih dahulu.', 'err');
+  if (fromDate > toDate)    return showExportMsg('Tanggal "Dari" tidak boleh setelah tanggal "Sampai".', 'err');
+
+  // Rentang satu hari penuh dalam WIB (UTC+7)
+  const params = new URLSearchParams({
+    format:    'csv',
+    device_id: currentDeviceId,
+    from:      `${fromDate}T00:00:00+07:00`,
+    to:        `${toDate}T23:59:59.999+07:00`,
+  });
+
+  const btn = $('exportBtn');
+  btn.disabled = true;
+  $('exportLabel').textContent = 'Menyiapkan...';
+  showExportMsg('', null);
+
+  try {
+    const res = await fetch(`/api/sensor?${params}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error ?? `Gagal mengekspor (HTTP ${res.status}).`);
+    }
+
+    const blob = await res.blob();
+    const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'epen-log.csv';
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    // Baris pertama CSV adalah header
+    const text = await blob.text();
+    const rows = Math.max(0, text.trim().split(/\r?\n/).length - 1);
+    showExportMsg(rows
+      ? `${rows.toLocaleString('id-ID')} baris diekspor ke ${name}.`
+      : `Tidak ada data pada rentang ini. File ${name} hanya berisi header.`, 'ok');
+  } catch (err) {
+    showExportMsg(err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    $('exportLabel').textContent = 'Ekspor CSV';
+  }
+}
+
+/* LOAD DEVICES */
+async function loadDevices() {
+  const sel = $('deviceSelect');
+  try {
+    const res = await fetch('/api/devices');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const {data} = await res.json();
+
+    if (!data.length) {
+      sel.innerHTML = '<option>Belum ada perangkat</option>';
+      $('toolbarSub').textContent = 'Belum ada perangkat terdaftar';
+      $('logTableBody').innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
+      $('exportBtn').disabled = true;
+      return;
+    }
+
+    sel.innerHTML = data.map(d =>
+      `<option value="${esc(d.id)}">${esc(d.device_name)} — ${esc(d.location)}</option>`
+    ).join('');
+
+    currentDeviceId = data[0].id;
+    loadPage(1);
+
+    sel.addEventListener('change', () => {
+      currentDeviceId = sel.value;
+      showExportMsg('', null);
+      loadPage(1);
+    });
+  } catch (e) {
+    console.error('[devices]', e);
+    sel.innerHTML = '<option>Gagal memuat</option>';
+    $('toolbarSub').textContent = 'Gagal memuat daftar perangkat. Coba muat ulang halaman.';
+  }
+}
+
+$('fromDate').value = $('toDate').value = todayWib();
+$('exportForm').addEventListener('submit', exportCsv);
 loadDevices();
 </script>
 </body>

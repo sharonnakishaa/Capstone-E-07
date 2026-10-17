@@ -9,21 +9,22 @@ export type FuzzyLevel = typeof FUZZY_LEVELS[number]
 
 export const STATUS_META: Record<StatusLabel, {
   label: string
+  headline: string   // judul banner dashboard
   emoji: string
   color: string      // aksen (ikon, garis, badge tema gelap)
   text_light: string // teks di latar terang, termasuk email
   description: string
 }> = {
   AMAN: {
-    label: 'Aman', emoji: '🟢', color: '#22C55E', text_light: '#15803D',
+    label: 'Aman', headline: 'Kualitas Udara Baik', emoji: '🟢', color: '#22C55E', text_light: '#15803D',
     description: 'Kadar TVOC rendah. Ekstraktor bekerja normal.',
   },
   WASPADA: {
-    label: 'Waspada', emoji: '🟠', color: '#F59E0B', text_light: '#B45309',
+    label: 'Waspada', headline: 'Asap Solder Terdeteksi', emoji: '🟠', color: '#F59E0B', text_light: '#B45309',
     description: 'Asap solder terdeteksi. Pastikan inlet dekat titik solder dan menghadap sumber asap.',
   },
   BERBAHAYA: {
-    label: 'Berbahaya', emoji: '🔴', color: '#EF4444', text_light: '#DC2626',
+    label: 'Berbahaya', headline: 'Kadar Asap Tinggi', emoji: '🔴', color: '#EF4444', text_light: '#DC2626',
     description: 'Kadar TVOC tinggi! Jeda menyolder, periksa posisi alat dan kondisi filter.',
   },
 }
@@ -40,6 +41,13 @@ export const FUZZY_LEVEL_META: Record<FuzzyLevel, { label: string; duty_percent:
 export const TVOC_REFERENCE_PPB = {
   waspada:   250,
   berbahaya: 400,
+}
+
+// Peringatan filter: rata-rata debu outlet pada N data terakhir melebihi ambang ini.
+// Setel ulang setelah kalibrasi GP2Y di alat sebenarnya.
+export const OUTLET_DUST = {
+  warn_ugm3: 25,
+  window:    30,
 }
 
 export const SAMPLE_INTERVAL_SEC = 5
@@ -64,6 +72,7 @@ export function getPublicConfig() {
     statuses:           STATUS_META,
     fuzzy_levels:       FUZZY_LEVEL_META,
     tvoc_reference_ppb: TVOC_REFERENCE_PPB,
+    outlet_dust:        OUTLET_DUST,
     poll_interval_ms:   SAMPLE_INTERVAL_SEC * 1000,
     offline_after_ms:   OFFLINE_AFTER_MS,
   }

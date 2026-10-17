@@ -2,8 +2,8 @@
 <html lang="id" data-theme="light">
 <head>
 <meta charset="utf-8" />
-<title>EPEN Dashboard — Monitoring Kualitas Udara</title>
-<meta name="viewport" content="width=1440" />
+<title>EPEN Dashboard — Monitoring Fume Extractor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
     --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
     --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
     --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;--violet:#A78BFA;
+    --series:#38BDF8;
     --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
     --topbar-bg:#0F172A;--bar-track:#0F172A;--legend-bg:#0F172A;
     --alert-bg:#052E16;--alert-border:#14532D;--alert-text:#86EFAC;--alert-title:#4ADE80;
@@ -21,6 +22,7 @@
   [data-theme="light"]{
     --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
     --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
+    --series:#0284C7;
     --topbar-bg:#FFFFFF;--bar-track:#E2E8F0;--legend-bg:#F8FAFC;
     --alert-bg:#DCFCE7;--alert-border:#86EFAC;--alert-text:#15803D;--alert-title:#16A34A;
     --table-head-bg:#F1F5F9;--table-row-hover:rgba(56,189,248,.04);--chart-dot-fill:#FFFFFF;
@@ -35,36 +37,45 @@
   .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
   .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
 
-  .device-pill{margin-left:auto;margin-right:auto;display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:7px 14px 7px 12px;}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 0 rgba(34,197,94,.55);animation:pulse 1.8s ease-out infinite;}
+  .device-pill{margin-left:auto;margin-right:auto;display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:7px 14px 7px 12px;min-width:0;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--emerald);box-shadow:0 0 0 0 rgba(34,197,94,.55);animation:pulse 1.8s ease-out infinite;}
+  .dot.off{background:var(--muted-2);animation:none;box-shadow:none}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
-  .device-select-wrap{position:relative;display:flex;align-items:center;}
-  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.02em;max-width:220px;padding-right:18px;}
+  .device-select-wrap{position:relative;display:flex;align-items:center;min-width:0;}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.02em;max-width:220px;padding-right:18px;min-width:0;text-overflow:ellipsis;}
   .device-select option{background:var(--surface);color:var(--text);}
   .select-chevron{position:absolute;right:0;pointer-events:none;color:var(--muted-2);flex-shrink:0;}
-  .device-state{font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:.06em}
+  .device-state{font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:.06em;flex-shrink:0}
+  .device-state.off{color:var(--red)}
+  .device-state.wait{color:var(--muted)}
 
   .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s,border-color .15s;flex-shrink:0;}
   .theme-toggle:hover{background:var(--border);color:var(--text)}
   .theme-toggle svg{width:18px;height:18px}
 
   main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;display:flex;flex-direction:column;gap:24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
 
   /* Alert */
   .alert{background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:20px;transition:background .3s,border-color .3s;}
   .alert[data-status="WASPADA"]{background:#3B1F05;border-color:#78350F;}
   .alert[data-status="BERBAHAYA"]{background:#3B0A0A;border-color:#7F1D1D;}
+  .alert[data-status="OFFLINE"]{background:#1E293B;border-color:#475569;}
   [data-theme="light"] .alert[data-status="WASPADA"]{background:#FEF3C7;border-color:#FDE68A;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"]{background:#FEE2E2;border-color:#FECACA;}
+  [data-theme="light"] .alert[data-status="OFFLINE"]{background:#F1F5F9;border-color:#CBD5E1;}
   .alert[data-status="WASPADA"] .alert-label,.alert[data-status="WASPADA"] .alert-desc,.alert[data-status="WASPADA"] .alert-right-label,.alert[data-status="WASPADA"] .alert-time,.alert[data-status="WASPADA"] .alert-interval{color:#FDE68A;}
   .alert[data-status="WASPADA"] .alert-title{color:#F59E0B;}
   .alert[data-status="BERBAHAYA"] .alert-label,.alert[data-status="BERBAHAYA"] .alert-desc,.alert[data-status="BERBAHAYA"] .alert-right-label,.alert[data-status="BERBAHAYA"] .alert-time,.alert[data-status="BERBAHAYA"] .alert-interval{color:#FECACA;}
   .alert[data-status="BERBAHAYA"] .alert-title{color:#EF4444;}
+  .alert[data-status="OFFLINE"] .alert-label,.alert[data-status="OFFLINE"] .alert-desc,.alert[data-status="OFFLINE"] .alert-right-label,.alert[data-status="OFFLINE"] .alert-time,.alert[data-status="OFFLINE"] .alert-interval{color:#CBD5E1;}
+  .alert[data-status="OFFLINE"] .alert-title{color:#F1F5F9;}
   [data-theme="light"] .alert[data-status="WASPADA"] .alert-label,[data-theme="light"] .alert[data-status="WASPADA"] .alert-desc,[data-theme="light"] .alert[data-status="WASPADA"] .alert-right-label,[data-theme="light"] .alert[data-status="WASPADA"] .alert-time,[data-theme="light"] .alert[data-status="WASPADA"] .alert-interval{color:#92400E;}
   [data-theme="light"] .alert[data-status="WASPADA"] .alert-title{color:#B45309;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-desc,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-right-label,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-time,[data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-interval{color:#991B1B;}
   [data-theme="light"] .alert[data-status="BERBAHAYA"] .alert-title{color:#DC2626;}
+  [data-theme="light"] .alert[data-status="OFFLINE"] .alert-label,[data-theme="light"] .alert[data-status="OFFLINE"] .alert-desc,[data-theme="light"] .alert[data-status="OFFLINE"] .alert-right-label,[data-theme="light"] .alert[data-status="OFFLINE"] .alert-time,[data-theme="light"] .alert[data-status="OFFLINE"] .alert-interval{color:#475569;}
+  [data-theme="light"] .alert[data-status="OFFLINE"] .alert-title{color:#1E293B;}
   .alert-icon{width:48px;height:48px;border-radius:50%;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
   .alert-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   .alert-label{font-size:10.5px;color:var(--alert-text);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
@@ -76,9 +87,9 @@
   .alert-interval{font-size:11px;color:var(--alert-text);opacity:.55}
 
   /* Metrics */
-  .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
   .metric-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
-  .metric-label-wrap{display:flex;flex-direction:column;gap:3px}
+  .metric-label-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
   .metric-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
   .metric-sub{font-size:11.5px;color:var(--muted-2)}
   .metric-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -88,18 +99,24 @@
   .metric-icon.red{background:rgba(239,68,68,.12);color:#F87171}
   .metric-icon.emerald{background:rgba(34,197,94,.12);color:#4ADE80}
   .metric-icon.violet{background:rgba(167,139,250,.12);color:var(--violet)}
+  .metric-icon.slate{background:rgba(148,163,184,.14);color:var(--muted)}
+  [data-theme="light"] .metric-icon.sky{background:rgba(2,132,199,.1);color:#0284C7}
   [data-theme="light"] .metric-icon.red{background:rgba(239,68,68,.1);color:#DC2626}
   [data-theme="light"] .metric-icon.emerald{background:rgba(34,197,94,.1);color:#16A34A}
   [data-theme="light"] .metric-icon.violet{background:rgba(167,139,250,.1);color:#7C3AED}
-  .metric-value{display:flex;align-items:baseline;gap:8px;margin-bottom:14px}
+  .metric-value{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
   .metric-value .num{font-family:var(--mono);font-size:42px;font-weight:700;color:var(--text-strong);letter-spacing:-.02em;line-height:1;}
   .metric-value .unit{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.02em}
+  .metric-extra{font-family:var(--mono);font-size:12px;color:var(--muted-2);min-height:17px;margin-bottom:12px}
+  .metric-extra strong{color:var(--muted);font-weight:600}
+  .bar-wrap{position:relative}
   .bar{height:6px;background:var(--bar-track);border-radius:999px;overflow:hidden;border:1px solid var(--border-soft);}
-  .bar>i{display:block;height:100%;border-radius:999px;transition:width .5s ease;}
-  .bar.sky>i{background:var(--sky)}.bar.amber>i{background:var(--amber)}.bar.blue>i{background:#60A5FA}
+  .bar>i{display:block;height:100%;border-radius:999px;transition:width .5s ease,background .3s;}
+  .bar.sky>i{background:var(--series)}.bar.amber>i{background:var(--amber)}.bar.blue>i{background:#60A5FA}.bar.slate>i{background:#94A3B8}
+  .bar-tick{position:absolute;top:-3px;width:2px;height:12px;border-radius:1px;transform:translateX(-1px)}
   .metric-foot{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
   .metric-foot .range{font-size:11.5px;color:var(--muted-2)}
-  .trend{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--emerald);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);padding:3px 7px;border-radius:6px;letter-spacing:.02em;}
+  .trend{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--emerald);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);padding:3px 7px;border-radius:6px;letter-spacing:.02em;flex-shrink:0;}
   .trend.down{color:var(--red);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.22)}
   .trend.flat{color:var(--muted);background:rgba(148,163,184,.08);border-color:rgba(148,163,184,.22)}
 
@@ -108,40 +125,78 @@
   .chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
   .chart-title{font-size:16px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
   .chart-sub{font-size:12px;color:var(--muted-2);margin-top:2px}
-  .legend{display:flex;gap:10px;flex-wrap:wrap}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
   .legend-pill{display:inline-flex;align-items:center;gap:8px;background:var(--legend-bg);border:1px solid var(--border-soft);padding:5px 10px;border-radius:999px;font-size:11px;color:var(--muted);font-weight:500;}
-  .legend-pill .swatch{width:14px;height:2px;border-radius:1px}
-  .legend-pill .swatch.dashed{background-image:linear-gradient(to right,currentColor 60%,transparent 0%);background-size:5px 2px;background-repeat:repeat-x;background-position:left center;height:2px;}
-  .legend-pill.em{color:#4ADE80}.legend-pill.dn{color:#F87171}
-  [data-theme="light"] .legend-pill.em{color:#16A34A}[data-theme="light"] .legend-pill.dn{color:#DC2626}
-  .chart-wrap{position:relative;height:300px}
+  .legend-pill .swatch{width:14px;height:2px;border-radius:1px;background:currentColor}
+  .legend-pill .swatch.thick{height:3px}
+  .legend-pill .swatch.faint{height:1.5px;opacity:.45}
+  .legend-pill .swatch.dashed{background:none;background-image:linear-gradient(to right,currentColor 60%,transparent 0%);background-size:5px 2px;background-repeat:repeat-x;background-position:left center;height:2px;}
+  .chart-card{display:flex;flex-direction:column}
+  .chart-wrap{position:relative;flex:1;min-height:300px;touch-action:pan-y}
   .chart-wrap svg{display:block;width:100%;height:100%}
+  .chart-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  .chart-cross{position:absolute;top:14px;bottom:28px;width:1px;background:var(--muted-2);opacity:.5;pointer-events:none;display:none}
+  .chart-tip{position:absolute;top:8px;pointer-events:none;display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 6px 20px rgba(15,23,42,.18);min-width:150px;z-index:2}
+  .chart-tip .tip-time{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-bottom:4px}
+  .chart-tip .tip-row{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted)}
+  .chart-tip .tip-row b{font-family:var(--mono);color:var(--text-strong);font-weight:600}
+  .chart-tip .tip-key{display:inline-flex;align-items:center;gap:6px}
+  .chart-tip .tip-key i{display:inline-block;width:10px;border-radius:1px;background:var(--series)}
 
   /* Stats */
   .stats-title{font-size:16px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;margin-bottom:6px}
-  .stats-sub{font-size:12px;color:var(--muted-2);margin-bottom:8px}
-  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-soft);gap:12px;}
+  .stats-sub{font-size:12px;color:var(--muted-2);margin-bottom:4px}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border-soft);gap:12px;}
   .stat-row:last-child{border-bottom:0;padding-bottom:0}
-  .stat-row:first-of-type{padding-top:10px}
   .stat-left{display:flex;flex-direction:column;gap:4px;min-width:0}
   .stat-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-  .stat-value{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1}
+  .stat-value{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1;color:var(--text-strong)}
   .stat-value.red{color:#F87171}.stat-value.em{color:#4ADE80}.stat-value.sky{color:#7DD3FC}.stat-value.violet{color:#C4B5FD}
+  .stat-value small{font-size:12px;font-weight:500;color:var(--muted-2);margin-left:4px}
   [data-theme="light"] .stat-value.red{color:#DC2626}[data-theme="light"] .stat-value.em{color:#16A34A}
   [data-theme="light"] .stat-value.sky{color:#0284C7}[data-theme="light"] .stat-value.violet{color:#7C3AED}
 
+  /* Info perangkat */
+  .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .info-item{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .info-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .info-value{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text-strong);line-height:1.1}
+  .info-value small{font-size:12px;font-weight:500;color:var(--muted-2);margin-left:2px}
+  .info-note{font-size:11.5px;color:var(--muted-2)}
+  .info-bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .guide{border:1px solid var(--border-soft);border-radius:10px;padding:14px 16px}
+  .guide-title{font-size:13px;font-weight:700;color:var(--text-strong);margin-bottom:8px}
+  .guide ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13px;line-height:1.5}
+  .guide strong{color:var(--text)}
+  .filter-status{border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border-soft);background:var(--surface-2)}
+  .filter-status .fs-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(148,163,184,.14);color:var(--muted)}
+  .filter-status .fs-title{font-size:13px;font-weight:700;color:var(--text-strong);margin-bottom:4px}
+  .filter-status .fs-desc{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .filter-status[data-state="ok"] .fs-icon{background:rgba(34,197,94,.12);color:#4ADE80}
+  .filter-status[data-state="warn"]{background:#3B1F05;border-color:#78350F}
+  .filter-status[data-state="warn"] .fs-icon{background:rgba(245,158,11,.18);color:#F59E0B}
+  .filter-status[data-state="warn"] .fs-title{color:#FBBF24}
+  .filter-status[data-state="warn"] .fs-desc{color:#FDE68A}
+  [data-theme="light"] .filter-status[data-state="ok"] .fs-icon{background:rgba(34,197,94,.1);color:#16A34A}
+  [data-theme="light"] .filter-status[data-state="warn"]{background:#FEF3C7;border-color:#FDE68A}
+  [data-theme="light"] .filter-status[data-state="warn"] .fs-title{color:#B45309}
+  [data-theme="light"] .filter-status[data-state="warn"] .fs-desc{color:#92400E}
+
   /* Table */
   .log-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
+  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);white-space:nowrap;}
   thead th:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid var(--border-soft)}
   thead th:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid var(--border-soft);text-align:right}
   thead th.num{text-align:right}
-  tbody td{padding:14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;}
+  .nocase{text-transform:none}
+  tbody td{padding:14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;white-space:nowrap;}
   tbody tr:last-child td{border-bottom:0}
   tbody tr:hover td{background:var(--table-row-hover)}
   td.idx{color:var(--muted-2);width:48px}td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  td.dim{color:var(--muted-2)}
   td.last{text-align:right}
   .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D}
@@ -151,6 +206,39 @@
   [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
   [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
   .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .link-all{color:var(--sky);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:-.01em;white-space:nowrap}
+  [data-theme="light"] .link-all{color:#0284C7}
+
+  /* Responsif */
+  @media (max-width:1100px){
+    .metric-grid{grid-template-columns:repeat(2,1fr)}
+    .chart-row{grid-template-columns:1fr}
+    .info-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:720px){
+    .topbar{height:auto;flex-wrap:wrap;padding:10px 16px;gap:10px}
+    .device-pill{order:3;width:100%;margin:0;border-radius:10px}
+    .device-select-wrap{flex:1}
+    .device-select{max-width:none;width:100%}
+    .theme-toggle{margin-left:auto}
+    main{padding:16px 16px 40px;gap:16px}
+    .card{padding:16px}
+    .alert{flex-wrap:wrap;padding:16px;gap:14px}
+    .alert-icon{width:40px;height:40px}
+    .alert-title{font-size:18px}
+    .alert-right{width:100%;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:8px}
+    .alert-time{font-size:15px}
+    .metric-grid{grid-template-columns:1fr}
+    .metric-value .num{font-size:34px}
+    .chart-head{flex-direction:column;gap:10px}
+    .legend{justify-content:flex-start}
+    .chart-wrap{flex:none;height:240px;min-height:0}
+    .info-bottom{grid-template-columns:1fr}
+  }
+  @media (max-width:420px){
+    .info-grid{grid-template-columns:1fr}
+    .brand-sub{display:none}
+  }
 </style>
 </head>
 <body>
@@ -159,19 +247,19 @@
   <div class="brand">
     <div class="brand-text">
       <span class="brand-title">EPEN DASHBOARD</span>
-      <span class="brand-sub">Monitoring Kualitas Udara Lab DTETI</span>
+      <span class="brand-sub">Fume Extractor · Lab DTETI</span>
     </div>
   </div>
 
   <div class="device-pill">
-    <span class="dot"></span>
+    <span class="dot off" id="connDot"></span>
     <div class="device-select-wrap">
-      <select id="deviceSelect" class="device-select">
+      <select id="deviceSelect" class="device-select" aria-label="Pilih perangkat">
         <option>Memuat perangkat...</option>
       </select>
       <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-    <span class="device-state" id="connState">—</span>
+    <span class="device-state wait" id="connState">MEMUAT</span>
   </div>
 
   <button class="theme-toggle" id="themeToggle" title="Toggle tema" aria-label="Toggle tema"></button>
@@ -179,19 +267,17 @@
 
 <main>
 
-  <section class="alert" id="alertBanner" aria-live="polite">
-    <div class="alert-icon" id="alertIcon" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alert-title)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    </div>
+  <section class="alert" id="alertBanner" data-status="OFFLINE" aria-live="polite">
+    <div class="alert-icon" id="alertIcon" aria-hidden="true"></div>
     <div class="alert-body">
-      <span class="alert-label">Status Kondisi Udara Terkini</span>
+      <span class="alert-label">Status Fuzzy Terkini</span>
       <span class="alert-title" id="alertTitle">Memuat data...</span>
-      <span class="alert-desc" id="alertDesc">Menghubungkan ke sensor</span>
+      <span class="alert-desc" id="alertDesc">Menghubungkan ke server</span>
     </div>
     <div class="alert-right">
-      <span class="alert-right-label">Pembaruan terakhir</span>
+      <span class="alert-right-label">Data terakhir</span>
       <span class="alert-time" id="lastUpdate">—</span>
-      <span class="alert-interval">Interval: setiap 5 detik</span>
+      <span class="alert-interval" id="intervalText">—</span>
     </div>
   </section>
 
@@ -199,17 +285,20 @@
     <article class="card">
       <div class="metric-head">
         <div class="metric-label-wrap">
-          <span class="metric-label">TVOC</span>
-          <span class="metric-sub">SGP30 Sensor</span>
+          <span class="metric-label">TVOC (Kalman)</span>
+          <span class="metric-sub">SGP30 · input fuzzy</span>
         </div>
         <div class="metric-icon sky" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78 6 6 0 0 0-11.6 2.28A4 4 0 0 0 6 19h11.5Z"/></svg>
         </div>
       </div>
       <div class="metric-value"><span class="num" id="tvocValue">—</span><span class="unit">ppb</span></div>
-      <div class="bar sky"><i id="tvocBar" style="width:0%"></i></div>
+      <div class="metric-extra" id="tvocRaw">Mentah: —</div>
+      <div class="bar-wrap" id="tvocBarWrap">
+        <div class="bar sky"><i id="tvocBar" style="width:0%"></i></div>
+      </div>
       <div class="metric-foot">
-        <span class="range">Ambang bahaya: 2.500 ppb</span>
+        <span class="range" id="tvocRange">Ambang: —</span>
         <span class="trend flat" id="tvocTrend">—</span>
       </div>
     </article>
@@ -217,7 +306,28 @@
     <article class="card">
       <div class="metric-head">
         <div class="metric-label-wrap">
-          <span class="metric-label">Suhu Ruangan</span>
+          <span class="metric-label">Debu Outlet</span>
+          <span class="metric-sub">GP2Y · setelah filter</span>
+        </div>
+        <div class="metric-icon slate" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="8" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="18" cy="9" r="1.5"/><circle cx="8" cy="15" r="1.5"/><circle cx="15" cy="14" r="1.5"/><circle cx="11" cy="20" r="1.5"/><circle cx="19" cy="19" r="1.5"/></svg>
+        </div>
+      </div>
+      <div class="metric-value"><span class="num" id="dustValue">—</span><span class="unit">µg/m³</span></div>
+      <div class="metric-extra" id="dustAvg">Rata-rata: —</div>
+      <div class="bar-wrap" id="dustBarWrap">
+        <div class="bar slate"><i id="dustBar" style="width:0%"></i></div>
+      </div>
+      <div class="metric-foot">
+        <span class="range" id="dustRange">Batas filter: —</span>
+        <span class="trend flat" id="dustTrend">—</span>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="metric-head">
+        <div class="metric-label-wrap">
+          <span class="metric-label">Suhu</span>
           <span class="metric-sub">SHT31 Sensor</span>
         </div>
         <div class="metric-icon amber" aria-hidden="true">
@@ -225,6 +335,7 @@
         </div>
       </div>
       <div class="metric-value"><span class="num" id="suhuValue">—</span><span class="unit">°C</span></div>
+      <div class="metric-extra">&nbsp;</div>
       <div class="bar amber"><i id="suhuBar" style="width:0%"></i></div>
       <div class="metric-foot">
         <span class="range">Rentang optimal: 18–28 °C</span>
@@ -243,6 +354,7 @@
         </div>
       </div>
       <div class="metric-value"><span class="num" id="kelembapanValue">—</span><span class="unit">%</span></div>
+      <div class="metric-extra">&nbsp;</div>
       <div class="bar blue"><i id="kelembapanBar" style="width:0%"></i></div>
       <div class="metric-foot">
         <span class="range">Rentang optimal: 40–60 %</span>
@@ -252,40 +364,93 @@
   </section>
 
   <section class="chart-row">
-    <article class="card">
+    <article class="card chart-card">
       <div class="chart-head">
         <div>
           <div class="chart-title">Tren TVOC</div>
-          <div class="chart-sub">30 data terakhir</div>
+          <div class="chart-sub" id="chartSub">—</div>
         </div>
-        <div class="legend">
-          <span class="legend-pill em"><span class="swatch dashed"></span>Aman (250 ppb)</span>
-          <span class="legend-pill dn"><span class="swatch dashed"></span>Berbahaya (400 ppb)</span>
-        </div>
+        <div class="legend" id="chartLegend"></div>
       </div>
-      <div class="chart-wrap" id="chartWrap"></div>
+      <div class="chart-wrap" id="chartWrap"><div class="chart-empty">Memuat data...</div></div>
     </article>
 
     <article class="card">
       <div class="stats-title">Statistik Sesi</div>
-      <div class="stats-sub">Agregat 30 pembacaan terakhir</div>
+      <div class="stats-sub" id="statsSub">—</div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">TVOC Tertinggi</span><span class="stat-value red" id="eco2Max">—</span></div>
+        <div class="stat-left"><span class="stat-label">TVOC Tertinggi</span><span class="stat-value red" id="tvocMax">—</span></div>
         <div class="metric-icon red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
       </div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">TVOC Terendah</span><span class="stat-value em" id="eco2Min">—</span></div>
+        <div class="stat-left"><span class="stat-label">TVOC Terendah</span><span class="stat-value em" id="tvocMin">—</span></div>
         <div class="metric-icon emerald"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>
       </div>
       <div class="stat-row">
-        <div class="stat-left"><span class="stat-label">Rata-rata TVOC</span><span class="stat-value sky" id="eco2Avg">—</span></div>
+        <div class="stat-left"><span class="stat-label">Rata-rata TVOC</span><span class="stat-value sky" id="tvocAvg">—</span></div>
         <div class="metric-icon sky"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-left"><span class="stat-label">Level Fuzzy</span><span class="stat-value violet" id="fuzzyLevel">—</span></div>
+        <div class="metric-icon violet"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
       </div>
       <div class="stat-row">
         <div class="stat-left"><span class="stat-label">Duty Cycle Kipas</span><span class="stat-value violet" id="fanDuty">—</span></div>
         <div class="metric-icon violet"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg></div>
       </div>
+      <div class="stat-row">
+        <div class="stat-left"><span class="stat-label">Putaran Kipas</span><span class="stat-value violet" id="fanRpm">—</span></div>
+        <div class="metric-icon violet"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7s3 4-1 7"/><path d="M14 12c4 0 7 1 7 4s-4 3-7-1"/><path d="M12 14c0 4-1 7-4 7s-3-4 1-7"/><path d="M10 12c-4 0-7-1-7-4s4-3 7 1"/></svg></div>
+      </div>
     </article>
+  </section>
+
+  <section class="card">
+    <div class="log-head">
+      <div>
+        <div class="chart-title">Info Perangkat</div>
+        <div class="chart-sub" id="infoSub">—</div>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Jarak Inlet</span>
+        <span class="info-value" id="infoInlet">—</span>
+        <span class="info-note">Rekomendasi dari titik solder</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Jam Operasi Filter</span>
+        <span class="info-value" id="infoRuntime">—</span>
+        <span class="info-note" id="infoFilterSince">—</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Debu Outlet Rata-rata</span>
+        <span class="info-value" id="infoDustAvg">—</span>
+        <span class="info-note" id="infoDustNote">—</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Data Terakhir</span>
+        <span class="info-value" id="infoLastSeen">—</span>
+        <span class="info-note" id="infoLastSeenAt">—</span>
+      </div>
+    </div>
+    <div class="info-bottom">
+      <div class="guide">
+        <div class="guide-title">Panduan Penggunaan</div>
+        <ol>
+          <li>Letakkan alat di <strong>samping titik solder</strong>.</li>
+          <li>Arahkan <strong>inlet menghadap sumber asap</strong>, berjarak ±<span class="js-inlet">5</span> cm dari titik solder.</li>
+          <li>Susunan filter: <strong>HEPA → kipas → karbon aktif</strong>. Periksa filter bila muncul peringatan debu outlet.</li>
+        </ol>
+      </div>
+      <div class="filter-status" id="filterStatus" data-state="unknown">
+        <div class="fs-icon" id="filterIcon" aria-hidden="true"></div>
+        <div>
+          <div class="fs-title" id="filterTitle">Status filter belum diketahui</div>
+          <div class="fs-desc" id="filterDesc">Menunggu data debu outlet.</div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -294,25 +459,28 @@
         <div class="chart-title">Log Data Terakhir</div>
         <div class="chart-sub">5 record terbaru dari sensor</div>
       </div>
-      <a href="/logs.html" style="color:var(--sky);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:-.01em;">Lihat Semua Data →</a>
+      <a href="/logs.html" class="link-all">Lihat Semua Data →</a>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:48px">#</th>
-          <th>Waktu</th>
-          <th class="num">eCO₂ (ppm)</th>
-          <th class="num">TVOC (ppb)</th>
-          <th class="num">Suhu (°C)</th>
-          <th class="num">Kelembapan (%)</th>
-          <th>Status AI</th>
-          <th class="num">Kipas</th>
-        </tr>
-      </thead>
-      <tbody id="logTableBody">
-        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Memuat data...</td></tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:48px">#</th>
+            <th>Waktu</th>
+            <th class="num">TVOC Kalman (ppb)</th>
+            <th class="num">TVOC Mentah (ppb)</th>
+            <th class="num">Suhu (°C)</th>
+            <th class="num">RH (%)</th>
+            <th class="num">Debu (<span class="nocase">µg/m³</span>)</th>
+            <th>Status Fuzzy</th>
+            <th class="num">Kipas</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
 </main>
@@ -328,160 +496,419 @@
     btn.innerHTML=t==='light'?MOON:SUN;
     btn.title=t==='light'?'Beralih ke mode gelap':'Beralih ke mode terang';
     try{localStorage.setItem('epen-theme',t)}catch(e){}
-    if(window._chartData) renderChart(window._chartData);
+    if(window.CFG){renderLegend();if(window._chartData)renderChart(window._chartData);if(window._lastStatus)renderBanner(window._lastStatus);}
   }
   btn.addEventListener('click',()=>applyTheme(root.dataset.theme==='light'?'dark':'light'));
   const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
   applyTheme(saved==='dark'?'dark':'light');
 })();
 
-/* CHART */
-function renderChart(points){
-  window._chartData=points;
-  const wrap=document.getElementById('chartWrap');
-  const W=wrap.clientWidth||760, H=wrap.clientHeight||300;
-  const pad={t:14,r:14,b:28,l:52};
-  const isLight=document.documentElement.dataset.theme==='light';
-  const gridColor=isLight?'#E2E8F0':'#1E293B';
-  const axisColor=isLight?'#94A3B8':'#64748B';
-  const dotFill=isLight?'#FFFFFF':'#0F172A';
-  const N=points.length;
-  if(!N) return;
-  const yMin=0, yMax=Math.max(500,Math.max(...points)*1.2);
-  const xAt=i=>pad.l+(i/(N-1||1))*(W-pad.l-pad.r);
-  const yAt=v=>pad.t+(1-(v-yMin)/(yMax-yMin))*(H-pad.t-pad.b);
-  function sp(pts){
-    if(pts.length<2) return `M ${pts[0][0]} ${pts[0][1]}`;
-    let d=`M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
-    for(let i=0;i<pts.length-1;i++){
-      const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2,t=0.18;
-      const c1x=p1[0]+(p2[0]-p0[0])*t,c1y=p1[1]+(p2[1]-p0[1])*t;
-      const c2x=p2[0]-(p3[0]-p1[0])*t,c2y=p2[1]-(p3[1]-p1[1])*t;
-      d+=` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
-    }
-    return d;
-  }
-  const pts=points.map((v,i)=>[xAt(i),yAt(v)]);
-  const line=sp(pts);
-  const area=line+` L ${xAt(N-1).toFixed(2)} ${yAt(0).toFixed(2)} L ${xAt(0).toFixed(2)} ${yAt(0).toFixed(2)} Z`;
-  const step=yMax<=500?50:yMax<=1000?100:500;
-  const ys=Array.from({length:Math.ceil(yMax/step)+1},(_,i)=>i*step).filter(v=>v<=yMax);
-  const grid=ys.map(v=>{const y=yAt(v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${gridColor}" stroke-width="1"/><text x="${pad.l-8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${v}</text>`;}).join('');
-  const thresh=[{v:250,c:'#22C55E'},{v:400,c:'#EF4444'}].filter(t=>t.v<=yMax).map(t=>{const y=yAt(t.v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.c}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.55"/>`;}).join('');
-  const lx=xAt(N-1).toFixed(2),ly=yAt(points[N-1]).toFixed(2);
-  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38BDF8" stop-opacity="0.32"/><stop offset="60%" stop-color="#38BDF8" stop-opacity="0.10"/><stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs>
-    <text x="${pad.l-10}" y="${pad.t-4}" text-anchor="end" fill="#38BDF8" font-family="JetBrains Mono" font-size="9" font-style="italic">ppb</text>
-    ${grid}${thresh}
-    <path d="${area}" fill="url(#ag)"/>
-    <path d="${line}" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${lx}" cy="${ly}" r="4.5" fill="${dotFill}" stroke="#38BDF8" stroke-width="2"/>
-    <circle cx="${lx}" cy="${ly}" r="9" fill="none" stroke="#38BDF8" stroke-opacity="0.25" stroke-width="2">
-      <animate attributeName="r" values="6;12;6" dur="2.4s" repeatCount="indefinite"/>
-      <animate attributeName="stroke-opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/>
-    </circle>
-  </svg>`;
-}
-let raf;
-window.addEventListener('resize',()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{if(window._chartData)renderChart(window._chartData);});});
-
-/* STATUS CONFIG */
-const STATUS={
-  AMAN:{title:'AMAN — Kualitas Udara Baik',desc:'Seluruh parameter sensor berada dalam rentang aman.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alert-title)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`},
-  WASPADA:{title:'WASPADA — Kualitas Udara Perlu Perhatian',desc:'Kadar eCO₂ meningkat. Pastikan ventilasi ruangan berjalan baik.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
-  BERBAHAYA:{title:'BERBAHAYA — Kualitas Udara Buruk',desc:'Level eCO₂ berbahaya! Segera tingkatkan ventilasi atau evakuasi ruangan.',icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
-};
-
-/* DASHBOARD UPDATE */
+/* HELPERS */
+const $=id=>document.getElementById(id);
+const isLight=()=>document.documentElement.dataset.theme==='light';
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function fmtNum(v,d=0){return v==null?'—':Number(v).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function fmtTime(iso){return new Date(iso).toLocaleTimeString('id-ID',{timeZone:'Asia/Jakarta',hour12:false});}
+function fmtDateTime(iso){return new Date(iso).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',hour12:false,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+' WIB';}
+function fmtAge(ms){
+  const s=Math.max(0,Math.round(ms/1000));
+  if(s<60) return `${s} detik lalu`;
+  if(s<3600) return `${Math.floor(s/60)} menit lalu`;
+  if(s<86400) return `${Math.floor(s/3600)} jam lalu`;
+  return `${Math.floor(s/86400)} hari lalu`;
+}
+const tvocOf=d=>d.tvoc_kalman_ppb??d.tvoc_raw_ppb;
+const statusColor=k=>{const m=CFG.statuses[k];return m?(isLight()?m.text_light:m.color):cssVar('--muted-2');};
 function calcTrend(curr,prev){
-  if(prev==null||prev===0) return{text:'—',cls:'flat'};
+  if(curr==null||prev==null||prev===0) return{text:'—',cls:'flat'};
   const p=((curr-prev)/prev*100).toFixed(1);
   return p>0?{text:`+${p}%`,cls:'down'}:{text:`${p}%`,cls:''};
 }
-function setTrend(id,t){const el=document.getElementById(id);el.textContent=t.text;el.className='trend'+(t.cls?' '+t.cls:'');}
+function setTrend(id,t){const el=$(id);el.textContent=t.text;el.className='trend'+(t.cls?' '+t.cls:'');}
 
-function updateDashboard(data){
-  if(!data||!data.length) return;
+/* ICONS */
+const ICON={
+  check:c=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+  warn:c=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  off:c=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+};
+
+const smallIcon=svg=>svg.replace('width="22" height="22"','width="16" height="16"');
+
+/* CONFIG (dari /api/config — ambang & metadata tidak di-hardcode) */
+window.CFG=null;
+async function loadConfig(){
+  for(;;){
+    try{
+      const res=await fetch('/api/config');
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      window.CFG=await res.json();
+      return;
+    }catch(e){
+      console.error('[config]',e);
+      renderBanner({kind:'OFFLINE',title:'Gagal memuat konfigurasi',desc:'Server tidak dapat dihubungi. Mencoba lagi...'});
+      await sleep(5000);
+    }
+  }
+}
+function applyConfigText(){
+  const ref=CFG.tvoc_reference_ppb, dust=CFG.outlet_dust;
+  $('intervalText').textContent=`Interval: setiap ${CFG.poll_interval_ms/1000} detik`;
+  $('tvocRange').textContent=`Ambang: ${fmtNum(ref.waspada)} / ${fmtNum(ref.berbahaya)} ppb`;
+  $('dustRange').textContent=`Batas filter: ${fmtNum(dust.warn_ugm3)} µg/m³`;
+  $('chartSub').textContent=`${CHART_POINTS} data terakhir · ±${fmtNum(CHART_POINTS*CFG.poll_interval_ms/60000,1)} menit`;
+  $('statsSub').textContent=`Agregat ${CHART_POINTS} pembacaan terakhir · TVOC Kalman`;
+  renderLegend();
+}
+function barTicks(wrapId,ticks,max){
+  const wrap=$(wrapId);
+  wrap.querySelectorAll('.bar-tick').forEach(t=>t.remove());
+  ticks.forEach(t=>{
+    const el=document.createElement('span');
+    el.className='bar-tick';
+    el.style.left=Math.min(t.v/max*100,100)+'%';
+    el.style.background=t.c;
+    el.title=t.title;
+    wrap.appendChild(el);
+  });
+}
+
+/* BANNER & KONEKSI */
+function renderBanner(s){
+  window._lastStatus=s;
+  const banner=$('alertBanner'), icon=$('alertIcon');
+  banner.dataset.status=s.kind;
+  let c;
+  if(s.kind==='OFFLINE'){
+    c=cssVar('--muted-2');
+    icon.innerHTML=ICON.off(isLight()?'#475569':'#CBD5E1');
+  }else{
+    c=statusColor(s.kind);
+    icon.innerHTML=(s.kind==='AMAN'?ICON.check:ICON.warn)(c);
+  }
+  icon.style.background=c+'26';
+  icon.style.borderColor=c+'4D';
+  $('alertTitle').textContent=s.title;
+  $('alertDesc').textContent=s.desc;
+}
+function setConnection(state){
+  const dot=$('connDot'), el=$('connState');
+  dot.classList.toggle('off',state!=='online');
+  el.className='device-state'+(state==='online'?'':state==='wait'?' wait':' off');
+  el.textContent=state==='online'?'TERHUBUNG':state==='wait'?'MEMUAT':state==='error'?'ERROR':'OFFLINE';
+}
+
+/* CHART */
+const CHART_POINTS=30;
+let chartHoverX=null;
+function renderLegend(){
+  const ref=CFG.tvoc_reference_ppb;
+  $('chartLegend').innerHTML=`
+    <span class="legend-pill"><span class="swatch thick" style="color:var(--series)"></span>TVOC Kalman</span>
+    <span class="legend-pill"><span class="swatch faint" style="color:var(--series)"></span>TVOC mentah</span>
+    <span class="legend-pill"><span class="swatch dashed" style="color:${statusColor('WASPADA')}"></span>${esc(CFG.statuses.WASPADA.label)} (${fmtNum(ref.waspada)} ppb)</span>
+    <span class="legend-pill"><span class="swatch dashed" style="color:${statusColor('BERBAHAYA')}"></span>${esc(CFG.statuses.BERBAHAYA.label)} (${fmtNum(ref.berbahaya)} ppb)</span>`;
+}
+function smoothPath(pts){
+  if(pts.length<2) return `M ${pts[0][0]} ${pts[0][1]}`;
+  let d=`M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2,t=0.18;
+    const c1x=p1[0]+(p2[0]-p0[0])*t,c1y=p1[1]+(p2[1]-p0[1])*t;
+    const c2x=p2[0]-(p3[0]-p1[0])*t,c2y=p2[1]-(p3[1]-p1[1])*t;
+    d+=` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+function renderChart(points){
+  window._chartData=points;
+  const wrap=$('chartWrap');
+  const N=points.length;
+  if(!N){wrap.innerHTML='<div class="chart-empty">Belum ada data dari perangkat</div>';return;}
+  const W=wrap.clientWidth||760, H=wrap.clientHeight||300;
+  const pad={t:14,r:14,b:28,l:52};
+  const gridColor=isLight()?'#E2E8F0':'#1E293B';
+  const axisColor=isLight()?'#94A3B8':'#64748B';
+  const dotFill=cssVar('--chart-dot-fill');
+  const series=cssVar('--series');
+  const ref=CFG.tvoc_reference_ppb;
+  const allVals=points.flatMap(p=>[p.raw,p.kal]);
+  const yMax=Math.max(ref.berbahaya*1.25,Math.max(...allVals)*1.15);
+  const xAt=i=>pad.l+(i/(N-1||1))*(W-pad.l-pad.r);
+  const yAt=v=>pad.t+(1-v/yMax)*(H-pad.t-pad.b);
+  const rawPts=points.map((p,i)=>[xAt(i),yAt(p.raw)]);
+  const kalPts=points.map((p,i)=>[xAt(i),yAt(p.kal)]);
+  const kalLine=smoothPath(kalPts);
+  const area=kalLine+` L ${xAt(N-1).toFixed(2)} ${yAt(0).toFixed(2)} L ${xAt(0).toFixed(2)} ${yAt(0).toFixed(2)} Z`;
+  const step=yMax<=500?50:yMax<=1000?100:yMax<=2500?250:500;
+  const ys=Array.from({length:Math.floor(yMax/step)+1},(_,i)=>i*step);
+  const grid=ys.map(v=>{const y=yAt(v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${gridColor}" stroke-width="1"/><text x="${pad.l-8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axisColor}" font-family="JetBrains Mono" font-size="10.5">${v}</text>`;}).join('');
+  const thresh=[{v:ref.waspada,c:statusColor('WASPADA')},{v:ref.berbahaya,c:statusColor('BERBAHAYA')}].map(t=>{const y=yAt(t.v).toFixed(2);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${t.c}" stroke-width="1.25" stroke-dasharray="4 4" opacity="0.7"/>`;}).join('');
+  const [lx,ly]=kalPts[N-1];
+  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grafik TVOC Kalman dan mentah, ${N} data terakhir">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${series}" stop-opacity="0.22"/><stop offset="60%" stop-color="${series}" stop-opacity="0.06"/><stop offset="100%" stop-color="${series}" stop-opacity="0"/></linearGradient></defs>
+    <text x="${pad.l-10}" y="${pad.t-4}" text-anchor="end" fill="${axisColor}" font-family="JetBrains Mono" font-size="9" font-style="italic">ppb</text>
+    ${grid}${thresh}
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${smoothPath(rawPts)}" fill="none" stroke="${series}" stroke-opacity="0.4" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${kalLine}" fill="none" stroke="${series}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lx.toFixed(2)}" cy="${ly.toFixed(2)}" r="4.5" fill="${dotFill}" stroke="${series}" stroke-width="2"/>
+    <circle cx="${lx.toFixed(2)}" cy="${ly.toFixed(2)}" r="9" fill="none" stroke="${series}" stroke-opacity="0.25" stroke-width="2">
+      <animate attributeName="r" values="6;12;6" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <g id="hoverDots" style="display:none">
+      <circle id="hoverRaw" r="3.5" fill="${dotFill}" stroke="${series}" stroke-opacity="0.6" stroke-width="1.5"/>
+      <circle id="hoverKal" r="5" fill="${dotFill}" stroke="${series}" stroke-width="2.5"/>
+    </g>
+  </svg><div class="chart-cross" id="chartCross"></div><div class="chart-tip" id="chartTip"></div>`;
+  window._chartGeom={xAt,yAt,N,W,pad};
+  if(chartHoverX!=null) showHover(chartHoverX);
+}
+function showHover(x){
+  const g=window._chartGeom, pts=window._chartData;
+  if(!g||!pts||!pts.length) return;
+  const i=Math.max(0,Math.min(g.N-1,Math.round((x-g.pad.l)/(g.W-g.pad.l-g.pad.r)*(g.N-1))));
+  const p=pts[i], cx=g.xAt(i);
+  const cross=$('chartCross'), tip=$('chartTip'), dots=$('hoverDots');
+  cross.style.display='block'; cross.style.left=cx+'px';
+  dots.style.display='';
+  $('hoverRaw').setAttribute('cx',cx); $('hoverRaw').setAttribute('cy',g.yAt(p.raw));
+  $('hoverKal').setAttribute('cx',cx); $('hoverKal').setAttribute('cy',g.yAt(p.kal));
+  const st=CFG.statuses[p.status];
+  tip.innerHTML=`<div class="tip-time">${fmtTime(p.t)} WIB</div>
+    <div class="tip-row"><span class="tip-key"><i style="height:3px"></i>Kalman</span><b>${fmtNum(p.kal,1)} ppb</b></div>
+    <div class="tip-row"><span class="tip-key"><i style="height:1.5px;opacity:.45"></i>Mentah</span><b>${fmtNum(p.raw)} ppb</b></div>
+    <div class="tip-row"><span>Status</span><b>${esc(st?st.label:p.status)}</b></div>`;
+  tip.style.display='block';
+  const tw=tip.offsetWidth;
+  tip.style.left=(cx+12+tw>g.W?cx-12-tw:cx+12)+'px';
+}
+function hideHover(){
+  chartHoverX=null;
+  const cross=$('chartCross'), tip=$('chartTip'), dots=$('hoverDots');
+  if(cross) cross.style.display='none';
+  if(tip) tip.style.display='none';
+  if(dots) dots.style.display='none';
+}
+(function(){
+  const wrap=$('chartWrap');
+  wrap.addEventListener('pointermove',e=>{const r=wrap.getBoundingClientRect();chartHoverX=e.clientX-r.left;showHover(chartHoverX);});
+  wrap.addEventListener('pointerleave',hideHover);
+})();
+let raf;
+window.addEventListener('resize',()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{if(window._chartData&&window.CFG)renderChart(window._chartData);});});
+
+/* INFO PERANGKAT */
+let devices=[], currentDeviceId=null;
+const currentDevice=()=>devices.find(d=>d.id===currentDeviceId);
+function renderDeviceInfo(){
+  const d=currentDevice();
+  if(!d) return;
+  $('infoSub').textContent=`${d.device_name} — ${d.location}`;
+  $('infoInlet').innerHTML=`${fmtNum(d.inlet_distance_cm,1).replace(/,0$/,'')}<small>cm</small>`;
+  document.querySelectorAll('.js-inlet').forEach(el=>el.textContent=fmtNum(d.inlet_distance_cm,1).replace(/,0$/,''));
+  if(d.filter_installed_at){
+    $('infoRuntime').innerHTML=`${fmtNum(d.filter_runtime_hours,1)}<small>jam</small>`;
+    $('infoFilterSince').textContent=`Sejak dipasang ${fmtDateTime(d.filter_installed_at)}`;
+  }else{
+    $('infoRuntime').textContent='—';
+    $('infoFilterSince').textContent='Waktu pemasangan filter belum dicatat';
+  }
+}
+function renderLastSeen(lastIso,ageMs){
+  $('infoLastSeen').textContent=lastIso?fmtAge(ageMs):'—';
+  $('infoLastSeenAt').textContent=lastIso?fmtDateTime(lastIso):'Belum ada data dari perangkat';
+}
+function renderFilterStatus(data){
+  const {warn_ugm3,window:win}=CFG.outlet_dust;
+  const vals=data.slice(0,win).map(d=>d.dust_outlet_ugm3).filter(v=>v!=null);
+  const box=$('filterStatus'), icon=$('filterIcon');
+  if(!vals.length){
+    box.dataset.state='unknown';
+    icon.innerHTML=smallIcon(ICON.off('currentColor'));
+    $('filterTitle').textContent='Status filter belum diketahui';
+    $('filterDesc').textContent='Perangkat belum mengirim data debu outlet.';
+    $('infoDustAvg').textContent='—';
+    $('infoDustNote').textContent=`${win} data terakhir`;
+    $('dustAvg').innerHTML='Rata-rata: —';
+    return null;
+  }
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const warn=avg>warn_ugm3;
+  box.dataset.state=warn?'warn':'ok';
+  icon.innerHTML=smallIcon((warn?ICON.warn:ICON.check)('currentColor'));
+  $('filterTitle').textContent=warn?'Debu outlet naik — periksa filter':'Filter bekerja baik';
+  $('filterDesc').textContent=warn
+    ?`Rata-rata debu outlet ${fmtNum(avg,1)} µg/m³ pada ${vals.length} data terakhir, melebihi batas ${fmtNum(warn_ugm3)} µg/m³. Filter HEPA mungkin jenuh atau tidak terpasang rapat.`
+    :`Rata-rata debu outlet ${fmtNum(avg,1)} µg/m³ pada ${vals.length} data terakhir, di bawah batas ${fmtNum(warn_ugm3)} µg/m³.`;
+  $('infoDustAvg').innerHTML=`${fmtNum(avg,1)}<small>µg/m³</small>`;
+  $('infoDustNote').textContent=`${vals.length} data terakhir · batas ${fmtNum(warn_ugm3)}`;
+  $('dustAvg').innerHTML=`Rata-rata ${vals.length} data: <strong>${fmtNum(avg,1)}</strong>`;
+  return avg;
+}
+
+/* DASHBOARD UPDATE */
+function clearMetrics(){
+  ['tvocValue','dustValue','suhuValue','kelembapanValue','tvocMax','tvocMin','tvocAvg','fuzzyLevel','fanDuty','fanRpm'].forEach(id=>$(id).textContent='—');
+  $('tvocRaw').textContent='Mentah: —';
+  ['tvocBar','dustBar','suhuBar','kelembapanBar'].forEach(id=>$(id).style.width='0%');
+  ['tvocTrend','dustTrend','suhuTrend','kelembapanTrend'].forEach(id=>setTrend(id,{text:'—',cls:'flat'}));
+}
+function updateDashboard(data,serverTime){
+  const ref=CFG.tvoc_reference_ppb;
+  if(!data.length){
+    setConnection('offline');
+    renderBanner({kind:'OFFLINE',title:'OFFLINE — Tidak ada data dari perangkat',desc:'Perangkat ini belum pernah mengirim data. Periksa daya dan koneksi Wi-Fi ESP32.'});
+    $('lastUpdate').textContent='—';
+    clearMetrics();
+    renderChart([]);
+    renderFilterStatus([]);
+    renderLastSeen(null);
+    $('logTableBody').innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Belum ada data</td></tr>';
+    return;
+  }
+
   const lat=data[0], prev=data[1]??null;
-  const status=lat.air_status??'AMAN';
-  const cfg=STATUS[status]??STATUS.AMAN;
+  const ageMs=new Date(serverTime)-new Date(lat.recorded_at);
+  const online=ageMs<=CFG.offline_after_ms;
 
-  // Alert
-  const banner=document.getElementById('alertBanner');
-  banner.dataset.status=status;
-  document.getElementById('alertIcon').innerHTML=cfg.icon;
-  document.getElementById('alertTitle').textContent=cfg.title;
-  document.getElementById('alertDesc').textContent=cfg.desc;
-  document.getElementById('lastUpdate').textContent=fmtTime(lat.recorded_at);
+  // Status & koneksi (umur data dibandingkan dengan server_time, bukan jam browser)
+  setConnection(online?'online':'offline');
+  if(online){
+    const m=CFG.statuses[lat.air_status]??CFG.statuses.AMAN;
+    renderBanner({kind:lat.air_status in CFG.statuses?lat.air_status:'AMAN',title:`${lat.air_status} — ${m.headline}`,desc:m.description});
+  }else{
+    renderBanner({kind:'OFFLINE',title:'OFFLINE — Tidak ada data dari perangkat',desc:`Data terakhir diterima ${fmtAge(ageMs)}. Nilai di bawah adalah data terakhir. Periksa daya dan koneksi Wi-Fi ESP32.`});
+  }
+  $('lastUpdate').textContent=fmtTime(lat.recorded_at);
+  renderLastSeen(lat.recorded_at,ageMs);
 
-  // Metrics
-  document.getElementById('tvocValue').textContent=lat.tvoc_raw_ppb.toLocaleString('id-ID');
-  document.getElementById('suhuValue').textContent=lat.temperature_celsius;
-  document.getElementById('kelembapanValue').textContent=lat.humidity_percent;
-  document.getElementById('tvocBar').style.width=Math.min(lat.tvoc_raw_ppb/3000*100,100)+'%';
-  document.getElementById('suhuBar').style.width=Math.min(lat.temperature_celsius/50*100,100)+'%';
-  document.getElementById('kelembapanBar').style.width=Math.min(lat.humidity_percent,100)+'%';
-  setTrend('tvocTrend',calcTrend(lat.tvoc_raw_ppb,prev?.tvoc_raw_ppb));
+  // Kartu TVOC: Kalman besar, mentah kecil
+  const tv=tvocOf(lat), barMax=ref.berbahaya*1.5;
+  $('tvocValue').textContent=fmtNum(Math.round(tv));
+  $('tvocRaw').innerHTML=lat.tvoc_kalman_ppb==null
+    ?'Kalman tidak tersedia · nilai mentah'
+    :`Mentah: <strong>${fmtNum(lat.tvoc_raw_ppb)}</strong> ppb`;
+  $('tvocBar').style.width=Math.min(tv/barMax*100,100)+'%';
+  $('tvocBar').style.background=statusColor(lat.air_status);
+  barTicks('tvocBarWrap',[
+    {v:ref.waspada,c:statusColor('WASPADA'),title:`${CFG.statuses.WASPADA.label} ${ref.waspada} ppb`},
+    {v:ref.berbahaya,c:statusColor('BERBAHAYA'),title:`${CFG.statuses.BERBAHAYA.label} ${ref.berbahaya} ppb`},
+  ],barMax);
+  setTrend('tvocTrend',calcTrend(tv,prev&&tvocOf(prev)));
+
+  // Kartu debu outlet
+  const warnDust=CFG.outlet_dust.warn_ugm3, dustMax=warnDust*2;
+  $('dustValue').textContent=fmtNum(lat.dust_outlet_ugm3,1);
+  $('dustBar').style.width=lat.dust_outlet_ugm3==null?'0%':Math.min(lat.dust_outlet_ugm3/dustMax*100,100)+'%';
+  const dustAvg=renderFilterStatus(data);
+  $('dustBar').style.background=dustAvg!=null&&dustAvg>warnDust?statusColor('WASPADA'):'';
+  barTicks('dustBarWrap',[{v:warnDust,c:statusColor('WASPADA'),title:`Batas filter ${warnDust} µg/m³`}],dustMax);
+  setTrend('dustTrend',calcTrend(lat.dust_outlet_ugm3,prev?.dust_outlet_ugm3));
+
+  // Suhu & RH
+  $('suhuValue').textContent=fmtNum(lat.temperature_celsius,1);
+  $('kelembapanValue').textContent=fmtNum(lat.humidity_percent,1);
+  $('suhuBar').style.width=Math.min(lat.temperature_celsius/50*100,100)+'%';
+  $('kelembapanBar').style.width=Math.min(lat.humidity_percent,100)+'%';
   setTrend('suhuTrend',calcTrend(lat.temperature_celsius,prev?.temperature_celsius));
   setTrend('kelembapanTrend',calcTrend(lat.humidity_percent,prev?.humidity_percent));
 
-  // Stats
-  const tvocs=data.map(d=>d.tvoc_raw_ppb);
-  document.getElementById('eco2Max').textContent=Math.max(...tvocs).toLocaleString('id-ID')+' ppb';
-  document.getElementById('eco2Min').textContent=Math.min(...tvocs).toLocaleString('id-ID')+' ppb';
-  document.getElementById('eco2Avg').textContent=Math.round(tvocs.reduce((a,b)=>a+b,0)/tvocs.length).toLocaleString('id-ID')+' ppb';
-  document.getElementById('fanDuty').textContent=Math.round(lat.fan_duty_percent)+'%';
+  // Statistik
+  const recent=data.slice(0,CHART_POINTS);
+  const tvocs=recent.map(tvocOf);
+  $('tvocMax').innerHTML=`${fmtNum(Math.max(...tvocs))}<small>ppb</small>`;
+  $('tvocMin').innerHTML=`${fmtNum(Math.min(...tvocs))}<small>ppb</small>`;
+  $('tvocAvg').innerHTML=`${fmtNum(tvocs.reduce((a,b)=>a+b,0)/tvocs.length)}<small>ppb</small>`;
+  const lvl=lat.fuzzy_level&&CFG.fuzzy_levels[lat.fuzzy_level];
+  $('fuzzyLevel').innerHTML=lvl?`${esc(lat.fuzzy_level)}<small>${esc(lvl.label)}</small>`:'—';
+  $('fanDuty').textContent=fmtNum(lat.fan_duty_percent)+'%';
+  $('fanRpm').innerHTML=lat.fan_rpm==null?'—':`${fmtNum(lat.fan_rpm)}<small>rpm</small>`;
 
-  // Chart
-  renderChart([...data].reverse().map(d=>d.tvoc_raw_ppb));
+  // Grafik (kronologis)
+  renderChart([...recent].reverse().map(d=>({t:d.recorded_at,raw:d.tvoc_raw_ppb,kal:tvocOf(d),status:d.air_status})));
 
-  // Table
+  // Tabel
   const badgeMap={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya'};
-  document.getElementById('logTableBody').innerHTML=data.slice(0,5).map((d,i)=>`
+  $('logTableBody').innerHTML=data.slice(0,5).map((d,i)=>`
     <tr>
       <td class="idx">${i+1}</td>
       <td>${fmtTime(d.recorded_at)}</td>
-      <td class="ppm">${d.eco2_ppm.toLocaleString('id-ID')}</td>
-      <td class="num">${d.tvoc_raw_ppb.toLocaleString('id-ID')}</td>
-      <td class="num">${d.temperature_celsius}</td>
-      <td class="num">${d.humidity_percent}</td>
-      <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${d.air_status??'AMAN'}</span></td>
-      <td class="last">${Math.round(d.fan_duty_percent)}%</td>
+      <td class="ppm">${fmtNum(d.tvoc_kalman_ppb,1)}</td>
+      <td class="num dim">${fmtNum(d.tvoc_raw_ppb)}</td>
+      <td class="num">${fmtNum(d.temperature_celsius,1)}</td>
+      <td class="num">${fmtNum(d.humidity_percent,1)}</td>
+      <td class="num">${fmtNum(d.dust_outlet_ugm3,1)}</td>
+      <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${esc(d.air_status)}</span></td>
+      <td class="last">${fmtNum(d.fan_duty_percent)}%${d.fuzzy_level?` · ${esc(d.fuzzy_level)}`:''}</td>
     </tr>`).join('');
 }
 
 /* FETCH */
-let currentDeviceId=null;
-
-async function loadSensorData(deviceId){
+async function loadSensorData(){
+  const deviceId=currentDeviceId;
+  if(!deviceId) return;
+  const limit=Math.max(CHART_POINTS,CFG.outlet_dust.window);
   try{
-    const res=await fetch(`/api/sensor?device_id=${deviceId}&limit=30`);
-    const {data}=await res.json();
-    updateDashboard(data);
-  }catch(e){console.error('[sensor]',e);}
-}
-
-async function loadDevices(){
-  try{
-    const res=await fetch('/api/devices');
-    const {data}=await res.json();
-    const sel=document.getElementById('deviceSelect');
-    sel.innerHTML=data.map(d=>`<option value="${d.id}">${d.device_name} — ${d.location}</option>`).join('');
-    if(data.length){
-      currentDeviceId=data[0].id;
-      document.getElementById('connState').textContent='TERHUBUNG';
-      loadSensorData(currentDeviceId);
-    }
-    sel.addEventListener('change',()=>{currentDeviceId=sel.value;loadSensorData(currentDeviceId);});
+    const res=await fetch(`/api/sensor?device_id=${encodeURIComponent(deviceId)}&limit=${limit}`);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const {data,server_time}=await res.json();
+    if(deviceId!==currentDeviceId) return; // device sudah diganti saat request berjalan
+    updateDashboard(data,server_time);
   }catch(e){
-    console.error('[devices]',e);
-    document.getElementById('connState').textContent='ERROR';
+    console.error('[sensor]',e);
+    setConnection('error');
+    renderBanner({kind:'OFFLINE',title:'Server tidak dapat dihubungi',desc:'Gagal mengambil data dari server dashboard. Mencoba lagi...'});
   }
 }
 
-setInterval(()=>{if(currentDeviceId) loadSensorData(currentDeviceId);},5000);
-loadDevices();
+async function loadDevices(){
+  const res=await fetch('/api/devices');
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  devices=(await res.json()).data;
+}
+
+async function initDevices(){
+  const sel=$('deviceSelect');
+  for(;;){
+    try{await loadDevices();break;}
+    catch(e){
+      console.error('[devices]',e);
+      setConnection('error');
+      renderBanner({kind:'OFFLINE',title:'Gagal memuat daftar perangkat',desc:'Server tidak dapat dihubungi. Mencoba lagi...'});
+      await sleep(5000);
+    }
+  }
+  if(!devices.length){
+    sel.innerHTML='<option>Belum ada perangkat</option>';
+    setConnection('offline');
+    renderBanner({kind:'OFFLINE',title:'Belum ada perangkat terdaftar',desc:'Daftarkan perangkat terlebih dahulu (atau jalankan npm run db:seed).'});
+    return;
+  }
+  sel.innerHTML=devices.map(d=>`<option value="${esc(d.id)}">${esc(d.device_name)} — ${esc(d.location)}</option>`).join('');
+  currentDeviceId=devices[0].id;
+  sel.addEventListener('change',()=>{
+    currentDeviceId=sel.value;
+    hideHover();
+    setConnection('wait');
+    renderDeviceInfo();
+    loadSensorData();
+  });
+  renderDeviceInfo();
+  loadSensorData();
+}
+
+(async function init(){
+  await loadConfig();
+  applyConfigText();
+  await initDevices();
+  setInterval(loadSensorData,CFG.poll_interval_ms);
+  // Jam operasi filter berubah lambat — cukup diperbarui tiap menit
+  setInterval(async()=>{try{await loadDevices();renderDeviceInfo();}catch(e){console.error('[devices]',e);}},60000);
+})();
 </script>
 
 </body>

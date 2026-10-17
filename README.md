@@ -306,9 +306,9 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
 ```json
 {
   "statuses": {
-    "AMAN":      { "label": "Aman",      "color": "#22C55E", "text_light": "#15803D", "description": "..." },
-    "WASPADA":   { "label": "Waspada",   "color": "#F59E0B", "text_light": "#B45309", "description": "..." },
-    "BERBAHAYA": { "label": "Berbahaya", "color": "#EF4444", "text_light": "#DC2626", "description": "..." }
+    "AMAN":      { "label": "Aman",      "headline": "Kualitas Udara Baik",    "emoji": "🟢", "color": "#22C55E", "text_light": "#15803D", "description": "..." },
+    "WASPADA":   { "label": "Waspada",   "headline": "Asap Solder Terdeteksi", "emoji": "🟠", "color": "#F59E0B", "text_light": "#B45309", "description": "..." },
+    "BERBAHAYA": { "label": "Berbahaya", "headline": "Kadar Asap Tinggi",      "emoji": "🔴", "color": "#EF4444", "text_light": "#DC2626", "description": "..." }
   },
   "fuzzy_levels": {
     "MIN":  { "label": "Minimum", "duty_percent": 25 },
@@ -317,11 +317,14 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
     "FAST": { "label": "Cepat",   "duty_percent": 100 }
   },
   "tvoc_reference_ppb": { "waspada": 250, "berbahaya": 400 },
+  "outlet_dust": { "warn_ugm3": 25, "window": 30 },
   "poll_interval_ms": 5000,
   "offline_after_ms": 15000
 }
 ```
 
 `color` dipakai untuk aksen (ikon, garis, badge di tema gelap). `text_light` dipakai untuk teks di latar terang, termasuk email, supaya kontrasnya cukup.
+
+`outlet_dust`: dashboard menampilkan peringatan filter kalau rata-rata `dust_outlet_ugm3` pada `window` data terakhir melebihi `warn_ugm3`.
 
 `tvoc_reference_ppb` hanya dipakai untuk garis referensi grafik. Nilainya harus disamakan dengan fungsi keanggotaan fuzzy di firmware. Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.

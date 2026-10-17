@@ -15,6 +15,27 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 | Susunan filter | Inlet → HEPA → kipas → karbon aktif → outlet |
 | Posisi inlet | Disarankan **5 cm** dari titik solder, menghadap sumber asap |
 
+## Fitur
+
+**Dashboard (`/index.html`)**
+- Banner status fuzzy terkini (AMAN / WASPADA / BERBAHAYA) sesuai `air_status` yang dikirim ESP32.
+- Indikator koneksi: **TERHUBUNG** kalau umur data terakhir ≤ 15 detik (dihitung terhadap `server_time`), **OFFLINE** kalau lebih lama, lengkap dengan banner "Tidak ada data dari perangkat".
+- Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
+- Grafik tren TVOC dengan dua garis (Kalman dan mentah), garis ambang referensi, dan tooltip saat kursor diarahkan ke grafik.
+- Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, level fuzzy, duty kipas, serta RPM kipas.
+- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter, panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
+- Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
+- Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
+
+**Halaman log (`/logs.html`)**
+- Semua data sensor dengan pagination 50 baris per halaman.
+- Ekspor CSV berdasarkan rentang tanggal (WIB), maksimal 50.000 baris.
+
+**Backend**
+- Validasi payload ESP32: tipe, rentang, dan enum. Semua field yang salah dilaporkan sekaligus.
+- Notifikasi email dengan cooldown 15 menit dan pengecualian eskalasi WASPADA → BERBAHAYA. Klaim alert dilakukan secara atomic supaya email tidak terkirim ganda.
+- Simulator ESP32 dan seed data untuk pengujian tanpa hardware.
+
 ## Stack
 
 - **Next.js 16** (App Router). Route Handlers ada di `app/api/*`.
@@ -30,7 +51,9 @@ Kebutuhan: Node.js 20+ dan database PostgreSQL (Supabase).
 npm install                 # juga menjalankan `prisma generate`
 cp .env.example .env        # lalu isi nilainya, lihat tabel di bawah
 npx prisma db push          # sinkronkan skema ke database
+npm run db:seed             # 1 user, 1 device, ±3 jam data historis
 npm run dev                 # http://localhost:3000
+npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 detik
 ```
 
 | Script | Fungsi |
@@ -39,12 +62,90 @@ npm run dev                 # http://localhost:3000
 | `npm run build` | `prisma generate` lalu `next build` |
 | `npm start` | Menjalankan hasil build |
 | `npm run db:push` | Sinkronkan `prisma/schema.prisma` ke database |
-| `npm run db:studio` | Membuka Prisma Studio |
+| `npm run db:studio` | Membuka Prisma Studio di http://localhost:5555 |
 | `npm run db:generate` | Generate ulang Prisma Client |
+| `npm run db:seed` | Isi data awal untuk pengujian |
+| `npm run simulate` | Jalankan simulator ESP32 |
 
 Halaman:
 - `/` → dialihkan ke `/index.html` (dashboard)
 - `/logs.html` → log data lengkap
+
+> **Windows: `EPERM: operation not permitted, rename ... query_engine-windows.dll.node`** saat `npm run build` atau `npm install`. Artinya file engine Prisma sedang dipakai proses lain. Hentikan dulu `npm run dev`, `npm run simulate`, dan Prisma Studio, lalu ulangi perintahnya.
+
+## Seed data
+
+```bash
+npm run db:seed
+```
+
+Seed membuat:
+- user `admin@epen.local` (password dummy `epen123`),
+- device `Epen #1` di `Lab DTETI` dengan `inlet_distance_cm = 5`,
+- ±2.160 log (3 jam × interval 5 detik) yang berakhir di waktu sekarang. `filter_installed_at` diisi dengan waktu awal data.
+
+Di akhir, seed mencetak `device_id` dan perintah simulator yang siap disalin. Seed aman dijalankan ulang: user dan device di-upsert, log lama milik device itu dihapus, dan `last_alert_at` direset supaya alur email bisa diuji dari awal.
+
+## Simulator ESP32
+
+Hardware belum tersambung, jadi pengujian memakai simulator yang mengirim `POST /api/sensor` tiap 5 detik dengan payload sesuai [API Contract](#api-contract).
+
+```bash
+npm run simulate                                     # skenario normal, device aktif pertama
+npm run simulate -- --scenario=spike
+npm run simulate -- --scenario=offline --device=<uuid> --url=http://localhost:3000
+```
+
+| Opsi | Default | Keterangan |
+|---|---|---|
+| `--scenario` | `normal` | `normal`, `spike`, atau `offline` |
+| `--device` | device aktif pertama di database | UUID device tujuan |
+| `--url` | `http://localhost:3000` | Alamat server |
+
+`API_KEY` dibaca dari `.env`.
+
+| Skenario | Perilaku | Dipakai untuk menguji |
+|---|---|---|
+| `normal` | Siklus menyolder biasa, sesekali masuk WASPADA/BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
+| `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu outlet ±33 µg/m³). | Banner merah, email alert dan eskalasi, peringatan filter |
+| `offline` | Seperti `normal`, tapi tiap 60 detik berhenti mengirim selama 30 detik. | Indikator TERHUBUNG/OFFLINE |
+
+Cara kerja model ada di `scripts/lib/simulation.ts`:
+- **TVOC mentah** naik saat menyolder, lalu turun saat jeda. Kecepatan turunnya bergantung pada duty kipas. Noise-nya Gaussian.
+- **TVOC Kalman** dihitung dengan Kalman 1D (`KALMAN_PARAMS`: Q = 25, R = 400).
+- **Status, level, dan duty** meniru keluaran fuzzy firmware: ambang Kalman < 250 AMAN (MIN/LOW), 250–399 WASPADA (MED), ≥ 400 BERBAHAYA (FAST). Ambangnya diambil dari `lib/sensor.ts`.
+- **RPM** mengikuti duty dengan sedikit inersia. Suhu mengikuti siklus harian, dan debu outlet berasal dari partikel yang lolos HEPA.
+
+## Struktur folder
+
+```
+app/
+  api/
+    config/route.ts     GET /api/config — konfigurasi untuk frontend
+    devices/route.ts    GET /api/devices — daftar device + info filter
+    sensor/route.ts     GET/POST /api/sensor — data sensor, CSV, alert email
+  layout.tsx, page.tsx  Root layout; "/" dialihkan ke /index.html
+lib/
+  sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
+  validation.ts         Validasi payload POST dari ESP32
+  email.ts              Template dan pengiriman email peringatan
+  prisma.ts             Instance Prisma Client
+prisma/
+  schema.prisma         Skema database (users, devices, sensor_logs)
+public/
+  index.html            Dashboard (HTML/CSS/JS murni, grafik SVG)
+  logs.html             Halaman log + ekspor CSV
+scripts/
+  lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
+  seed.ts               Seed user, device, dan data historis
+  simulate.ts           Simulator ESP32
+docs/
+  TESTING.md            Checklist uji manual fungsional dashboard
+```
+
+## Pengujian
+
+Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Variabel environment
 

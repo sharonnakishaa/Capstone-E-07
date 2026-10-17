@@ -23,7 +23,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
 - Grafik tren TVOC dengan dua garis (Kalman dan mentah), garis ambang referensi, dan tooltip saat kursor diarahkan ke grafik.
 - Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, level fuzzy, duty kipas, serta RPM kipas.
-- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter, panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
+- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset lewat tombol **Filter diganti…**), panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
 - Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
 - Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
 
@@ -123,11 +123,14 @@ app/
   api/
     config/route.ts     GET /api/config — konfigurasi untuk frontend
     devices/route.ts    GET /api/devices — daftar device + info filter
+    devices/[id]/filter/route.ts
+                        POST — catat penggantian filter
     sensor/route.ts     GET/POST /api/sensor — data sensor, CSV, alert email
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /index.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
   validation.ts         Validasi payload POST dari ESP32
+  devices.ts            Perhitungan jam operasi filter
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
@@ -397,6 +400,43 @@ recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidi
 | `filter_installed_at` | Waktu filter terakhir dipasang. `null` kalau belum dicatat. |
 | `last_seen_at` | `recorded_at` dari log terakhir. `null` kalau belum ada data. |
 | `filter_runtime_hours` | Perkiraan jam operasi filter: jumlah log dengan `fan_duty_percent > 0` sejak `filter_installed_at`, dikali 5 detik, dibagi 3600. Nilainya `null` kalau `filter_installed_at` kosong. |
+
+---
+
+### `POST /api/devices/:id/filter` — catat penggantian filter
+
+Endpoint ini dipanggil dari tombol **Filter diganti…** di panel Info Perangkat. Endpoint mengisi `filter_installed_at`, sehingga `filter_runtime_hours` dihitung ulang dari waktu tersebut.
+
+**Body (opsional)**
+
+```json
+{ "installed_at": "2026-10-17T08:00:00+07:00" }
+```
+
+| Field | Tipe | Wajib | Keterangan |
+|---|---|---|---|
+| `installed_at` | string (ISO 8601) | | Waktu filter dipasang. Kalau kosong, server memakai waktu sekarang. Tidak boleh di masa depan (toleransi 1 menit). |
+
+**`200 OK`**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid-perangkat",
+    "filter_installed_at": "2026-10-17T01:00:00.000Z",
+    "filter_runtime_hours": 0
+  }
+}
+```
+
+| Kode | Kapan terjadi |
+|---|---|
+| `400` | `id` bukan UUID, body bukan JSON valid, atau `installed_at` bukan tanggal / di masa depan |
+| `404` | Device tidak ditemukan atau tidak aktif |
+| `500` | Kesalahan server atau database |
+
+> Endpoint ini tidak memakai autentikasi, sama seperti dashboard. Siapa pun yang bisa membuka dashboard bisa mencatat penggantian filter. Dampaknya terbatas pada angka jam operasi filter.
 
 ---
 

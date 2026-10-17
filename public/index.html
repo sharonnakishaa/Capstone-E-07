@@ -164,6 +164,29 @@
   .info-value small{font-size:12px;font-weight:500;color:var(--muted-2);margin-left:2px}
   .info-note{font-size:11.5px;color:var(--muted-2)}
   .info-bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .link-btn{align-self:flex-start;margin-top:2px;padding:0;border:0;background:none;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--series);cursor:pointer}
+  .link-btn:hover{text-decoration:underline}
+  .filter-form{display:flex;align-items:flex-end;gap:12px 16px;flex-wrap:wrap;margin:-4px 0 16px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+  .filter-form[hidden]{display:none}
+  .ff-text{display:flex;flex-direction:column;gap:3px;flex:1 1 260px;align-self:center}
+  .ff-title{font-size:13px;font-weight:700;color:var(--text-strong)}
+  .ff-desc{font-size:12px;color:var(--muted);line-height:1.45}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .field input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:12px;color:var(--text);outline:none;color-scheme:light dark;min-width:0}
+  .field input:focus{border-color:var(--series)}
+  .ff-actions{display:flex;gap:8px}
+  .btn-primary,.btn-ghost{height:34px;padding:0 14px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn-primary{border:1px solid var(--series);background:var(--series);color:var(--surface)}
+  .btn-primary:disabled{opacity:.55;cursor:progress}
+  .btn-ghost{border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+  .btn-ghost:hover{background:var(--border);color:var(--text)}
+  .ff-msg{width:100%;font-size:12.5px;display:none;padding:8px 12px;border-radius:8px;background:#FEE2E2;border:1px solid #FECACA;color:#991B1B}
+  .ff-msg.err{display:block}
+  .filter-flash{margin:-4px 0 16px;padding:8px 12px;border-radius:8px;font-size:12.5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#15803D}
+  .filter-flash[hidden]{display:none}
+  :root:not([data-theme="light"]) .ff-msg{background:#3B0A0A;border-color:#7F1D1D;color:#FECACA}
+  :root:not([data-theme="light"]) .filter-flash{color:#86EFAC}
   .guide{border:1px solid var(--border-soft);border-radius:10px;padding:14px 16px}
   .guide-title{font-size:13px;font-weight:700;color:var(--text-strong);margin-bottom:8px}
   .guide ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13px;line-height:1.5}
@@ -234,6 +257,10 @@
     .legend{justify-content:flex-start}
     .chart-wrap{flex:none;height:240px;min-height:0}
     .info-bottom{grid-template-columns:1fr}
+    .filter-form .field{flex:1 1 100%}
+    .filter-form .field input{width:100%}
+    .ff-actions{width:100%}
+    .ff-actions button{flex:1}
   }
   @media (max-width:420px){
     .info-grid{grid-template-columns:1fr}
@@ -422,6 +449,7 @@
         <span class="info-label">Jam Operasi Filter</span>
         <span class="info-value" id="infoRuntime">—</span>
         <span class="info-note" id="infoFilterSince">—</span>
+        <button type="button" class="link-btn" id="filterOpenBtn">Filter diganti…</button>
       </div>
       <div class="info-item">
         <span class="info-label">Debu Outlet Rata-rata</span>
@@ -434,6 +462,22 @@
         <span class="info-note" id="infoLastSeenAt">—</span>
       </div>
     </div>
+    <form class="filter-form" id="filterForm" hidden>
+      <div class="ff-text">
+        <span class="ff-title">Catat penggantian filter</span>
+        <span class="ff-desc">Jam operasi filter akan dihitung ulang mulai waktu ini. Isi waktu yang lebih awal kalau filter sudah diganti sebelumnya.</span>
+      </div>
+      <div class="field">
+        <label for="filterAt">Waktu pemasangan (WIB)</label>
+        <input type="datetime-local" id="filterAt" required>
+      </div>
+      <div class="ff-actions">
+        <button type="submit" class="btn-primary" id="filterSaveBtn">Simpan</button>
+        <button type="button" class="btn-ghost" id="filterCancelBtn">Batal</button>
+      </div>
+      <div class="ff-msg" id="filterMsg" role="status"></div>
+    </form>
+    <div class="filter-flash" id="filterFlash" role="status" hidden></div>
     <div class="info-bottom">
       <div class="guide">
         <div class="guide-title">Panduan Penggunaan</div>
@@ -718,6 +762,54 @@ function renderDeviceInfo(){
     $('infoFilterSince').textContent='Waktu pemasangan filter belum dicatat';
   }
 }
+/* PENGGANTIAN FILTER */
+const toWibInput=ms=>new Date(ms+7*3600*1000).toISOString().slice(0,16); // nilai input datetime-local dalam WIB
+let flashTimer;
+function closeFilterForm(){
+  $('filterForm').hidden=true;
+  $('filterMsg').className='ff-msg';
+}
+function openFilterForm(){
+  const input=$('filterAt');
+  input.value=input.max=toWibInput(Date.now());
+  $('filterMsg').className='ff-msg';
+  $('filterFlash').hidden=true;
+  $('filterForm').hidden=false;
+  input.focus();
+}
+async function saveFilterInstall(e){
+  e.preventDefault();
+  const d=currentDevice(), v=$('filterAt').value, msg=$('filterMsg'), btn=$('filterSaveBtn');
+  if(!d) return;
+  if(!v){msg.textContent='Isi waktu pemasangan filter.';msg.className='ff-msg err';return;}
+  btn.disabled=true;
+  try{
+    const res=await fetch(`/api/devices/${encodeURIComponent(d.id)}/filter`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({installed_at:`${v}:00+07:00`}),
+    });
+    const json=await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(json?.error??`Gagal menyimpan (HTTP ${res.status}).`);
+    Object.assign(d,{filter_installed_at:json.data.filter_installed_at,filter_runtime_hours:json.data.filter_runtime_hours});
+    renderDeviceInfo();
+    closeFilterForm();
+    const flash=$('filterFlash');
+    flash.textContent=`Penggantian filter tercatat: ${fmtDateTime(json.data.filter_installed_at)}.`;
+    flash.hidden=false;
+    clearTimeout(flashTimer);
+    flashTimer=setTimeout(()=>{flash.hidden=true;},8000);
+  }catch(err){
+    msg.textContent=err.message;
+    msg.className='ff-msg err';
+  }finally{
+    btn.disabled=false;
+  }
+}
+$('filterOpenBtn').addEventListener('click',openFilterForm);
+$('filterCancelBtn').addEventListener('click',closeFilterForm);
+$('filterForm').addEventListener('submit',saveFilterInstall);
+
 function renderLastSeen(lastIso,ageMs){
   $('infoLastSeen').textContent=lastIso?fmtAge(ageMs):'—';
   $('infoLastSeenAt').textContent=lastIso?fmtDateTime(lastIso):'Belum ada data dari perangkat';
@@ -893,6 +985,8 @@ async function initDevices(){
   sel.addEventListener('change',()=>{
     currentDeviceId=sel.value;
     hideHover();
+    closeFilterForm();
+    $('filterFlash').hidden=true;
     setConnection('wait');
     renderDeviceInfo();
     loadSensorData();

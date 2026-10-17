@@ -83,6 +83,9 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | E-04 | Panduan penggunaan | Baca panduan. | Ada 3 poin: posisi alat di samping titik solder, inlet menghadap sumber asap, dan susunan filter HEPA → kipas → karbon aktif. | | |
 | E-05 | Status filter normal | Jalankan simulator `normal` selama ≥ 3 menit. | Kotak status berwarna netral/hijau: "Filter bekerja baik" dengan rata-rata < 25 µg/m³. | | |
 | E-06 | Peringatan filter | Jalankan simulator `spike` selama ≥ 3 menit. | Kotak berubah kuning: "Debu outlet naik — periksa filter" dengan rata-rata > 25 µg/m³. | | |
+| E-07 | Catat penggantian filter | Klik **Filter diganti…**, biarkan waktu default (sekarang), lalu klik **Simpan**. | Form tertutup dan muncul pesan hijau "Penggantian filter tercatat". Jam operasi filter kembali ke ±0 jam dan tanggal pemasangan berubah ke waktu sekarang. Nilainya tetap sama setelah halaman dimuat ulang. | | |
+| E-08 | Catat penggantian mundur | Klik **Filter diganti…**, isi waktu 1 jam yang lalu, lalu klik **Simpan**. | Jam operasi filter menjadi ±1 jam (kalau simulator berjalan selama satu jam itu). | | |
+| E-09 | Validasi waktu filter | Klik **Filter diganti…**, ubah waktu ke besok (ketik manual kalau pemilih tanggal membatasi), lalu klik **Simpan**. | Muncul pesan merah "installed_at tidak boleh di masa depan", dan data tidak berubah. Tombol **Batal** menutup form tanpa menyimpan. | | |
 
 ## F. Tabel log di dashboard
 
@@ -157,10 +160,10 @@ Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan `device_id` 
 | B. Kartu metrik | 7 | | | |
 | C. Grafik tren TVOC | 6 | | | |
 | D. Statistik sesi | 4 | | | |
-| E. Info perangkat | 6 | | | |
+| E. Info perangkat | 9 | | | |
 | F. Tabel log di dashboard | 4 | | | |
 | G. Halaman log dan ekspor CSV | 7 | | | |
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 5 | | | |
 | J. Tampilan | 5 | | | |
-| **Total** | **59** | | | |
+| **Total** | **62** | | | |

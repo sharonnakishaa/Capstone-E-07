@@ -41,13 +41,14 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | A-08 | Skenario offline berkala | Jalankan simulator `offline` selama ±3 menit. | Status berganti TERHUBUNG ↔ OFFLINE mengikuti pola kirim 60 detik / diam 30 detik. | | |
 | A-09 | Waktu data terakhir | Perhatikan "Data terakhir" di kanan banner. | Jam (WIB) sama dengan baris terakhir di terminal simulator dan berubah tiap 5 detik. | | |
 | A-10 | Server tidak dapat dihubungi | Hentikan `npm run dev` sementara dashboard terbuka. | Pill menampilkan **ERROR** dan banner bertuliskan "Server tidak dapat dihubungi". Dashboard pulih sendiri setelah server dinyalakan lagi. | | |
+| A-11 | Pemanasan sensor | Hentikan simulator, tunggu sampai OFFLINE, lalu jalankan lagi `npm run simulate`. Amati 45 detik pertama. | Banner bertuliskan **"AMAN — Pemanasan Sensor"** dengan penjelasan ±45 detik dan kipas belum aktif. Kartu TVOC menulis "Pemanasan sensor · nilai mentah", Baseline TVOC "— pemanasan", garis ambang tidak digambar (legend: "Ambang menunggu baseline"). Setelah ±45 detik, semuanya kembali normal dan garis ambang muncul. | | |
 
 ## B. Kartu metrik
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | B-01 | Kartu TVOC | Bandingkan kartu TVOC dengan baris terbaru di terminal simulator. | Angka besar = TVOC **Kalman** (dibulatkan). Teks kecil "Mentah: … ppb" = TVOC mentah. | | |
-| B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC. | Ada dua penanda ambang (250 dan 400 ppb). Warna bar mengikuti status (hijau, kuning, atau merah). Teks bawah: "Ambang: 250 / 400 ppb". | | |
+| B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 207** dan **baseline + 359** ppb. Teks bawah: "Ambang: <baseline+207> / <baseline+359> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
 | B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai, dan "Rata-rata 30 data" tampil. Teks bawah: "Batas filter: 25 µg/m³". | | |
 | B-04 | Kartu Suhu | Bandingkan dengan data terbaru di halaman log. | Nilai °C sesuai (1 desimal). | | |
 | B-05 | Kartu Kelembapan | Bandingkan dengan data terbaru di halaman log. | Nilai % sesuai (1 desimal). | | |
@@ -59,8 +60,8 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | C-01 | Dua garis | Amati grafik. | Ada garis tebal (TVOC Kalman) dan garis tipis pudar (TVOC mentah). Garis Kalman lebih halus daripada garis mentah. | | |
-| C-02 | Legend | Amati legend di atas grafik. | Ada 4 item: TVOC Kalman, TVOC mentah, Waspada (250 ppb), Berbahaya (400 ppb). | | |
-| C-03 | Garis ambang | Amati garis putus-putus. | Garis kuning di 250 ppb dan garis merah di 400 ppb, sesuai sumbu Y. | | |
+| C-02 | Legend | Amati legend di atas grafik. | Ada 4 item: TVOC Kalman, TVOC mentah, Waspada (<baseline+207> ppb), Berbahaya (<baseline+359> ppb). | | |
+| C-03 | Garis ambang | Amati garis putus-putus. | Garis kuning di baseline + 207 ppb dan garis merah di baseline + 359 ppb, sesuai sumbu Y. Saat TVOC Kalman melewati garis merah, status di banner BERBAHAYA (selisih ±1 data karena pembulatan). | | |
 | C-04 | Jumlah data | Amati sumbu X. | Grafik berisi 30 data terakhir (±2,5 menit), dan titik terbaru berada di ujung kanan. | | |
 | C-05 | Tooltip | Arahkan kursor (atau sentuh, di ponsel) ke beberapa titik grafik. | Garis bantu vertikal dan tooltip muncul berisi jam (WIB), nilai Kalman, nilai mentah, dan status. Tooltip hilang saat kursor keluar dari grafik. | | |
 | C-06 | Skala otomatis | Jalankan simulator `spike` (TVOC > 1.000 ppb). | Sumbu Y menyesuaikan nilai tertinggi, dan garis tidak terpotong. | | |
@@ -70,7 +71,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | D-01 | TVOC tertinggi, terendah, dan rata-rata | Bandingkan dengan 30 data terakhir di halaman log (kolom TVOC Kalman). | Nilai maksimum, minimum, dan rata-rata sesuai (dibulatkan). | | |
-| D-02 | Level fuzzy | Bandingkan dengan kolom level di terminal simulator. | Tampil kode dan label level, misalnya `MED Sedang`. | | |
+| D-02 | Baseline TVOC | Bandingkan dengan nilai `base` di terminal simulator. | Nilai baseline (ppb) sama. Selama pemanasan tampil "— pemanasan". | | |
 | D-03 | Duty cycle kipas | Bandingkan dengan `fan_duty_percent` terbaru. | Nilai dalam persen 0–100 (25 / 60 / 85 / 100), bukan 0–255. | | |
 | D-04 | Putaran kipas | Bandingkan dengan nilai `rpm` di terminal simulator. | Nilai RPM sesuai. | | |
 
@@ -92,7 +93,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
-| F-01 | Kolom tabel | Amati header tabel. | Kolomnya: #, Waktu, TVOC Kalman, TVOC Mentah, Suhu, RH, Debu, **Status Fuzzy**, Kipas. Tidak ada teks "AI" maupun "eCO₂". | | |
+| F-01 | Kolom tabel | Amati header tabel. | Kolomnya: #, Waktu, TVOC Kalman, TVOC Mentah, Suhu, RH, Debu, **Status Fuzzy**, Kipas (duty %, tanpa label level). Tidak ada teks "AI" maupun "eCO₂". | | |
 | F-02 | Isi tabel | Bandingkan 5 baris dengan halaman log. | 5 record terbaru, urut dari yang terbaru, dengan badge status berwarna. | | |
 | F-03 | Tautan ke log | Klik "Lihat Semua Data →". | Halaman log terbuka. | | |
 | F-04 | Ganti perangkat | Kalau ada > 1 device, ganti pilihan di dropdown topbar. | Semua kartu, grafik, statistik, info perangkat, dan tabel berganti ke data device terpilih. | | |
@@ -101,7 +102,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
-| G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, suhu, RH, debu outlet, status fuzzy (badge), level, duty %, RPM. | | |
+| G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, baseline, suhu, RH, debu outlet, status fuzzy (badge), duty %, RPM. Tidak ada kolom level. | | |
 | G-02 | Pagination | Klik halaman 2, halaman terakhir, lalu tombol ‹ dan ›. | 50 baris per halaman. Info "Menampilkan X–Y dari Z" sesuai, dan tombol nonaktif di halaman pertama dan terakhir. | | |
 | G-03 | Ekspor hari ini | Masuk sebagai Pengelola Lab. Biarkan tanggal default (hari ini), lalu klik **Ekspor Excel (.xlsx)**. | File `epen-meja-1-<tanggal>-<tanggal>.xlsx` terunduh, dan muncul pesan "N baris diekspor". | | |
 | G-04 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. | | |
@@ -119,12 +120,12 @@ Jalankan `npm run db:seed` sebelum H-01 supaya `last_alert_at` kembali kosong.
 | H-02 | Cooldown 15 menit | Biarkan simulator `spike` berjalan ±5 menit. | Tidak ada alert tambahan walaupun status tetap WASPADA/BERBAHAYA. | | |
 | H-03 | Eskalasi | Ulangi seed. Jalankan `normal` sampai alert pertama berstatus WASPADA, lalu ganti ke `spike`. | Satu alert tambahan terkirim saat status naik ke BERBAHAYA, walaupun masih dalam masa cooldown. | | |
 | H-04 | Request bersamaan | Ulangi seed, lalu kirim 5 POST BERBAHAYA sekaligus (lihat perintah di bawah tabel). | Kelima request mendapat `201`, tapi alert hanya tercatat **satu kali**. | | |
-| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, status dan level fuzzy, duty, RPM, debu outlet, suhu, kelembapan, dan jarak inlet. Tidak ada teks eCO₂. | | |
+| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, baseline, status fuzzy, duty, RPM, debu outlet, suhu, kelembapan, jarak inlet, dan tabel ambang yang dihitung dari baseline (baseline + 207 / + 359). Tidak ada teks eCO₂ maupun level fuzzy. | | |
 
-Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan `device_id` hasil seed di `payload.json`:
+Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan MAC alat hasil seed (`24:6F:28:00:00:01`) di `payload.json`:
 
 ```json
-{"device_id":"<uuid>","tvoc_raw_ppb":620,"tvoc_kalman_ppb":540,"eco2_ppm":960,"temperature_celsius":28.4,"humidity_percent":60.2,"dust_outlet_ugm3":30.1,"air_status":"BERBAHAYA","fuzzy_level":"FAST","fan_duty_percent":100,"fan_rpm":3290}
+{"mac_address":"24:6F:28:00:00:01","tvoc_raw_ppb":620,"tvoc_kalman_ppb":540,"tvoc_baseline_ppb":90,"eco2_ppm":960,"temperature_celsius":28.4,"humidity_percent":60.2,"dust_outlet_ugm3":30.1,"air_status":"BERBAHAYA","fan_duty_percent":100,"fan_rpm":3290}
 ```
 
 ```powershell
@@ -138,8 +139,11 @@ Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan `device_id` 
 | I-01 | Tanpa API key | POST `/api/sensor` tanpa header `x-api-key`. | `401 Unauthorized`. | | |
 | I-02 | Body bukan JSON | POST dengan body teks biasa. | `400 Body bukan JSON valid`. | | |
 | I-03 | Field tidak valid | POST dengan `humidity_percent: 120`, `fan_duty_percent: 255`, `air_status: "BAHAYA"`. | `400 Validasi gagal`, dan ketiga field disebutkan di `details`. | | |
-| I-04 | Device tidak terdaftar | POST dengan `device_id` UUID acak. | `404 Device tidak ditemukan atau tidak aktif` (bukan 500). | | |
-| I-05 | Payload valid | POST payload contoh dari README dengan `device_id` hasil seed. | `201` dengan `{ success: true, id, air_status }`, dan data muncul di dashboard. | | |
+| I-04 | MAC tidak terdaftar | POST dengan `mac_address: "24:6F:28:FF:FF:FF"`. | `404 MAC belum terdaftar atau alat tidak aktif` (bukan 500), dan log server mencatat MAC tersebut. | | |
+| I-05 | Payload valid (MAC) | POST payload contoh dari README (`mac_address` alat hasil seed). | `201` dengan `{ success: true, id, air_status }`, dan data muncul di dashboard alat yang benar. | | |
+| I-06 | Format MAC | POST dengan `mac_address: "246F28ABCDEF"`, lalu dengan `mac_address` **dan** `device_id` sekaligus. | Keduanya `400`: "harus format MAC seperti 24:6F:28:AB:CD:EF" dan "kirim salah satu saja". MAC huruf kecil (`24:6f:28:00:00:01`) tetap diterima `201`. | | |
+| I-07 | Firmware lama | POST dengan `device_id` (UUID hasil seed) dan `fuzzy_level: "MED"`. | `201`. `fuzzy_level` diabaikan tanpa error. | | |
+| I-08 | Daftarkan alat | `npm run device:add -- --mac=24:6F:28:FF:FF:FF --name="Epen Uji"`, lalu ulangi I-04. | Script mencetak MAC dan device_id. POST yang tadinya `404` sekarang `201`, dan alat "Epen Uji" muncul di Ringkasan Lab. | | |
 
 ## J. Tampilan
 
@@ -169,7 +173,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | L-01 | Halaman utama | Buka `http://localhost:3000/`. | Dialihkan ke `/lab.html`, dan tampil 4 kartu: Epen Meja 1 sampai 4. | | |
-| L-02 | Isi kartu | Bandingkan satu kartu dengan baris terbaru di terminal simulator untuk alat yang sama. | Status, TVOC Kalman (besar), TVOC mentah, level dan duty kipas, RPM, serta debu outlet sesuai. | | |
+| L-02 | Isi kartu | Bandingkan satu kartu dengan baris terbaru di terminal simulator untuk alat yang sama. | Status, TVOC Kalman (besar), TVOC mentah, duty kipas, RPM, serta debu outlet sesuai. | | |
 | L-03 | Urutan kartu | Amati urutan kartu selama beberapa menit. | Kartu BERBAHAYA selalu paling atas, diikuti WASPADA, OFFLINE, lalu AMAN. Status yang sama diurutkan menurut nama (Meja 2 sebelum Meja 10). | | |
 | L-04 | Ringkasan atas | Hitung kartu per status. | Pill BERBAHAYA/WASPADA/AMAN/OFFLINE menunjukkan jumlah yang sama. Judul menyebut status terburuk, misalnya "1 dari 4 alat BERBAHAYA". | | |
 | L-05 | Judul tab | Amati judul tab browser saat ada alat BERBAHAYA. | Judul tab diawali "(1 BERBAHAYA)". | | |
@@ -179,6 +183,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | L-09 | Navigasi | Dari dashboard detail, buka "Lihat Semua Data", lalu kembali dengan "Dashboard", lalu "‹ Ringkasan Lab". | Halaman log dan dashboard tetap menampilkan alat yang sama, dan tombol terakhir kembali ke Ringkasan Lab. | | |
 | L-10 | Banyak lokasi | Di Prisma Studio, ubah `location` salah satu device menjadi lokasi lain. | Kartu dikelompokkan per lokasi dengan judul grup dan jumlah alat. | | |
 | L-11 | Tampilan 375 px | DevTools → iPhone SE. | Kartu tersusun satu kolom tanpa scroll horizontal. | | |
+| L-12 | Pemanasan di kartu | Ulangi langkah A-11 sambil melihat Ringkasan Lab. | Kartu alat itu menulis "Pemanasan sensor" di bawah nilai TVOC selama ±45 detik pertama. | | |
 
 ## M. Login Pengelola Lab
 
@@ -200,7 +205,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 
 | Bagian | Jumlah uji | Lulus | Gagal | Tidak diuji |
 |---|---|---|---|---|
-| A. Status koneksi dan banner | 10 | | | |
+| A. Status koneksi dan banner | 11 | | | |
 | B. Kartu metrik | 7 | | | |
 | C. Grafik tren TVOC | 6 | | | |
 | D. Statistik sesi | 4 | | | |
@@ -208,9 +213,9 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | F. Tabel log di dashboard | 4 | | | |
 | G. Halaman log dan ekspor Excel | 7 | | | |
 | H. Notifikasi email | 5 | | | |
-| I. Validasi API | 5 | | | |
+| I. Validasi API | 8 | | | |
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 4 | | | |
-| L. Ringkasan Lab | 11 | | | |
+| L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 9 | | | |
-| **Total** | **86** | | | |
+| **Total** | **91** | | | |

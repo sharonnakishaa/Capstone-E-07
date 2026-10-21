@@ -22,12 +22,12 @@ const COLUMNS: Column[] = [
   { header: 'Waktu (WIB)',          width: 20, numFmt: 'yyyy-mm-dd hh:mm:ss', value: l => new Date(l.recorded_at.getTime() + WIB_OFFSET_MS) },
   { header: 'TVOC Mentah (ppb)',    width: 13, numFmt: '0',   value: l => l.tvoc_raw_ppb },
   { header: 'TVOC Kalman (ppb)',    width: 13, numFmt: '0.0', value: l => l.tvoc_kalman_ppb },
+  { header: 'Baseline TVOC (ppb)',  width: 13, numFmt: '0',   value: l => l.tvoc_baseline_ppb },
   { header: 'eCO₂ (ppm)',           width: 11, numFmt: '0',   value: l => l.eco2_ppm },
   { header: 'Suhu (°C)',            width: 10, numFmt: '0.0', value: l => l.temperature_celsius },
   { header: 'RH (%)',               width: 9,  numFmt: '0.0', value: l => l.humidity_percent },
   { header: 'Debu Outlet (µg/m³)',  width: 13, numFmt: '0.0', value: l => l.dust_outlet_ugm3 },
   { header: 'Status Fuzzy',         width: 13,                value: l => l.air_status },
-  { header: 'Level',                width: 8,                 value: l => l.fuzzy_level },
   { header: 'Duty (%)',             width: 9,  numFmt: '0',   value: l => l.fan_duty_percent },
   { header: 'RPM',                  width: 9,  numFmt: '0',   value: l => l.fan_rpm },
 ]

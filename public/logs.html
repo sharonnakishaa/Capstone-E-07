@@ -128,11 +128,11 @@
             <th>Waktu (WIB)</th>
             <th class="num">TVOC Mentah (ppb)</th>
             <th class="num">TVOC Kalman (ppb)</th>
+            <th class="num">Baseline (ppb)</th>
             <th class="num">Suhu (°C)</th>
             <th class="num">RH (%)</th>
             <th class="num">Debu Outlet (<span class="nocase">µg/m³</span>)</th>
             <th>Status Fuzzy</th>
-            <th>Level</th>
             <th class="num">Duty (%)</th>
             <th class="num">RPM</th>
           </tr>
@@ -193,11 +193,11 @@ function renderTable(data, page) {
           <td>${fmtTime(d.recorded_at)}</td>
           <td class="num dim">${fmtNum(d.tvoc_raw_ppb)}</td>
           <td class="ppm">${fmtNum(d.tvoc_kalman_ppb, 1)}</td>
+          <td class="num dim">${fmtNum(d.tvoc_baseline_ppb)}</td>
           <td class="num">${fmtNum(d.temperature_celsius, 1)}</td>
           <td class="num">${fmtNum(d.humidity_percent, 1)}</td>
           <td class="num">${fmtNum(d.dust_outlet_ugm3, 1)}</td>
           <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${esc(d.air_status)}</span></td>
-          <td>${esc(d.fuzzy_level ?? '—')}</td>
           <td class="num">${fmtNum(d.fan_duty_percent)}</td>
           <td class="last">${fmtNum(d.fan_rpm)}</td>
         </tr>`).join('')

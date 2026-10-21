@@ -1,27 +1,35 @@
 // Model fisik sederhana untuk simulator ESP32 dan seed data.
 // Dipakai bersama oleh scripts/seed.ts dan scripts/simulate.ts supaya pola datanya sama.
+// Perilakunya meniru firmware Epen (epen_config.h): pemanasan + perekaman baseline, Kalman,
+// status fuzzy relatif terhadap baseline, dan duty kipas kontinu.
 
 import {
-  StatusLabel as AirStatus, FuzzyLevel,
-  TVOC_REFERENCE_PPB, FUZZY_LEVEL_META, SAMPLE_INTERVAL_SEC,
+  StatusLabel as AirStatus,
+  TVOC_THRESHOLD_ABOVE_BASELINE_PPB, SENSOR_WARMUP_SEC, SAMPLE_INTERVAL_SEC,
 } from '../../lib/sensor'
 
 export type Scenario = 'normal' | 'spike' | 'offline'
 
 // ─── Konfigurasi (ubah di sini) ──────────────────────────────────────────────
-// Ambang status dan duty per level diambil dari lib/sensor.ts (satu sumber konfigurasi).
+// Ambang status dan lama pemanasan diambil dari lib/sensor.ts (satu sumber konfigurasi).
 
 export const TICK_SEC = SAMPLE_INTERVAL_SEC
 
-/** Ambang pada TVOC Kalman: ≥ waspada → WASPADA, ≥ berbahaya → BERBAHAYA. */
-export const STATUS_THRESHOLDS_PPB = TVOC_REFERENCE_PPB
+/** SGP30 menahan keluaran 0 selama ini setelah menyala (EPEN_WARMUP_S). */
+const SGP30_ZERO_SEC = 15
 
-/** Saat AMAN: di bawah nilai ini kipas di level MIN, di atasnya LOW. */
-export const LOW_LEVEL_FROM_PPB = 150
-
-const LEVEL_DUTY_PERCENT = Object.fromEntries(
-  Object.entries(FUZZY_LEVEL_META).map(([level, meta]) => [level, meta.duty_percent])
-) as Record<FuzzyLevel, number>
+/**
+ * Perkiraan kurva duty fuzzy Sugeno firmware: TVOC Kalman di atas baseline (ppb) → duty (%).
+ * Di antara titik diinterpolasi linear, jadi duty kontinu seperti rata-rata terbobot di firmware.
+ * Tingkat keluarannya mengikuti EPEN_PWM_* (0/30/50/75/100%).
+ */
+const DUTY_CURVE: [number, number][] = [
+  [0,   0],
+  [60,  30],
+  [TVOC_THRESHOLD_ABOVE_BASELINE_PPB.waspada,   50],
+  [290, 75],
+  [TVOC_THRESHOLD_ABOVE_BASELINE_PPB.berbahaya, 100],
+]
 
 export const FAN_MAX_RPM = 3300
 
@@ -36,9 +44,9 @@ interface ScenarioProfile {
 }
 
 const PROFILES: Record<Scenario, ScenarioProfile> = {
-  normal:  { idleSec: [60, 180], solderSec: [30, 90],  peakPpb: [180, 480],  filterLeak: 0.02 },
-  spike:   { idleSec: [20, 60],  solderSec: [45, 120], peakPpb: [550, 1100], filterLeak: 0.06 },
-  offline: { idleSec: [60, 180], solderSec: [30, 90],  peakPpb: [180, 480],  filterLeak: 0.02 },
+  normal:  { idleSec: [60, 180], solderSec: [30, 90],  peakPpb: [150, 450],  filterLeak: 0.02 },
+  spike:   { idleSec: [20, 60],  solderSec: [45, 120], peakPpb: [500, 1000], filterLeak: 0.06 },
+  offline: { idleSec: [60, 180], solderSec: [30, 90],  peakPpb: [150, 450],  filterLeak: 0.02 },
 }
 
 // ─── Utilitas ────────────────────────────────────────────────────────────────
@@ -78,23 +86,35 @@ export class Kalman1D {
 
 // ─── Pola fuzzy (meniru keluaran firmware) ───────────────────────────────────
 
-export function classify(tvocKalman: number): { air_status: AirStatus; fuzzy_level: FuzzyLevel } {
-  if (tvocKalman >= STATUS_THRESHOLDS_PPB.berbahaya) return { air_status: 'BERBAHAYA', fuzzy_level: 'FAST' }
-  if (tvocKalman >= STATUS_THRESHOLDS_PPB.waspada)   return { air_status: 'WASPADA',   fuzzy_level: 'MED' }
-  return { air_status: 'AMAN', fuzzy_level: tvocKalman >= LOW_LEVEL_FROM_PPB ? 'LOW' : 'MIN' }
+/** Status dari TVOC Kalman di atas baseline (sama seperti firmware). */
+export function classify(aboveBaselinePpb: number): AirStatus {
+  if (aboveBaselinePpb >= TVOC_THRESHOLD_ABOVE_BASELINE_PPB.berbahaya) return 'BERBAHAYA'
+  if (aboveBaselinePpb >= TVOC_THRESHOLD_ABOVE_BASELINE_PPB.waspada)   return 'WASPADA'
+  return 'AMAN'
+}
+
+/** Duty kipas kontinu (%), bilangan bulat seperti yang dikirim firmware. */
+export function dutyFor(aboveBaselinePpb: number): number {
+  const x = Math.max(0, aboveBaselinePpb)
+  for (let i = 1; i < DUTY_CURVE.length; i++) {
+    const [x0, y0] = DUTY_CURVE[i - 1]
+    const [x1, y1] = DUTY_CURVE[i]
+    if (x <= x1) return Math.round(y0 + (y1 - y0) * (x - x0) / (x1 - x0))
+  }
+  return 100
 }
 
 // ─── Simulator perangkat ─────────────────────────────────────────────────────
 
 export interface Reading {
   tvoc_raw_ppb: number
-  tvoc_kalman_ppb: number
+  tvoc_kalman_ppb: number | null   // null selama pemanasan
+  tvoc_baseline_ppb: number | null // null selama pemanasan
   eco2_ppm: number
   temperature_celsius: number
   humidity_percent: number
   dust_outlet_ugm3: number
   air_status: AirStatus
-  fuzzy_level: FuzzyLevel
   fan_duty_percent: number
   fan_rpm: number
 }
@@ -103,17 +123,22 @@ export class DeviceSimulator {
   private profile: ScenarioProfile
   private kalman = new Kalman1D(KALMAN_PARAMS.q, KALMAN_PARAMS.r)
 
+  private elapsedSec = 0                  // sejak alat menyala
+  private baselineSamples: number[] = []  // TVOC mentah selama perekaman baseline
+  private recordedBaseline: number | null = null
+
   private soldering = false
   private phaseLeftSec: number
   private peak = 0
-  private fume = 0                        // TVOC dari asap solder di atas baseline (ppb)
-  private baseline = rand(50, 90)         // TVOC latar ruangan (ppb)
-  private duty = LEVEL_DUTY_PERCENT.MIN
-  private rpm = FAN_MAX_RPM * LEVEL_DUTY_PERCENT.MIN / 100
+  private fume = 0                        // TVOC dari asap solder di atas latar ruangan (ppb)
+  private room = rand(50, 90)             // TVOC latar ruangan (ppb), bergeser pelan
+  private duty = 0
+  private rpm = 0
 
   constructor(scenario: Scenario) {
     this.profile = PROFILES[scenario]
-    this.phaseLeftSec = rand(...this.profile.idleSec)
+    // Sesi menyolder pertama baru dimulai setelah alat selesai pemanasan
+    this.phaseLeftSec = SENSOR_WARMUP_SEC + rand(...this.profile.idleSec)
   }
 
   /** Maju satu tick (TICK_SEC) dan kembalikan pembacaan sensor pada waktu `at`. */
@@ -127,14 +152,32 @@ export class DeviceSimulator {
     } else {
       this.fume *= 1 - (0.08 + 0.25 * this.duty / 100)
     }
-    this.baseline = clamp(this.baseline + gauss(1.5), 40, 110)
+    this.room = clamp(this.room + gauss(1.5), 40, 110)
 
-    const trueTvoc = this.baseline + this.fume
-    const tvocRaw  = Math.max(0, trueTvoc + gauss(10 + trueTvoc * 0.08))
-    const tvocKal  = this.kalman.update(tvocRaw)
+    const trueTvoc = this.room + this.fume
+    const warming  = this.elapsedSec < SENSOR_WARMUP_SEC
+    // SGP30 mengeluarkan 0 selama 15 detik pertama
+    const tvocRaw  = this.elapsedSec < SGP30_ZERO_SEC
+      ? 0
+      : Math.max(0, trueTvoc + gauss(10 + trueTvoc * 0.08))
 
-    const { air_status, fuzzy_level } = classify(tvocKal)
-    this.duty = LEVEL_DUTY_PERCENT[fuzzy_level]
+    let tvocKal: number | null = null
+    let air_status: AirStatus = 'AMAN'
+
+    if (warming) {
+      // Fase pemanasan + perekaman baseline: kipas mati, status AMAN, Kalman belum jalan
+      if (this.elapsedSec >= SGP30_ZERO_SEC) this.baselineSamples.push(tvocRaw)
+      this.duty = 0
+    } else {
+      if (this.recordedBaseline === null) {
+        const s = this.baselineSamples
+        this.recordedBaseline = s.length ? s.reduce((a, b) => a + b, 0) / s.length : tvocRaw
+      }
+      tvocKal = this.kalman.update(tvocRaw)
+      const above = tvocKal - this.recordedBaseline
+      air_status = classify(above)
+      this.duty  = dutyFor(above)
+    }
 
     // Kipas tidak langsung mencapai RPM target (inersia).
     const targetRpm = FAN_MAX_RPM * this.duty / 100
@@ -146,24 +189,26 @@ export class DeviceSimulator {
     const temp       = 26.5 + 1.5 * Math.sin(2 * Math.PI * (hourWib - 9) / 24) + 0.8 * fumeFrac + gauss(0.1)
     const humidity   = 64 - (temp - 26.5) * 2.5 + gauss(0.4)
 
-    // eCO₂ SGP30 diturunkan dari TVOC (minimum 400 ppm).
+    // eCO₂ SGP30 diturunkan dari TVOC (minimum 400 ppm, termasuk saat pemanasan).
     const eco2 = Math.max(400, 400 + tvocRaw * 0.9 + gauss(15))
 
     // Debu outlet: partikel asap yang lolos HEPA + latar. GP2Y cukup noisy.
     const inletDust = 15 + this.fume * 0.8
     const dust      = Math.max(0, 6 + inletDust * this.profile.filterLeak + gauss(2.5))
 
+    this.elapsedSec += TICK_SEC
+
     return {
       tvoc_raw_ppb:        round(tvocRaw),
-      tvoc_kalman_ppb:     round(tvocKal, 1),
+      tvoc_kalman_ppb:     tvocKal === null ? null : round(tvocKal, 1),
+      tvoc_baseline_ppb:   warming || this.recordedBaseline === null ? null : round(this.recordedBaseline),
       eco2_ppm:            round(eco2),
       temperature_celsius: round(temp, 1),
       humidity_percent:    round(clamp(humidity, 0, 100), 1),
       dust_outlet_ugm3:    round(dust, 1),
       air_status,
-      fuzzy_level,
       fan_duty_percent:    this.duty,
-      fan_rpm:             Math.max(0, Math.round(this.rpm * (1 + gauss(0.01)))),
+      fan_rpm:             this.duty === 0 && this.rpm < 50 ? 0 : Math.max(0, Math.round(this.rpm * (1 + gauss(0.01)))),
     }
   }
 

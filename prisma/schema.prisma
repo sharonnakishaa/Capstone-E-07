@@ -48,14 +48,14 @@ model sensor_logs {
   id                  BigInt    @id @default(autoincrement())
   device_id           String    @db.Uuid
   tvoc_raw_ppb        Float                     // TVOC mentah dari SGP30
-  tvoc_kalman_ppb     Float?                    // TVOC setelah Kalman filter di ESP32
+  tvoc_kalman_ppb     Float?                    // TVOC setelah Kalman filter di ESP32 (absolut = baseline + estimasi)
+  tvoc_baseline_ppb   Float?                    // Baseline udara bersih yang direkam ESP32 saat menyala
   eco2_ppm            Float
   dust_outlet_ugm3    Float?                    // Debu di outlet (GP2Y), indikator efektivitas filter
   temperature_celsius Float
   humidity_percent    Float
   air_status          String    @default("AMAN") // Keluaran fuzzy ESP32: AMAN | WASPADA | BERBAHAYA
-  fuzzy_level         String?                   // MIN | LOW | MED | FAST
-  fan_duty_percent    Float                     // 0–100 %
+  fan_duty_percent    Float                     // 0–100 %, keluaran fuzzy Sugeno (kontinu)
   fan_rpm             Int?                      // Dari sinyal tacho kipas
   recorded_at         DateTime  @default(now()) @db.Timestamptz
 

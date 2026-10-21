@@ -1,11 +1,8 @@
-// Satu sumber konfigurasi untuk status udara, level fuzzy, dan ambang referensi.
+// Satu sumber konfigurasi untuk status udara dan ambang referensi.
 // Status sebenarnya ditentukan oleh fuzzy di ESP32 — server hanya menyimpan dan menampilkan.
 
 export const AIR_STATUSES = ['AMAN', 'WASPADA', 'BERBAHAYA'] as const
 export type StatusLabel = typeof AIR_STATUSES[number]
-
-export const FUZZY_LEVELS = ['MIN', 'LOW', 'MED', 'FAST'] as const
-export type FuzzyLevel = typeof FUZZY_LEVELS[number]
 
 export const STATUS_META: Record<StatusLabel, {
   label: string
@@ -29,19 +26,21 @@ export const STATUS_META: Record<StatusLabel, {
   },
 }
 
-export const FUZZY_LEVEL_META: Record<FuzzyLevel, { label: string; duty_percent: number }> = {
-  MIN:  { label: 'Minimum', duty_percent: 25 },
-  LOW:  { label: 'Rendah',  duty_percent: 60 },
-  MED:  { label: 'Sedang',  duty_percent: 85 },
-  FAST: { label: 'Cepat',   duty_percent: 100 },
+// Ambang status fuzzy di firmware, dihitung di ATAS baseline udara bersih tiap alat.
+// Garis ambang di grafik = tvoc_baseline_ppb + nilai ini. Samakan dengan firmware (epen_config.h)
+// kalau fungsi keanggotaan fuzzy-nya berubah.
+export const TVOC_THRESHOLD_ABOVE_BASELINE_PPB = {
+  waspada:   207,
+  berbahaya: 359,
 }
 
-// Ambang TVOC (Kalman) untuk garis referensi grafik dan panduan email.
-// Samakan dengan fungsi keanggotaan fuzzy di firmware.
-export const TVOC_REFERENCE_PPB = {
-  waspada:   250,
-  berbahaya: 400,
-}
+// Tingkat keluaran fuzzy Sugeno di firmware (EPEN_PWM_*). Duty yang dikirim berupa rata-rata
+// terbobot dari tingkat ini, jadi nilainya kontinu (mis. 55%), bukan hanya salah satu tingkat.
+export const FAN_DUTY_LEVELS_PERCENT = [0, 30, 50, 75, 100]
+
+// Lama fase pemanasan SGP30 + perekaman baseline setelah alat menyala.
+// Selama fase ini tvoc_kalman_ppb dan tvoc_baseline_ppb dikirim null.
+export const SENSOR_WARMUP_SEC = 45
 
 // Peringatan filter: rata-rata debu outlet pada N data terakhir melebihi ambang ini.
 // Setel ulang setelah kalibrasi GP2Y di alat sebenarnya.
@@ -62,22 +61,28 @@ export function isAirStatus(v: unknown): v is StatusLabel {
   return typeof v === 'string' && (AIR_STATUSES as readonly string[]).includes(v)
 }
 
-export function isFuzzyLevel(v: unknown): v is FuzzyLevel {
-  return typeof v === 'string' && (FUZZY_LEVELS as readonly string[]).includes(v)
-}
-
 export function shouldNotify(status: StatusLabel): boolean {
   return status === 'WASPADA' || status === 'BERBAHAYA'
+}
+
+/** Ambang absolut (ppb) untuk satu alat; null kalau baseline belum diketahui (fase pemanasan). */
+export function tvocThresholds(baselinePpb: number | null) {
+  if (baselinePpb === null) return null
+  return {
+    waspada:   baselinePpb + TVOC_THRESHOLD_ABOVE_BASELINE_PPB.waspada,
+    berbahaya: baselinePpb + TVOC_THRESHOLD_ABOVE_BASELINE_PPB.berbahaya,
+  }
 }
 
 /** Konfigurasi yang dikirim ke frontend lewat GET /api/config. */
 export function getPublicConfig() {
   return {
-    statuses:           STATUS_META,
-    fuzzy_levels:       FUZZY_LEVEL_META,
-    tvoc_reference_ppb: TVOC_REFERENCE_PPB,
-    outlet_dust:        OUTLET_DUST,
-    poll_interval_ms:   SAMPLE_INTERVAL_SEC * 1000,
-    offline_after_ms:   OFFLINE_AFTER_MS,
+    statuses:                          STATUS_META,
+    tvoc_threshold_above_baseline_ppb: TVOC_THRESHOLD_ABOVE_BASELINE_PPB,
+    fan_duty_levels_percent:           FAN_DUTY_LEVELS_PERCENT,
+    sensor_warmup_sec:                 SENSOR_WARMUP_SEC,
+    outlet_dust:                       OUTLET_DUST,
+    poll_interval_ms:                  SAMPLE_INTERVAL_SEC * 1000,
+    offline_after_ms:                  OFFLINE_AFTER_MS,
   }
 }

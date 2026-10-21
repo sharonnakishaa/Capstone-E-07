@@ -1,15 +1,14 @@
 import nodemailer from 'nodemailer'
-import { StatusLabel, FuzzyLevel, STATUS_META, FUZZY_LEVEL_META, TVOC_REFERENCE_PPB } from './sensor'
+import { StatusLabel, STATUS_META, TVOC_THRESHOLD_ABOVE_BASELINE_PPB, tvocThresholds } from './sensor'
 
 export interface WarningEmailPayload {
-  device_id: string
   device_name: string
   location: string
   inlet_distance_cm: number
   tvoc_raw_ppb: number
   tvoc_kalman_ppb: number | null
+  tvoc_baseline_ppb: number | null
   air_status: StatusLabel
-  fuzzy_level: FuzzyLevel | null
   fan_duty_percent: number
   fan_rpm: number | null
   dust_outlet_ugm3: number | null
@@ -40,14 +39,13 @@ const mainTvoc = (p: WarningEmailPayload) => Math.round(p.tvoc_kalman_ppb ?? p.t
 function buildHtml(p: WarningEmailPayload): string {
   const t = STATUS_META[p.air_status]
   const isCritical = p.air_status === 'BERBAHAYA'
-  const level = p.fuzzy_level ? `${p.fuzzy_level} — ${FUZZY_LEVEL_META[p.fuzzy_level].label}` : '—'
   const tvocLabel = p.tvoc_kalman_ppb === null ? 'TVOC (mentah)' : 'TVOC (Kalman)'
 
   const rows: [string, string, boolean?][] = [
     [tvocLabel,           fmt(mainTvoc(p), 'ppb'), true],
     ['TVOC mentah',       fmt(p.tvoc_raw_ppb, 'ppb')],
+    ['Baseline TVOC',     fmt(p.tvoc_baseline_ppb, 'ppb')],
     ['Status fuzzy',      `${t.emoji} ${t.label}`],
-    ['Level fuzzy',       level],
     ['Duty kipas',        fmt(p.fan_duty_percent, '%')],
     ['Putaran kipas',     fmt(p.fan_rpm, 'RPM')],
     ['Debu outlet',       fmt(p.dust_outlet_ugm3, 'µg/m³', 1)],
@@ -61,11 +59,14 @@ function buildHtml(p: WarningEmailPayload): string {
             <td style="padding:11px 14px;text-align:right;font-family:monospace;${highlight ? `font-weight:700;color:${t.text_light};` : ''}">${value}</td>
           </tr>`).join('')
 
-  const ref = TVOC_REFERENCE_PPB
+  // Ambang firmware relatif terhadap baseline alat; kalau baseline belum ada, tampilkan offset-nya saja
+  const off = TVOC_THRESHOLD_ABOVE_BASELINE_PPB
+  const abs = tvocThresholds(p.tvoc_baseline_ppb)
+  const fmtPpb = (v: number) => Math.round(v).toLocaleString('id-ID')
   const thresholdRows = ([
-    ['AMAN',      `&lt; ${ref.waspada} ppb`],
-    ['WASPADA',   `${ref.waspada} – ${ref.berbahaya - 1} ppb`],
-    ['BERBAHAYA', `≥ ${ref.berbahaya} ppb`],
+    ['AMAN',      abs ? `&lt; ${fmtPpb(abs.waspada)} ppb`                       : `&lt; baseline + ${off.waspada} ppb`],
+    ['WASPADA',   abs ? `${fmtPpb(abs.waspada)} – ${fmtPpb(abs.berbahaya)} ppb` : `baseline + ${off.waspada} – ${off.berbahaya} ppb`],
+    ['BERBAHAYA', abs ? `≥ ${fmtPpb(abs.berbahaya)} ppb`                        : `≥ baseline + ${off.berbahaya} ppb`],
   ] as [StatusLabel, string][]).map(([key, range]) => {
     const m = STATUS_META[key]
     return `
@@ -119,7 +120,7 @@ function buildHtml(p: WarningEmailPayload): string {
       <!-- Threshold Guide -->
       <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;">
         <div style="padding:10px 14px;background:#F1F5F9;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748B;">
-          Referensi Ambang TVOC (Kalman)
+          Referensi Ambang TVOC (Kalman) · baseline + ${off.waspada} / + ${off.berbahaya} ppb
         </div>
         <table style="width:100%;border-collapse:collapse;">
           <tbody>${thresholdRows}</tbody>

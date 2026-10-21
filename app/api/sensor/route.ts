@@ -22,12 +22,12 @@ const mapLog = (log: sensor_logs) => ({
   device_id: log.device_id,
   tvoc_raw_ppb: log.tvoc_raw_ppb,
   tvoc_kalman_ppb: log.tvoc_kalman_ppb,
+  tvoc_baseline_ppb: log.tvoc_baseline_ppb,
   eco2_ppm: log.eco2_ppm,
   temperature_celsius: log.temperature_celsius,
   humidity_percent: log.humidity_percent,
   dust_outlet_ugm3: log.dust_outlet_ugm3,
   air_status: log.air_status,
-  fuzzy_level: log.fuzzy_level,
   fan_duty_percent: log.fan_duty_percent,
   fan_rpm: log.fan_rpm,
   recorded_at: log.recorded_at,
@@ -180,18 +180,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Validasi gagal', details: parsed.details }, { status: 400 })
   }
   const p = parsed.data
+  const ref = parsed.device
 
   try {
-    const device = await prisma.devices.findUnique({ where: { id: p.device_id } })
+    const device = await prisma.devices.findUnique({
+      where: 'mac_address' in ref ? { mac_address: ref.mac_address } : { id: ref.device_id },
+    })
     if (!device || !device.is_active) {
+      if ('mac_address' in ref) {
+        // Dicatat supaya MAC alat baru mudah didaftarkan dengan `npm run device:add`
+        console.warn(`[sensor] MAC belum terdaftar atau nonaktif: ${ref.mac_address}`)
+        return NextResponse.json(
+          { error: 'MAC belum terdaftar atau alat tidak aktif', mac_address: ref.mac_address },
+          { status: 404 }
+        )
+      }
       return NextResponse.json(
-        { error: 'Device tidak ditemukan atau tidak aktif', device_id: p.device_id },
+        { error: 'Device tidak ditemukan atau tidak aktif', device_id: ref.device_id },
         { status: 404 }
       )
     }
 
     // Status berasal dari fuzzy di ESP32 — disimpan apa adanya
-    const log = await prisma.sensor_logs.create({ data: p })
+    const log = await prisma.sensor_logs.create({ data: { ...p, device_id: device.id } })
 
     if (shouldNotify(p.air_status)) {
       // Klaim slot alert secara atomic: kondisi cooldown/eskalasi ada di WHERE,

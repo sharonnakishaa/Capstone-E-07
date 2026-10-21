@@ -21,6 +21,7 @@ const SCENARIOS: Scenario[] = ['normal', 'spike', 'offline']
 
 interface Target {
   id: string
+  mac: string
   label: string
 }
 
@@ -43,15 +44,19 @@ async function resolveTargets(args: Record<string, string>): Promise<Target[]> {
   const prisma = new PrismaClient()
   try {
     if (ids.length) {
-      const found = await prisma.devices.findMany({ where: { id: { in: ids } }, select: { id: true, device_name: true } })
-        .catch(() => [] as { id: string; device_name: string }[])
-      return ids.map(id => ({ id, label: found.find(d => d.id === id)?.device_name ?? id.slice(0, 8) }))
+      const found = await prisma.devices.findMany({ where: { id: { in: ids } }, select: { id: true, device_name: true, mac_address: true } })
+      const missing = ids.filter(id => !found.some(d => d.id === id))
+      if (missing.length) throw new Error(`Device tidak ditemukan: ${missing.join(', ')}`)
+      return ids.map(id => {
+        const d = found.find(x => x.id === id)!
+        return { id, mac: d.mac_address, label: d.device_name }
+      })
     }
 
     const devices = await prisma.devices.findMany({ where: { is_active: true }, orderBy: { created_at: 'asc' } })
     if (!devices.length) throw new Error('Tidak ada device aktif. Jalankan `npm run db:seed` dulu atau pakai --device=<uuid>.')
     if (!all) console.log(`--device tidak diisi, memakai device aktif pertama: ${devices[0].device_name}`)
-    return (all ? devices : devices.slice(0, 1)).map(d => ({ id: d.id, label: d.device_name }))
+    return (all ? devices : devices.slice(0, 1)).map(d => ({ id: d.id, mac: d.mac_address, label: d.device_name }))
   } finally {
     await prisma.$disconnect()
   }
@@ -77,7 +82,7 @@ async function main() {
   const labelW   = Math.max(...targets.map(t => t.label.length))
 
   console.log(`Simulator ESP32 → ${endpoint}  (Ctrl+C untuk berhenti)`)
-  targets.forEach((t, i) => console.log(`  ${t.label.padEnd(labelW)}  ${t.id}  skenario "${scenarios[i % scenarios.length]}"`))
+  targets.forEach((t, i) => console.log(`  ${t.label.padEnd(labelW)}  ${t.mac}  skenario "${scenarios[i % scenarios.length]}"`))
   console.log('')
 
   const cycleSec = OFFLINE_CYCLE.onlineSec + OFFLINE_CYCLE.offlineSec
@@ -98,10 +103,11 @@ async function main() {
       const line = prefix + [
         fmtTime(now),
         `raw ${String(r.tvoc_raw_ppb).padStart(4)}`,
-        `kalman ${r.tvoc_kalman_ppb.toFixed(1).padStart(6)}`,
+        r.tvoc_kalman_ppb === null
+          ? 'kalman      —  (pemanasan)'
+          : `kalman ${r.tvoc_kalman_ppb.toFixed(1).padStart(6)}  base ${String(r.tvoc_baseline_ppb).padStart(3)}`,
         r.air_status.padEnd(9),
-        r.fuzzy_level.padEnd(4),
-        `${String(r.fan_duty_percent).padStart(3)}%`,
+        `duty ${String(r.fan_duty_percent).padStart(3)}%`,
         `${String(r.fan_rpm).padStart(4)} rpm`,
         `debu ${r.dust_outlet_ugm3.toFixed(1).padStart(5)}`,
       ].join('  ')
@@ -113,7 +119,8 @@ async function main() {
           const res = await fetch(endpoint, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-            body:    JSON.stringify({ device_id: target.id, ...r }),
+            // Identitas lewat MAC address, sama seperti firmware
+            body:    JSON.stringify({ mac_address: target.mac, ...r }),
           })
           const suffix = res.ok ? '' : `  ${await res.text()}`
           console.log(`${line}  → ${res.status}${suffix}`)

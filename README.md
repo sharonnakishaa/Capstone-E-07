@@ -18,7 +18,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 ## Fitur
 
 **Ringkasan Lab (`/lab.html`, halaman utama)**
-- Satu kartu per Epen: status fuzzy, TVOC Kalman dan mentah, level dan duty kipas, RPM, debu outlet, serta umur data terakhir.
+- Satu kartu per Epen: status fuzzy, TVOC Kalman dan mentah, duty kipas, RPM, debu outlet, serta umur data terakhir. Alat yang baru menyala ditandai "Pemanasan sensor".
 - Kartu diurutkan dari yang paling perlu ditangani: BERBAHAYA → WASPADA → OFFLINE → AMAN. Kalau lokasinya lebih dari satu, kartu dikelompokkan per lokasi.
 - Ringkasan jumlah alat per status di bagian atas, dan judul tab browser ikut menampilkan jumlah alat BERBAHAYA/WASPADA.
 - Penanda "Periksa filter" kalau rata-rata debu outlet melebihi batas.
@@ -29,7 +29,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Indikator koneksi: **TERHUBUNG** kalau umur data terakhir ≤ 15 detik (dihitung terhadap `server_time`), **OFFLINE** kalau lebih lama, lengkap dengan banner "Tidak ada data dari perangkat".
 - Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
 - Grafik tren TVOC dengan dua garis (Kalman dan mentah), garis ambang referensi, dan tooltip saat kursor diarahkan ke grafik.
-- Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, level fuzzy, duty kipas, serta RPM kipas.
+- Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, baseline TVOC, duty kipas, serta RPM kipas.
 - Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset Pengelola Lab lewat tombol **Filter diganti…**, beserta nama pencatatnya), panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
 - Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
 - Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
@@ -79,6 +79,7 @@ npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 det
 | `npm run simulate` | Jalankan simulator ESP32 |
 | `npm run db:retention` | Ringkas data mentah lama per jam lalu hapus (lihat [Retensi data](#retensi-data)) |
 | `npm run user:add` | Buat akun Pengelola Lab atau reset password (lihat [Login dan akun](#login-dan-akun)) |
+| `npm run device:add` | Daftarkan alat Epen berdasarkan MAC address (lihat [Mendaftarkan alat](#mendaftarkan-alat)) |
 
 Halaman:
 - `/` → dialihkan ke `/lab.html` (Ringkasan Lab)
@@ -102,6 +103,19 @@ Seed membuat:
 Di akhir, seed mencetak `device_id` setiap alat dan perintah simulator yang siap disalin. Seed aman dijalankan ulang: user dan device di-upsert, log dan ringkasan lama milik device itu dihapus, dan `last_alert_at` direset supaya alur email bisa diuji dari awal. Alat hasil seed sebelumnya yang tidak termasuk N dinonaktifkan, jadi tidak muncul di Ringkasan Lab.
 
 > **Perhatian:** lokal dan Production memakai database Supabase yang sama. Seed juga mengubah data yang terlihat di `capstone-e-07.vercel.app`.
+
+## Mendaftarkan alat
+
+Firmware mengirim `mac_address` (format `24:6F:28:AB:CD:EF`, tercetak di Serial Monitor) sebagai identitas, jadi firmware semua alat bisa identik. Setiap MAC harus didaftarkan dulu:
+
+```bash
+npm run device:add -- --mac=24:6F:28:AB:CD:EF --name="Epen Meja 1"
+npm run device:add -- --mac=24:6F:28:AB:CD:EF --name="Epen Meja 1" --location="Lab DTETI" --inlet=5
+```
+
+- Kalau MAC sudah terdaftar, script memperbarui nama, lokasi, dan jarak inlet, lalu mengaktifkan kembali alatnya.
+- Lokasi default `Lab DTETI`, jarak inlet default 5 cm.
+- Data dari MAC yang belum terdaftar ditolak `404`, dan MAC-nya dicatat di log server (`[sensor] MAC belum terdaftar…`), jadi mudah dicari lalu didaftarkan.
 
 ## Simulator ESP32
 
@@ -135,7 +149,9 @@ Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim 
 Cara kerja model ada di `scripts/lib/simulation.ts`:
 - **TVOC mentah** naik saat menyolder, lalu turun saat jeda. Kecepatan turunnya bergantung pada duty kipas. Noise-nya Gaussian.
 - **TVOC Kalman** dihitung dengan Kalman 1D (`KALMAN_PARAMS`: Q = 25, R = 400).
-- **Status, level, dan duty** meniru keluaran fuzzy firmware: ambang Kalman < 250 AMAN (MIN/LOW), 250–399 WASPADA (MED), ≥ 400 BERBAHAYA (FAST). Ambangnya diambil dari `lib/sensor.ts`.
+- **Fase pemanasan 45 detik** seperti firmware: TVOC mentah 0 selama 15 detik (SGP30), lalu baseline direkam 30 detik. Selama itu Kalman dan baseline `null`, status AMAN, kipas mati.
+- **Status dan duty** meniru firmware: status dari Kalman di atas baseline (≥ 207 ppb WASPADA, ≥ 359 ppb BERBAHAYA, dari `lib/sensor.ts`), dan duty kontinu 0–100 % hasil interpolasi tingkat 0/30/50/75/100 %.
+- **Identitas lewat `mac_address`**, sama seperti firmware.
 - **RPM** mengikuti duty dengan sedikit inersia. Suhu mengikuti siklus harian, dan debu outlet berasal dari partikel yang lolos HEPA.
 
 ## Login dan akun
@@ -195,7 +211,7 @@ app/
     sensor/route.ts     GET/POST /api/sensor — data sensor, ekspor Excel, alert email
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
-  sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
+  sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
   validation.ts         Validasi payload POST dari ESP32
   devices.ts            Perhitungan jam operasi filter
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
@@ -214,6 +230,7 @@ scripts/
   simulate.ts           Simulator ESP32
   retention.ts          Retensi data: ringkas per jam lalu hapus data mentah lama
   user-add.ts           Buat akun Pengelola Lab / reset password
+  device-add.ts         Daftarkan alat berdasarkan MAC address
 docs/
   TESTING.md            Checklist uji manual fungsional dashboard
 ```
@@ -250,7 +267,7 @@ Semua body dan respons memakai JSON (`Content-Type: application/json`), kecuali 
 
 ### `POST /api/sensor` — kirim data dari ESP32
 
-ESP32 mengirim satu pembacaan setiap **5 detik**.
+ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSecure`; HTTP biasa di-redirect 308 dan tidak diikuti untuk POST). Kontrak ini sudah disepakati dengan tim firmware.
 
 **Header**
 
@@ -263,44 +280,41 @@ ESP32 mengirim satu pembacaan setiap **5 detik**.
 
 ```json
 {
-  "device_id": "uuid-perangkat",
+  "mac_address": "24:6F:28:AB:CD:EF",
   "tvoc_raw_ppb": 412,
   "tvoc_kalman_ppb": 286,
+  "tvoc_baseline_ppb": 95,
   "eco2_ppm": 640,
   "temperature_celsius": 27.4,
   "humidity_percent": 63.1,
-  "dust_outlet_ugm3": 18.5,
+  "dust_outlet_ugm3": null,
   "air_status": "WASPADA",
-  "fuzzy_level": "MED",
-  "fan_duty_percent": 85,
-  "fan_rpm": 2810
+  "fan_duty_percent": 83,
+  "fan_rpm": 2610
 }
 ```
 
 | Field | Tipe | Wajib | Aturan validasi | Keterangan |
 |---|---|---|---|---|
-| `device_id` | string (UUID) | ✅ | Harus terdaftar di tabel `devices` dan `is_active = true` | ID perangkat |
-| `tvoc_raw_ppb` | number | ✅ | Finite, ≥ 0 | TVOC mentah dari SGP30 |
-| `tvoc_kalman_ppb` | number \| null | | Finite, ≥ 0 | TVOC setelah Kalman filter, menjadi input fuzzy |
+| `mac_address` | string | ✅* | Format `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi ke huruf besar). Harus terdaftar dan aktif. | Identitas alat. Firmware semua alat bisa identik. Daftarkan dengan `npm run device:add`. |
+| `device_id` | string (UUID) | ✅* | Harus terdaftar dan `is_active = true` | Alternatif `mac_address` (dipakai kode lama). |
+| `tvoc_raw_ppb` | number | ✅ | Finite, ≥ 0 | TVOC mentah dari SGP30. Bernilai 0 selama 15 detik pertama (pemanasan SGP30). |
+| `tvoc_kalman_ppb` | number \| null | | Finite, ≥ 0 | TVOC Kalman **absolut** (= baseline + estimasi). `null` selama pemanasan. |
+| `tvoc_baseline_ppb` | number \| null | | Finite, ≥ 0 | Baseline udara bersih yang direkam saat alat menyala. `null` selama pemanasan. Dipakai untuk garis ambang. |
 | `eco2_ppm` | number | ✅ | Finite, ≥ 0 | eCO₂ dari SGP30, disimpan sebagai data pelengkap |
 | `temperature_celsius` | number | ✅ | Finite | Suhu dari SHT31 |
 | `humidity_percent` | number | ✅ | Finite, 0–100 | Kelembapan relatif dari SHT31 |
-| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y) |
-| `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya |
-| `fuzzy_level` | string \| null | | `MIN` \| `LOW` \| `MED` \| `FAST` | Level kecepatan kipas hasil fuzzy |
-| `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty cycle PWM kipas |
+| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y). Sementara dikirim `null` oleh firmware. |
+| `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya. `AMAN` selama pemanasan. |
+| `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty kipas hasil fuzzy Sugeno (rata-rata terbobot, kontinu). 0 selama pemanasan. |
 | `fan_rpm` | integer \| null | | Bilangan bulat ≥ 0 | Putaran kipas dari sinyal tacho |
 
-Referensi level fuzzy (duty nominal). Server tidak memaksa `fan_duty_percent` sama dengan nilai nominal ini.
+\* Kirim **tepat satu** dari `mac_address` atau `device_id`. Mengirim keduanya ditolak `400`.
 
-| `fuzzy_level` | Duty nominal |
-|---|---|
-| `MIN` | 25 % |
-| `LOW` | 60 % |
-| `MED` | 85 % |
-| `FAST` | 100 % |
-
-Field opsional boleh dihilangkan atau diisi `null`.
+- Field opsional boleh dihilangkan atau diisi `null`. Field yang tidak dikenal diabaikan, misalnya `fuzzy_level` dari firmware lama.
+- **Fase pemanasan (±45 detik setelah alat menyala):** SGP30 pemanasan 15 detik, lalu baseline direkam 30 detik. Selama fase ini firmware mengirim `tvoc_kalman_ppb` dan `tvoc_baseline_ppb` = `null`, `air_status` = `AMAN`, dan kipas mati. Dashboard menampilkan keterangan **"Pemanasan sensor"**.
+- **Ambang status di firmware relatif terhadap baseline:** WASPADA mulai **baseline + 207 ppb**, BERBAHAYA mulai **baseline + 359 ppb** (`TVOC_THRESHOLD_ABOVE_BASELINE_PPB` di `lib/sensor.ts`, samakan dengan `epen_config.h`). Server tidak menghitung status. Ambang ini hanya dipakai untuk garis referensi grafik.
+- **Tingkat keluaran fuzzy:** 0 / 30 / 50 / 75 / 100 %. Karena keluarannya rata-rata terbobot, duty yang dikirim bisa bernilai di antaranya (misalnya 55 %). Tidak ada lagi label level.
 
 **Respons sukses — `201 Created`**
 
@@ -323,6 +337,7 @@ Semua error memakai bentuk `{ "error": string, ... }`.
 | `400` | Body bukan JSON valid | `{ "error": "Body bukan JSON valid" }` |
 | `400` | Validasi gagal: field wajib kosong, tipe salah, di luar rentang, atau enum tidak valid | lihat contoh di bawah |
 | `401` | Header `x-api-key` tidak ada atau salah | `{ "error": "Unauthorized" }` |
+| `404` | `mac_address` belum terdaftar atau alat nonaktif (MAC-nya juga dicatat di log server) | `{ "error": "MAC belum terdaftar atau alat tidak aktif", "mac_address": "24:6F:28:AB:CD:EF" }` |
 | `404` | `device_id` tidak terdaftar atau perangkat nonaktif | `{ "error": "Device tidak ditemukan atau tidak aktif", "device_id": "..." }` |
 | `500` | Kesalahan server atau database | `{ "error": "Internal server error" }` |
 
@@ -344,7 +359,7 @@ Contoh request:
 curl -X POST http://localhost:3000/api/sensor \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
-  -d '{"device_id":"<uuid>","tvoc_raw_ppb":412,"tvoc_kalman_ppb":286,"eco2_ppm":640,"temperature_celsius":27.4,"humidity_percent":63.1,"dust_outlet_ugm3":18.5,"air_status":"WASPADA","fuzzy_level":"MED","fan_duty_percent":85,"fan_rpm":2810}'
+  -d '{"mac_address":"24:6F:28:00:00:01","tvoc_raw_ppb":412,"tvoc_kalman_ppb":286,"tvoc_baseline_ppb":95,"eco2_ppm":640,"temperature_celsius":27.4,"humidity_percent":63.1,"dust_outlet_ugm3":null,"air_status":"WASPADA","fan_duty_percent":83,"fan_rpm":2610}'
 ```
 
 **Notifikasi email**
@@ -381,14 +396,14 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
   "device_id": "uuid-perangkat",
   "tvoc_raw_ppb": 412,
   "tvoc_kalman_ppb": 286,
+  "tvoc_baseline_ppb": 95,
   "eco2_ppm": 640,
   "temperature_celsius": 27.4,
   "humidity_percent": 63.1,
   "dust_outlet_ugm3": 18.5,
   "air_status": "WASPADA",
-  "fuzzy_level": "MED",
-  "fan_duty_percent": 85,
-  "fan_rpm": 2810,
+  "fan_duty_percent": 83,
+  "fan_rpm": 2610,
   "recorded_at": "2026-10-16T03:12:45.000Z"
 }
 ```
@@ -439,12 +454,12 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
 | Waktu (WIB) | `recorded_at` + 7 jam | `yyyy-mm-dd hh:mm:ss` |
 | TVOC Mentah (ppb) | `tvoc_raw_ppb` | `0` |
 | TVOC Kalman (ppb) | `tvoc_kalman_ppb` | `0.0` |
+| Baseline TVOC (ppb) | `tvoc_baseline_ppb` | `0` |
 | eCO₂ (ppm) | `eco2_ppm` | `0` |
 | Suhu (°C) | `temperature_celsius` | `0.0` |
 | RH (%) | `humidity_percent` | `0.0` |
 | Debu Outlet (µg/m³) | `dust_outlet_ugm3` | `0.0` |
 | Status Fuzzy | `air_status` | teks |
-| Level | `fuzzy_level` | teks |
 | Duty (%) | `fan_duty_percent` | `0` |
 | RPM | `fan_rpm` | `0` |
 
@@ -489,11 +504,11 @@ Dipakai halaman Ringkasan Lab. Satu request mengembalikan log terakhir setiap de
         "id": "10482",
         "tvoc_raw_ppb": 640,
         "tvoc_kalman_ppb": 512.8,
+        "tvoc_baseline_ppb": 88,
         "temperature_celsius": 28.1,
         "humidity_percent": 60.2,
         "dust_outlet_ugm3": 31.4,
         "air_status": "BERBAHAYA",
-        "fuzzy_level": "FAST",
         "fan_duty_percent": 100,
         "fan_rpm": 3290,
         "recorded_at": "2026-10-18T03:12:45.000Z"
@@ -591,13 +606,9 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
     "WASPADA":   { "label": "Waspada",   "headline": "Asap Solder Terdeteksi", "emoji": "🟠", "color": "#F59E0B", "text_light": "#B45309", "description": "..." },
     "BERBAHAYA": { "label": "Berbahaya", "headline": "Kadar Asap Tinggi",      "emoji": "🔴", "color": "#EF4444", "text_light": "#DC2626", "description": "..." }
   },
-  "fuzzy_levels": {
-    "MIN":  { "label": "Minimum", "duty_percent": 25 },
-    "LOW":  { "label": "Rendah",  "duty_percent": 60 },
-    "MED":  { "label": "Sedang",  "duty_percent": 85 },
-    "FAST": { "label": "Cepat",   "duty_percent": 100 }
-  },
-  "tvoc_reference_ppb": { "waspada": 250, "berbahaya": 400 },
+  "tvoc_threshold_above_baseline_ppb": { "waspada": 207, "berbahaya": 359 },
+  "fan_duty_levels_percent": [0, 30, 50, 75, 100],
+  "sensor_warmup_sec": 45,
   "outlet_dust": { "warn_ugm3": 25, "window": 30 },
   "poll_interval_ms": 5000,
   "offline_after_ms": 15000
@@ -608,4 +619,6 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
 
 `outlet_dust`: dashboard menampilkan peringatan filter kalau rata-rata `dust_outlet_ugm3` pada `window` data terakhir melebihi `warn_ugm3`.
 
-`tvoc_reference_ppb` hanya dipakai untuk garis referensi grafik. Nilainya harus disamakan dengan fungsi keanggotaan fuzzy di firmware. Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
+`tvoc_threshold_above_baseline_ppb` dipakai untuk garis referensi grafik: garis digambar di `tvoc_baseline_ppb` + nilai ini, per alat. Kalau baseline belum ada (pemanasan), garis tidak digambar. Nilainya harus sama dengan fungsi keanggotaan fuzzy di firmware. Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
+
+`fan_duty_levels_percent` adalah tingkat keluaran fuzzy Sugeno firmware, hanya sebagai referensi. `sensor_warmup_sec` dipakai untuk teks "Pemanasan sensor".

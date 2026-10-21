@@ -158,7 +158,6 @@ function deviceState(d,serverTime){
 function cardHtml(d,st){
   const l=d.latest, off=st.status==='OFFLINE';
   const tvoc=l?(l.tvoc_kalman_ppb??l.tvoc_raw_ppb):null;
-  const lvl=l&&l.fuzzy_level?l.fuzzy_level:null;
   const dustWarn=d.dust_samples>0&&d.dust_outlet_avg_ugm3>CFG.outlet_dust.warn_ugm3;
   const foot=!l
     ?'Belum ada data dari perangkat'
@@ -174,9 +173,9 @@ function cardHtml(d,st){
         <span class="badge ${BADGE[st.status]}"><span class="dot-s"></span>${st.status}</span>
       </div>
       <div class="dc-value"><span class="num">${tvoc==null?'—':fmtNum(Math.round(tvoc))}</span><span class="unit">ppb TVOC</span></div>
-      <div class="dc-raw">${l&&l.tvoc_kalman_ppb!=null?`Mentah ${fmtNum(l.tvoc_raw_ppb)} ppb`:'&nbsp;'}</div>
+      <div class="dc-raw">${!l?'&nbsp;':l.tvoc_kalman_ppb!=null?`Mentah ${fmtNum(l.tvoc_raw_ppb)} ppb`:'Pemanasan sensor'}</div>
       <div class="dc-stats">
-        <div><span class="k">Kipas</span><span class="v">${l?`${lvl?esc(lvl)+' · ':''}${fmtNum(l.fan_duty_percent)}%`:'—'}</span></div>
+        <div><span class="k">Kipas</span><span class="v">${l?`${fmtNum(l.fan_duty_percent)}%`:'—'}</span></div>
         <div><span class="k">RPM</span><span class="v">${l?fmtNum(l.fan_rpm):'—'}</span></div>
         <div><span class="k">Debu</span><span class="v">${l?fmtNum(l.dust_outlet_ugm3,1):'—'}</span></div>
       </div>

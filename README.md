@@ -30,13 +30,17 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
 - Grafik tren TVOC dengan dua garis (Kalman dan mentah), garis ambang referensi, dan tooltip saat kursor diarahkan ke grafik.
 - Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, level fuzzy, duty kipas, serta RPM kipas.
-- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset lewat tombol **Filter diganti…**), panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
+- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset Pengelola Lab lewat tombol **Filter diganti…**, beserta nama pencatatnya), panduan penggunaan, dan peringatan kalau rata-rata debu outlet melebihi batas.
 - Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
 - Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
 
 **Halaman log (`/logs.html`)**
 - Semua data sensor dengan pagination 50 baris per halaman.
-- Ekspor CSV berdasarkan rentang tanggal (WIB), maksimal 50.000 baris.
+- Ekspor CSV berdasarkan rentang tanggal (WIB), maksimal 50.000 baris. Khusus Pengelola Lab.
+
+**Login Pengelola Lab (`/login.html`)**
+- Semua halaman pemantauan bisa dibuka **tanpa login**.
+- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter** dan **ekspor CSV**. Lihat [Login dan akun](#login-dan-akun).
 
 **Backend**
 - Validasi payload ESP32: tipe, rentang, dan enum. Semua field yang salah dilaporkan sekaligus.
@@ -74,6 +78,7 @@ npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 det
 | `npm run db:seed` | Isi data awal untuk pengujian |
 | `npm run simulate` | Jalankan simulator ESP32 |
 | `npm run db:retention` | Ringkas data mentah lama per jam lalu hapus (lihat [Retensi data](#retensi-data)) |
+| `npm run user:add` | Buat akun Pengelola Lab atau reset password (lihat [Login dan akun](#login-dan-akun)) |
 
 Halaman:
 - `/` → dialihkan ke `/lab.html` (Ringkasan Lab)
@@ -90,7 +95,7 @@ npm run db:seed -- --devices=4    # 4 alat (maksimal 20)
 ```
 
 Seed membuat:
-- user `admin@epen.local` (password dummy `epen123`),
+- user `admin@epen.local` dengan role `pengelola`. Kalau akun ini belum ada, password-nya dibuat acak dan **hanya ditampilkan sekali** di terminal. Kalau sudah ada, password tidak diubah.
 - device `Epen Meja 1` … `Epen Meja N` di `Lab DTETI` dengan `inlet_distance_cm = 5`. MAC address-nya `24:6F:28:00:00:01`, `…:02`, dan seterusnya.
 - ±2.160 log per alat (3 jam × interval 5 detik) yang berakhir di waktu sekarang. `filter_installed_at` diisi dengan waktu awal data.
 
@@ -133,6 +138,31 @@ Cara kerja model ada di `scripts/lib/simulation.ts`:
 - **Status, level, dan duty** meniru keluaran fuzzy firmware: ambang Kalman < 250 AMAN (MIN/LOW), 250–399 WASPADA (MED), ≥ 400 BERBAHAYA (FAST). Ambangnya diambil dari `lib/sensor.ts`.
 - **RPM** mengikuti duty dengan sedikit inersia. Suhu mengikuti siklus harian, dan debu outlet berasal dari partikel yang lolos HEPA.
 
+## Login dan akun
+
+Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjung tanpa login tetap bisa melihat Ringkasan Lab, dashboard detail, dan halaman log.
+
+| Aksi | Tanpa login | Pengelola Lab |
+|---|---|---|
+| Ringkasan Lab, dashboard detail, halaman log | ✅ | ✅ |
+| Catat penggantian filter | ❌ | ✅ |
+| Ekspor CSV | ❌ | ✅ |
+
+Belum ada halaman pendaftaran atau manajemen akun. Akun dibuat lewat script:
+
+```bash
+npm run user:add -- --email=aslab@ugm.ac.id --name="Nama Aslab"   # akun baru
+npm run user:add -- --email=aslab@ugm.ac.id                       # reset password akun yang ada
+```
+
+Password dibuat acak, **hanya ditampilkan sekali**, dan tidak perlu diketik di terminal, jadi tidak tersimpan di riwayat shell. Kirim ke pemilik akun lewat jalur pribadi. Untuk mencabut akses, hapus user-nya di Prisma Studio. Sesi yang sudah ada langsung tidak berlaku, karena setiap aksi yang dilindungi mengecek user di database.
+
+Cara kerja sesi:
+- Setelah login, browser menyimpan cookie `epen_session` (`HttpOnly`, `SameSite=Lax`, `Secure` di Production) yang berlaku **7 hari**.
+- Isi cookie ditandatangani HMAC-SHA256 dengan `SESSION_SECRET`, jadi tidak bisa dipalsukan. Mengganti `SESSION_SECRET` membuat semua sesi yang ada tidak berlaku.
+- Password disimpan sebagai hash scrypt (modul `crypto` bawaan Node, tanpa dependency tambahan).
+- Login yang gagal dijeda ±0,6 detik untuk memperlambat tebakan password. Pembatasan jumlah percobaan (rate limit) belum ada.
+
 ## Retensi data
 
 Data mentah dikirim tiap 5 detik, yaitu 17.280 baris per hari per device kalau alat menyala terus. Supaya database tidak penuh, data mentah yang lebih tua dari **60 hari** (`RAW_RETENTION_DAYS` di `lib/sensor.ts`) diringkas per jam ke tabel `sensor_hourly`, lalu dihapus dari `sensor_logs`.
@@ -168,6 +198,8 @@ lib/
   sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
   validation.ts         Validasi payload POST dari ESP32
   devices.ts            Perhitungan jam operasi filter
+  auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
+  password.ts           Hash dan verifikasi password (scrypt)
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
@@ -181,6 +213,7 @@ scripts/
   seed.ts               Seed user, device, dan data historis
   simulate.ts           Simulator ESP32
   retention.ts          Retensi data: ringkas per jam lalu hapus data mentah lama
+  user-add.ts           Buat akun Pengelola Lab / reset password
 docs/
   TESTING.md            Checklist uji manual fungsional dashboard
 ```
@@ -196,6 +229,7 @@ Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TEST
 | `DATABASE_URL` | ✅ | Connection string Supabase dalam *transaction mode* (port 6543, `?pgbouncer=true`). Dipakai saat aplikasi berjalan. |
 | `DIRECT_URL` | ✅ | Connection string *direct* (port 5432). Dipakai Prisma untuk `db push` atau migrasi. |
 | `API_KEY` | ✅ | Kunci rahasia yang harus dikirim ESP32 di header `x-api-key`. |
+| `SESSION_SECRET` | ✅ | Kunci penandatangan cookie login, minimal 32 karakter acak. Buat dengan `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Tanpa variabel ini, login dan aksi Pengelola gagal, tapi halaman pemantauan tetap jalan. |
 | `SMTP_HOST` | ✅* | Host SMTP, misalnya `smtp.gmail.com`. |
 | `SMTP_PORT` | | Default `587`. |
 | `SMTP_SECURE` | | `true` untuk port 465, selain itu `false`. |
@@ -396,6 +430,7 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode CSV.
   { "error": "Rentang terlalu besar: 61.240 baris (maks 50.000). Persempit rentang tanggal.", "row_count": 61240 }
   ```
 - Kolom waktu ditulis dalam **WIB (Asia/Jakarta)**.
+- **Wajib login sebagai Pengelola Lab.** Mode terbaru dan pagination tetap publik.
 
 ```csv
 recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidity_percent,dust_outlet_ugm3,air_status,fuzzy_level,fan_duty_percent,fan_rpm
@@ -408,7 +443,18 @@ recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidi
 |---|---|
 | `400` | Parameter tidak valid, misalnya `page` bukan angka, `from`/`to` bukan tanggal, atau `device_id` tidak ada di mode CSV |
 | `400` | Mode CSV: hasil lebih dari 50.000 baris (respons menyertakan `row_count`) |
+| `401` | Mode CSV tanpa login |
 | `500` | Kesalahan server atau database |
+
+---
+
+### `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+
+| Endpoint | Body | Respons |
+|---|---|---|
+| `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role } }` dan cookie `epen_session`. `401` kalau email/password salah (pesannya sama untuk keduanya), `400` kalau body tidak lengkap. |
+| `POST /api/auth/logout` | — | `200 { success: true }`, cookie dihapus. |
+| `GET /api/auth/me` | — | `200 { user: {...} }` kalau login, atau `200 { user: null }`. |
 
 ---
 
@@ -511,10 +557,12 @@ Endpoint ini dipanggil dari tombol **Filter diganti…** di panel Info Perangkat
 | Kode | Kapan terjadi |
 |---|---|
 | `400` | `id` bukan UUID, body bukan JSON valid, atau `installed_at` bukan tanggal / di masa depan |
+| `401` | Belum login atau sesi sudah berakhir |
+| `403` | Akun tidak punya role `pengelola` |
 | `404` | Device tidak ditemukan atau tidak aktif |
 | `500` | Kesalahan server atau database |
 
-> Endpoint ini tidak memakai autentikasi, sama seperti dashboard. Siapa pun yang bisa membuka dashboard bisa mencatat penggantian filter. Dampaknya terbatas pada angka jam operasi filter.
+> **Wajib login sebagai Pengelola Lab** (cookie `epen_session`). User yang mencatat disimpan di `filter_installed_by`, dan namanya muncul sebagai `filter_installed_by_name` di respons ini dan di `GET /api/devices`.
 
 ---
 

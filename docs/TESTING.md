@@ -23,6 +23,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 3. Data awal tersedia: `npm run db:seed`.
 4. Server berjalan di terminal 1: `npm run dev`.
 5. Simulator berjalan di terminal 2 sesuai skenario pada tiap uji: `npm run simulate -- --scenario=<normal|spike|offline>`.
+6. Akun Pengelola Lab untuk uji yang butuh login (E-07–E-09, G-03–G-07, M): `npm run user:add -- --email=<email> --name="<nama>"`. Simpan password yang ditampilkan.
 
 ---
 
@@ -83,7 +84,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | E-04 | Panduan penggunaan | Baca panduan. | Ada 3 poin: posisi alat di samping titik solder, inlet menghadap sumber asap, dan susunan filter HEPA → kipas → karbon aktif. | | |
 | E-05 | Status filter normal | Jalankan simulator `normal` selama ≥ 3 menit. | Kotak status berwarna netral/hijau: "Filter bekerja baik" dengan rata-rata < 25 µg/m³. | | |
 | E-06 | Peringatan filter | Jalankan simulator `spike` selama ≥ 3 menit. | Kotak berubah kuning: "Debu outlet naik — periksa filter" dengan rata-rata > 25 µg/m³. | | |
-| E-07 | Catat penggantian filter | Klik **Filter diganti…**, biarkan waktu default (sekarang), lalu klik **Simpan**. | Form tertutup dan muncul pesan hijau "Penggantian filter tercatat". Jam operasi filter kembali ke ±0 jam dan tanggal pemasangan berubah ke waktu sekarang. Nilainya tetap sama setelah halaman dimuat ulang. | | |
+| E-07 | Catat penggantian filter | Masuk sebagai Pengelola Lab. Klik **Filter diganti…**, biarkan waktu default (sekarang), lalu klik **Simpan**. | Form tertutup dan muncul pesan hijau "Penggantian filter tercatat". Jam operasi filter kembali ke ±0 jam, dan tanggal pemasangan berubah ke waktu sekarang dengan keterangan "dicatat oleh <nama>". Nilainya tetap sama setelah halaman dimuat ulang. | | |
 | E-08 | Catat penggantian mundur | Klik **Filter diganti…**, isi waktu 1 jam yang lalu, lalu klik **Simpan**. | Jam operasi filter menjadi ±1 jam (kalau simulator berjalan selama satu jam itu). | | |
 | E-09 | Validasi waktu filter | Klik **Filter diganti…**, ubah waktu ke besok (ketik manual kalau pemilih tanggal membatasi), lalu klik **Simpan**. | Muncul pesan merah "installed_at tidak boleh di masa depan", dan data tidak berubah. Tombol **Batal** menutup form tanpa menyimpan. | | |
 
@@ -102,7 +103,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 |---|---|---|---|---|---|
 | G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, suhu, RH, debu outlet, status fuzzy (badge), level, duty %, RPM. | | |
 | G-02 | Pagination | Klik halaman 2, halaman terakhir, lalu tombol ‹ dan ›. | 50 baris per halaman. Info "Menampilkan X–Y dari Z" sesuai, dan tombol nonaktif di halaman pertama dan terakhir. | | |
-| G-03 | Ekspor hari ini | Biarkan tanggal default (hari ini), lalu klik **Ekspor CSV**. | File `epen-<id>-<tanggal>-<tanggal>.csv` terunduh, dan muncul pesan "N baris diekspor". | | |
+| G-03 | Ekspor hari ini | Masuk sebagai Pengelola Lab. Biarkan tanggal default (hari ini), lalu klik **Ekspor CSV**. | File `epen-<id>-<tanggal>-<tanggal>.csv` terunduh, dan muncul pesan "N baris diekspor". | | |
 | G-04 | Isi CSV | Buka file CSV di editor teks atau spreadsheet. | Baris pertama adalah header. Kolom `recorded_at_wib` berisi waktu WIB, dan data urut dari waktu terlama. | | |
 | G-05 | Rentang terbalik | Isi "Dari" = besok dan "Sampai" = hari ini, lalu klik Ekspor. | Muncul pesan merah "Tanggal "Dari" tidak boleh setelah tanggal "Sampai"", dan tidak ada file yang terunduh. | | |
 | G-06 | Rentang tanpa data | Pilih tanggal sebelum data seed ada. | Muncul pesan "Tidak ada data pada rentang ini", dan file hanya berisi header. | | |
@@ -179,6 +180,20 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | L-10 | Banyak lokasi | Di Prisma Studio, ubah `location` salah satu device menjadi lokasi lain. | Kartu dikelompokkan per lokasi dengan judul grup dan jumlah alat. | | |
 | L-11 | Tampilan 375 px | DevTools → iPhone SE. | Kartu tersusun satu kolom tanpa scroll horizontal. | | |
 
+## M. Login Pengelola Lab
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| M-01 | Akses tanpa login | Dalam keadaan belum masuk, buka Ringkasan Lab, dashboard detail, dan halaman log. | Ketiga halaman tampil normal. Di topbar ada tombol **Masuk**. | | |
+| M-02 | Aksi terkunci | Masih tanpa login, lihat panel Info Perangkat dan bagian Ekspor CSV di halaman log. | Di Info Perangkat tertulis "Masuk untuk mencatat penggantian filter" (bukan tombol "Filter diganti…"). Di halaman log tertulis "Ekspor CSV hanya untuk Pengelola Lab", dan form ekspor tidak tampil. | | |
+| M-03 | Password salah | Klik **Masuk**, isi email benar dan password salah. | Muncul pesan merah "Email atau password salah", kolom password dikosongkan, dan pengguna tetap di halaman login. | | |
+| M-04 | Email tidak terdaftar | Isi email yang tidak terdaftar. | Pesan yang sama persis dengan M-03, tanpa memberi tahu apakah emailnya terdaftar. | | |
+| M-05 | Login berhasil | Dari halaman log, klik **Masuk**, lalu isi email dan password yang benar. | Kembali ke halaman log yang sama (device yang sama). Nama pengguna dan tombol **Keluar** tampil di topbar, dan form Ekspor CSV muncul. | | |
+| M-06 | Sesi bertahan | Pindah ke Ringkasan Lab dan dashboard detail, lalu tutup dan buka lagi browser. | Tetap dalam keadaan masuk di semua halaman. Tombol "Filter diganti…" tersedia. | | |
+| M-07 | Logout | Klik **Keluar**. | Halaman dimuat ulang dalam keadaan belum masuk, dan aksi kembali terkunci seperti M-02. | | |
+| M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=csv&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
+| M-09 | Cabut akses | Masuk dengan akun A, lalu hapus akun A di Prisma Studio, lalu coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
+
 ---
 
 ## Ringkasan hasil
@@ -197,4 +212,5 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 4 | | | |
 | L. Ringkasan Lab | 11 | | | |
-| **Total** | **77** | | | |
+| M. Login Pengelola Lab | 9 | | | |
+| **Total** | **86** | | | |

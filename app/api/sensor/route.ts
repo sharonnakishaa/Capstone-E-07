@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import type { Prisma, sensor_logs } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { requireUser } from '@/lib/auth'
 import { ALERT_COOLDOWN_MS, shouldNotify } from '@/lib/sensor'
 import { isUuid, parseSensorPayload } from '@/lib/validation'
 import { sendWarningEmail } from '@/lib/email'
@@ -62,7 +63,10 @@ export async function GET(req: NextRequest) {
   if (device_id !== null && !isUuid(device_id)) return badRequest('device_id harus UUID')
 
   try {
+    // Ekspor CSV wajib login; mode lain (dashboard, halaman log) tetap publik
     if (searchParams.get('format') === 'csv') {
+      const user = await requireUser(req, ['pengelola'])
+      if (user instanceof NextResponse) return user
       return await exportCsv(device_id, searchParams.get('from'), searchParams.get('to'))
     }
 

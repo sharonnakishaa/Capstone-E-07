@@ -65,6 +65,10 @@
   .btn:hover:not(:disabled){opacity:.9}
   .btn:disabled{opacity:.55;cursor:progress}
   .export-note{font-size:11.5px;color:var(--muted-2);flex:1;min-width:200px;align-self:center}
+  .export[hidden]{display:none}
+  .export-locked .export-note{flex:1 1 100%}
+  .export-locked a{color:var(--accent);font-weight:700;text-decoration:none}
+  .export-locked a:hover{text-decoration:underline}
   .export-msg{width:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;display:none;line-height:1.45}
   .export-msg.err{display:block;background:var(--err-bg);border:1px solid var(--err-border);color:var(--err-text)}
   .export-msg.ok{display:block;color:var(--muted)}
@@ -118,8 +122,10 @@
   }
   @media (max-width:420px){
     .brand-sub{display:none}
+    .nav-label{display:none}
   }
 </style>
+<script src="/auth.js"></script>
 </head>
 <body>
 
@@ -136,10 +142,12 @@
     <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
 
-  <a href="/index.html" class="back-btn" id="backLink">
+  <a href="/index.html" class="back-btn" id="backLink" aria-label="Kembali ke dashboard">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    Dashboard
+    <span class="nav-label">Dashboard</span>
   </a>
+
+  <div id="authWidget"></div>
 
   <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
 </header>
@@ -171,6 +179,10 @@
       <span class="export-note">Waktu dalam WIB, mencakup seluruh hari pada kedua tanggal. Maksimal 50.000 baris per ekspor.</span>
       <div class="export-msg" id="exportMsg" role="status"></div>
     </form>
+    <div class="export export-locked" id="exportLocked" hidden>
+      <div class="export-title">Ekspor CSV</div>
+      <span class="export-note">Ekspor CSV hanya untuk Pengelola Lab. <a id="exportLoginLink" href="/login.html">Masuk</a> untuk mengunduh data.</span>
+    </div>
 
     <div class="table-scroll">
       <table>
@@ -432,6 +444,14 @@ async function loadDevices() {
 
 $('fromDate').value = $('toDate').value = todayWib();
 $('exportForm').addEventListener('submit', exportCsv);
+EpenAuth.renderWidget($('authWidget'));
+// Ekspor CSV hanya untuk Pengelola Lab (server juga menolak tanpa login)
+EpenAuth.ready.then(u => {
+  if (u) return;
+  $('exportForm').hidden = true;
+  $('exportLoginLink').href = EpenAuth.loginUrl();
+  $('exportLocked').hidden = false;
+});
 loadDevices();
 </script>
 </body>

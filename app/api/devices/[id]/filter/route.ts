@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireUser } from '@/lib/auth'
 import { filterRuntimeHours } from '@/lib/devices'
 import { isUuid } from '@/lib/validation'
 
@@ -9,8 +10,12 @@ const FUTURE_TOLERANCE_MS = 60_000
 /**
  * Catat penggantian filter: set devices.filter_installed_at.
  * Body opsional: { "installed_at": "<ISO 8601>" } untuk mencatat mundur. Default: waktu sekarang.
+ * Wajib login sebagai pengelola; user yang mencatat disimpan di filter_installed_by.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await requireUser(req, ['pengelola'])
+  if (user instanceof NextResponse) return user
+
   const { id } = await params
   if (!isUuid(id)) return NextResponse.json({ error: 'id device harus UUID' }, { status: 400 })
 
@@ -39,7 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { count } = await prisma.devices.updateMany({
       where: { id, is_active: true },
-      data: { filter_installed_at: installedAt },
+      data: { filter_installed_at: installedAt, filter_installed_by: user.id },
     })
     if (count === 0) {
       return NextResponse.json({ error: 'Device tidak ditemukan atau tidak aktif', device_id: id }, { status: 404 })
@@ -50,6 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: {
         id,
         filter_installed_at: installedAt,
+        filter_installed_by_name: user.full_name,
         filter_runtime_hours: await filterRuntimeHours(id, installedAt),
       },
     })

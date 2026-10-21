@@ -245,7 +245,7 @@
     .device-pill{order:3;width:100%;margin:0;border-radius:10px}
     .device-select-wrap{flex:1}
     .device-select{max-width:none;width:100%}
-    .theme-toggle{margin-left:auto}
+    #authWidget{margin-left:auto}
     main{padding:16px 16px 40px;gap:16px}
     .card{padding:16px}
     .alert{flex-wrap:wrap;padding:16px;gap:14px}
@@ -265,10 +265,12 @@
     .ff-actions button{flex:1}
   }
   @media (max-width:420px){
+    .nav-label{display:none}
     .info-grid{grid-template-columns:1fr}
     .brand-sub{display:none}
   }
 </style>
+<script src="/auth.js"></script>
 </head>
 <body>
 
@@ -280,9 +282,9 @@
     </div>
   </div>
 
-  <a href="/lab.html" class="nav-back">
+  <a href="/lab.html" class="nav-back" aria-label="Kembali ke Ringkasan Lab">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    Ringkasan Lab
+    <span class="nav-label">Ringkasan Lab</span>
   </a>
 
   <div class="device-pill">
@@ -296,6 +298,7 @@
     <span class="device-state wait" id="connState">MEMUAT</span>
   </div>
 
+  <div id="authWidget"></div>
   <button class="theme-toggle" id="themeToggle" title="Toggle tema" aria-label="Toggle tema"></button>
 </header>
 
@@ -763,7 +766,8 @@ function renderDeviceInfo(){
   document.querySelectorAll('.js-inlet').forEach(el=>el.textContent=fmtNum(d.inlet_distance_cm,1).replace(/,0$/,''));
   if(d.filter_installed_at){
     $('infoRuntime').innerHTML=`${fmtNum(d.filter_runtime_hours,1)}<small>jam</small>`;
-    $('infoFilterSince').textContent=`Sejak dipasang ${fmtDateTime(d.filter_installed_at)}`;
+    $('infoFilterSince').textContent=`Sejak dipasang ${fmtDateTime(d.filter_installed_at)}`
+      +(d.filter_installed_by_name?` · dicatat oleh ${d.filter_installed_by_name}`:'');
   }else{
     $('infoRuntime').textContent='—';
     $('infoFilterSince').textContent='Waktu pemasangan filter belum dicatat';
@@ -798,7 +802,11 @@ async function saveFilterInstall(e){
     });
     const json=await res.json().catch(()=>null);
     if(!res.ok) throw new Error(json?.error??`Gagal menyimpan (HTTP ${res.status}).`);
-    Object.assign(d,{filter_installed_at:json.data.filter_installed_at,filter_runtime_hours:json.data.filter_runtime_hours});
+    Object.assign(d,{
+      filter_installed_at:json.data.filter_installed_at,
+      filter_installed_by_name:json.data.filter_installed_by_name,
+      filter_runtime_hours:json.data.filter_runtime_hours,
+    });
     renderDeviceInfo();
     closeFilterForm();
     const flash=$('filterFlash');
@@ -814,6 +822,15 @@ async function saveFilterInstall(e){
   }
 }
 $('filterOpenBtn').addEventListener('click',openFilterForm);
+// Pencatatan filter hanya untuk Pengelola Lab: tanpa login, tombol diganti tautan ke halaman masuk
+EpenAuth.ready.then(u=>{
+  if(u) return;
+  const link=document.createElement('a');
+  link.className='link-btn';
+  link.href=EpenAuth.loginUrl();
+  link.textContent='Masuk untuk mencatat penggantian filter';
+  $('filterOpenBtn').replaceWith(link);
+});
 $('filterCancelBtn').addEventListener('click',closeFilterForm);
 $('filterForm').addEventListener('submit',saveFilterInstall);
 
@@ -1015,6 +1032,7 @@ async function initDevices(){
 }
 
 (async function init(){
+  EpenAuth.renderWidget($('authWidget'));
   await loadConfig();
   applyConfigText();
   await initDevices();

@@ -5,29 +5,25 @@
 //   npm run db:seed                  # 1 device
 //   npm run db:seed -- --devices=4   # 4 device: Epen Meja 1 … Epen Meja 4
 
-import { randomBytes, scryptSync } from 'node:crypto'
 import { PrismaClient } from '@prisma/client'
+import { generatePassword, hashPassword } from '../lib/password'
 import { DeviceSimulator, TICK_SEC } from './lib/simulation'
 
 const HISTORY_HOURS = 3
 const BATCH_SIZE    = 1000
 const MAX_DEVICES   = 20
 
+// Password akun seed dibuat acak dan hanya dicetak saat akun pertama kali dibuat.
+// Repo ini publik dan database dipakai bersama dengan Production, jadi jangan pakai password tetap.
 const USER = {
   email:     'admin@epen.local',
   full_name: 'Admin EPEN',
-  password:  'epen123', // hanya untuk data dummy
 }
 
 const LOCATION   = 'Lab DTETI'
 const MAC_PREFIX = '24:6F:28:00:00:' // penanda device hasil seed
 
 const prisma = new PrismaClient()
-
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex')
-  return `scrypt$${salt}$${scryptSync(password, salt, 64).toString('hex')}`
-}
 
 function parseDeviceCount(): number {
   const arg = process.argv.slice(2).find(a => a.startsWith('--devices='))?.split('=')[1]
@@ -44,11 +40,14 @@ async function main() {
   const ticks   = Math.floor(HISTORY_HOURS * 3600 / TICK_SEC)
   const startMs = Date.now() - ticks * TICK_SEC * 1000
 
-  const user = await prisma.users.upsert({
-    where:  { email: USER.email },
-    update: {},
-    create: { email: USER.email, full_name: USER.full_name, password_hash: hashPassword(USER.password) },
-  })
+  let newPassword: string | null = null
+  let user = await prisma.users.findUnique({ where: { email: USER.email } })
+  if (!user) {
+    newPassword = generatePassword()
+    user = await prisma.users.create({
+      data: { email: USER.email, full_name: USER.full_name, password_hash: hashPassword(newPassword) },
+    })
+  }
 
   const macs = Array.from({ length: deviceCount }, (_, i) => MAC_PREFIX + (i + 1).toString(16).toUpperCase().padStart(2, '0'))
 
@@ -95,6 +94,9 @@ async function main() {
   }
 
   console.log(`\nUser : ${user.email}`)
+  console.log(newPassword
+    ? `       password: ${newPassword}   (hanya ditampilkan sekali — simpan sekarang)`
+    : `       password tidak diubah (reset dengan: npm run user:add -- --email=${user.email})`)
   for (const s of summary) {
     console.log(`\n${s.name} — ${LOCATION}`)
     console.log(`  device_id = ${s.id}`)

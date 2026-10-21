@@ -102,8 +102,10 @@
   }
   @media (max-width:420px){
     .brand-sub{display:none}
+    .updated-label{display:none}
   }
 </style>
+<script src="/auth.js"></script>
 </head>
 <body>
 
@@ -112,7 +114,8 @@
     <span class="brand-title">EPEN DASHBOARD</span>
     <span class="brand-sub">Ringkasan Lab</span>
   </div>
-  <span class="updated" id="updated">Memuat...</span>
+  <span class="updated"><span class="updated-label">Diperbarui </span><span id="updated">—</span></span>
+  <div id="authWidget"></div>
   <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
 </header>
 
@@ -276,7 +279,7 @@ async function loadOverview(){
     const json=await res.json();
     render(json);
     showError('');
-    $('updated').textContent=`Diperbarui ${fmtTime(json.server_time)}`;
+    $('updated').textContent=fmtTime(json.server_time);
   }catch(e){
     console.error('[overview]',e);
     showError('Server tidak dapat dihubungi. Data di bawah mungkin sudah tidak terbaru. Mencoba lagi...');
@@ -286,6 +289,7 @@ async function loadOverview(){
 }
 
 (async function init(){
+  EpenAuth.renderWidget($('authWidget'));
   await loadConfig();
   await loadOverview();
   setInterval(loadOverview,CFG.poll_interval_ms);

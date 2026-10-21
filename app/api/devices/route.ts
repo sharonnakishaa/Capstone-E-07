@@ -14,10 +14,11 @@ export async function GET() {
         is_active: true,
         inlet_distance_cm: true,
         filter_installed_at: true,
+        filter_installer: { select: { full_name: true } },
       },
     })
 
-    const data = await Promise.all(devices.map(async d => {
+    const data = await Promise.all(devices.map(async ({ filter_installer, ...d }) => {
       const [last, filter_runtime_hours] = await Promise.all([
         prisma.sensor_logs.findFirst({
           where: { device_id: d.id },
@@ -29,6 +30,7 @@ export async function GET() {
 
       return {
         ...d,
+        filter_installed_by_name: filter_installer?.full_name ?? null,
         last_seen_at: last?.recorded_at ?? null,
         filter_runtime_hours,
       }

@@ -14,10 +14,12 @@ model users {
   email         String    @unique @db.VarChar
   password_hash String    @db.VarChar
   full_name     String    @db.VarChar
+  role          String    @default("pengelola") @db.VarChar // Saat ini hanya "pengelola"; role lain bisa ditambah nanti
   last_login    DateTime? @db.Timestamp
   created_at    DateTime  @default(now()) @db.Timestamp
 
-  devices       devices[] // Relasi ke tabel devices
+  devices         devices[] @relation("DeviceRegistrar")  // Device yang didaftarkan user ini
+  filter_installs devices[] @relation("FilterInstaller")  // Penggantian filter yang dicatat user ini
 }
 
 // 2. Tabel DEVICES
@@ -32,9 +34,11 @@ model devices {
   last_alert_at       DateTime? @db.Timestamptz // Waktu email peringatan terakhir (cooldown)
   last_alert_status   String?                   // Status saat email terakhir dikirim (deteksi eskalasi)
   filter_installed_at DateTime? @db.Timestamptz // Waktu filter terakhir dipasang
+  filter_installed_by String?   @db.Uuid        // User yang mencatat penggantian filter terakhir
   inlet_distance_cm   Float     @default(5)     // Jarak inlet yang direkomendasikan dari titik solder
 
-  user                users     @relation(fields: [registered_by], references: [id], onDelete: Cascade)
+  user                users     @relation("DeviceRegistrar", fields: [registered_by], references: [id], onDelete: Cascade)
+  filter_installer    users?    @relation("FilterInstaller", fields: [filter_installed_by], references: [id], onDelete: SetNull)
   sensor_logs         sensor_logs[]
   sensor_hourly       sensor_hourly[]
 }

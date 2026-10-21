@@ -1,4 +1,4 @@
-// Status login bersama untuk semua halaman EPEN.
+// Status login bersama untuk semua halaman EPEN. Gaya tombol .auth-btn ada di /epen.css.
 // Pakai: <script src="/auth.js"></script>, lalu EpenAuth.renderWidget(el) dan EpenAuth.ready.then(user => ...).
 (function () {
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -6,9 +6,7 @@
   const style = document.createElement('style');
   style.textContent = `
     .auth-widget{display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:0}
-    .auth-name{font-size:12.5px;font-weight:600;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .auth-btn{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-    .auth-btn:hover{background:var(--border);color:var(--text)}
+    .auth-name{font-size:13px;font-weight:700;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     @media (max-width:720px){.auth-name{display:none}}
   `;
   document.head.appendChild(style);

@@ -1,0 +1,111 @@
+/* EPEN — identitas visual bersama untuk semua halaman dashboard.
+   Krem kertas + garis tinta tegas + bayangan offset tanpa blur, aksen terakota.
+   Judul: Playfair Display SC · UI: Karla · Angka: JetBrains Mono. */
+
+:root{
+  /* Tema gelap */
+  --bg:#18120E;--surface:#221A15;--surface-2:#2B211B;
+  --line:#7A6152;--border-soft:#3D3028;--shadow-c:#000000;
+  --text:#EFE2D1;--text-strong:#FFF6EA;--muted:#C2AD9A;--muted-2:#A08A79;
+  --accent:#F08452;--on-accent:#1A0F0A;--accent-soft:rgba(240,132,82,.12);
+  --series:#8EC3EE;
+  --tint-aman:#14261A;--ink-aman:#86EFAC;
+  --tint-waspada:#33240C;--ink-waspada:#FCD34D;
+  --tint-bahaya:#3A1714;--ink-bahaya:#FCA5A5;
+  --tint-off:#2B211B;--ink-off:#D6C6B6;
+
+  --err-bg:var(--tint-bahaya);--err-border:var(--ink-bahaya);--err-text:var(--ink-bahaya);
+  --sh-sm:2px 2px 0 var(--shadow-c);--sh:4px 4px 0 var(--shadow-c);--sh-lg:6px 6px 0 var(--shadow-c);
+  --display:'Playfair Display SC',Georgia,serif;
+  --sans:'Karla',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+[data-theme="light"]{
+  --bg:#FFF7EC;--surface:#FFFDF8;--surface-2:#FBEFDF;
+  --line:#2B1D16;--border-soft:#EADBC7;--shadow-c:#2B1D16;
+  --text:#3B2B22;--text-strong:#22150F;--muted:#6A5446;--muted-2:#7C6556;
+  --accent:#C8461A;--on-accent:#FFFFFF;--accent-soft:rgba(200,70,26,.08);
+  --series:#2F5D8A;
+  --tint-aman:#E7F5E9;--ink-aman:#166534;
+  --tint-waspada:#FFF0D2;--ink-waspada:#92400E;
+  --tint-bahaya:#FDE4DE;--ink-bahaya:#991B1B;
+  --tint-off:#F3EADF;--ink-off:#4A3A30;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;font-size:15px;line-height:1.45}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* TOPBAR & BRAND */
+.topbar{height:68px;display:flex;align-items:center;gap:16px;padding:0 32px;position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:2px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;color:inherit;text-decoration:none;border-radius:8px}
+.brand-mark{width:38px;height:38px;flex-shrink:0;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);border:2px solid var(--line);border-radius:9px;box-shadow:var(--sh-sm)}
+.brand-text{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.brand-title{font-family:var(--display);font-size:23px;font-weight:900;color:var(--text-strong);letter-spacing:.03em}
+.brand-sub{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+
+/* TOMBOL — garis tinta + bayangan offset yang "ditekan" saat diklik */
+.btn,.btn-primary,.btn-ghost,.nav-back,.back-btn,.auth-btn,.theme-toggle,.pg-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;
+  border:2px solid var(--line);border-radius:10px;box-shadow:var(--sh-sm);
+  font-family:var(--sans);font-size:14px;font-weight:800;letter-spacing:.01em;text-decoration:none;white-space:nowrap;cursor:pointer;
+  background:var(--surface);color:var(--text-strong);
+  transition:transform .12s ease,box-shadow .12s ease,background .15s ease;flex-shrink:0}
+.btn,.btn-primary{background:var(--accent);color:var(--on-accent)}
+:is(.btn,.btn-primary,.btn-ghost,.nav-back,.back-btn,.auth-btn,.theme-toggle,.pg-btn):hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--shadow-c)}
+:is(.btn,.btn-primary,.btn-ghost,.nav-back,.back-btn,.auth-btn,.theme-toggle,.pg-btn):active:not(:disabled){transform:translate(2px,2px);box-shadow:0 0 0 var(--shadow-c)}
+:is(.btn,.btn-primary,.btn-ghost,.pg-btn):disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.theme-toggle{width:40px;padding:0}
+.theme-toggle svg{width:18px;height:18px}
+
+/* TAG / EYEBROW */
+.tag{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:5px 11px;border:2px solid var(--line);background:var(--surface);color:var(--text-strong);font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.tag svg{color:var(--accent);flex-shrink:0}
+
+/* KARTU & JUDUL */
+.card{background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:22px;box-shadow:var(--sh);min-width:0}
+.h-title,.chart-title,.stats-title,.toolbar-title,.group-title{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text-strong);letter-spacing:.01em;line-height:1.15;margin:0}
+.chart-sub,.toolbar-sub,.stats-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* BADGE STATUS */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1.5px solid currentColor;border-radius:6px;font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.badge .dot-s{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.aman{background:var(--tint-aman);color:var(--ink-aman)}
+.badge.waspada{background:var(--tint-waspada);color:var(--ink-waspada)}
+.badge.bahaya{background:var(--tint-bahaya);color:var(--ink-bahaya)}
+.badge.off{background:var(--tint-off);color:var(--ink-off)}
+
+/* FORM */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.field input{background:var(--surface);border:2px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:13px;color:var(--text);outline:none;color-scheme:light dark;min-width:0;transition:box-shadow .12s ease}
+.field input:focus{box-shadow:3px 3px 0 var(--accent)}
+
+/* TABEL */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-strong);background:var(--surface-2);padding:12px 14px;border-bottom:2px solid var(--line);white-space:nowrap}
+thead th.num,thead th:last-child{text-align:right}
+.nocase{text-transform:none}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--accent-soft)}
+td.idx{color:var(--muted-2)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+td.dim{color:var(--muted-2)}
+td.last{text-align:right}
+td.empty-row{text-align:center;color:var(--muted);padding:32px;font-family:var(--sans)}
+
+@media (max-width:720px){
+  .topbar{padding:0 16px;gap:10px}
+  .card{padding:16px}
+}
+@media (max-width:420px){
+  .brand-sub,.nav-label{display:none}
+  .nav-back,.back-btn{padding:0 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}

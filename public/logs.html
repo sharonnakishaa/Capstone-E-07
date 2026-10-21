@@ -6,123 +6,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700;800&family=Playfair+Display+SC:wght@700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/epen.css">
 <style>
-  :root{
-    --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
-    --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
-    --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;--violet:#A78BFA;
-    --accent:#38BDF8;--accent-ink:#082F49;
-    --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
-    --topbar-bg:#0F172A;--table-head-bg:#172033;--table-row-hover:rgba(56,189,248,.025);
-    --err-bg:#3B0A0A;--err-border:#7F1D1D;--err-text:#FECACA;
-  }
-  [data-theme="light"]{
-    --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
-    --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
-    --accent:#0284C7;--accent-ink:#FFFFFF;
-    --topbar-bg:#FFFFFF;--table-head-bg:#F1F5F9;--table-row-hover:rgba(56,189,248,.04);
-    --err-bg:#FEE2E2;--err-border:#FECACA;--err-text:#991B1B;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
-  body{min-height:100vh;font-size:14px;}
+  .back-btn{margin-left:auto}
 
-  /* TOPBAR */
-  .topbar{height:64px;border-bottom:1px solid var(--border);background:var(--topbar-bg);display:flex;align-items:center;padding:0 32px;gap:16px;position:sticky;top:0;z-index:10;}
-  .brand-text{display:flex;flex-direction:column;line-height:1.15}
-  .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
-  .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
-  .back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s,color .15s;margin-left:auto;white-space:nowrap;}
-  .back-btn:hover{background:var(--border);color:var(--text)}
-  .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;flex-shrink:0;}
-  .theme-toggle:hover{background:var(--border);color:var(--text)}
-  .theme-toggle svg{width:18px;height:18px}
-
-  /* LAYOUT */
-  main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
+  main{max-width:1280px;margin:0 auto;padding:32px 24px 56px}
 
   /* TOOLBAR */
-  .toolbar{display:flex;align-items:flex-end;gap:12px 16px;margin-bottom:16px;flex-wrap:wrap;}
-  .toolbar-title{font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;}
-  .toolbar-sub{font-size:12px;color:var(--muted-2);margin-top:2px;}
-  .toolbar-info{margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono);}
+  .toolbar{display:flex;align-items:flex-end;gap:12px 16px;margin-bottom:20px;flex-wrap:wrap}
+  .toolbar-title{font-size:28px}
+  .toolbar-info{margin-left:auto;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
 
-  .device-select-wrap{position:relative;display:flex;align-items:center;min-width:0;}
-  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 32px 8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer;outline:none;max-width:260px;min-width:0;text-overflow:ellipsis;}
-  .device-select option{background:var(--surface);color:var(--text);}
-  .select-chevron{position:absolute;right:10px;pointer-events:none;color:var(--muted-2);}
+  .device-select-wrap{position:relative;display:flex;align-items:center;min-width:0}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;height:40px;background:var(--surface);border:2px solid var(--line);border-radius:10px;box-shadow:var(--sh-sm);padding:0 34px 0 12px;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--text-strong);cursor:pointer;outline:none;max-width:280px;min-width:0;text-overflow:ellipsis}
+  .device-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .device-select option{background:var(--surface);color:var(--text)}
+  .select-chevron{position:absolute;right:12px;pointer-events:none;color:var(--text-strong)}
 
   /* EKSPOR */
-  .export{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px 16px;margin-bottom:20px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;}
-  .export-title{font-size:13px;font-weight:700;color:var(--text-strong);width:100%;margin-bottom:-2px}
-  .field{display:flex;flex-direction:column;gap:4px}
-  .field label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-  .field input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:12px;color:var(--text);outline:none;color-scheme:light dark;min-width:0}
-  .field input:focus{border-color:var(--accent)}
-  .btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s}
-  .btn:hover:not(:disabled){opacity:.9}
-  .btn:disabled{opacity:.55;cursor:progress}
-  .export-note{font-size:11.5px;color:var(--muted-2);flex:1;min-width:200px;align-self:center}
+  .export{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px 18px;margin-bottom:22px;background:var(--surface-2);border:2px solid var(--line);border-radius:10px}
+  .export-title{font-family:var(--display);font-size:18px;font-weight:700;color:var(--text-strong);width:100%;margin-bottom:-2px}
+  .btn:disabled{cursor:progress}
+  .export-note{font-size:12.5px;color:var(--muted);flex:1;min-width:200px;align-self:center}
   .export[hidden]{display:none}
   .export-locked .export-note{flex:1 1 100%}
-  .export-locked a{color:var(--accent);font-weight:700;text-decoration:none}
-  .export-locked a:hover{text-decoration:underline}
-  .export-msg{width:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;display:none;line-height:1.45}
-  .export-msg.err{display:block;background:var(--err-bg);border:1px solid var(--err-border);color:var(--err-text)}
-  .export-msg.ok{display:block;color:var(--muted)}
+  .export-locked a{color:var(--accent);font-weight:800;text-decoration:none}
+  .export-locked a:hover{text-decoration:underline;text-underline-offset:3px}
+  .export-msg{width:100%;font-size:13px;padding:9px 12px;border-radius:8px;display:none;line-height:1.45}
+  .export-msg.err{display:block;background:var(--err-bg);border:2px solid var(--err-border);color:var(--err-text);font-weight:600}
+  .export-msg.ok{display:block;background:var(--tint-aman);border:2px solid var(--ink-aman);color:var(--ink-aman);font-weight:600}
 
   /* TABLE */
-  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1020px;}
-  thead th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:var(--table-head-bg);padding:11px 14px;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);white-space:nowrap;}
-  thead th:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px;border-left:1px solid var(--border-soft);}
-  thead th:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px;border-right:1px solid var(--border-soft);text-align:right;}
-  thead th.num{text-align:right;}
-  .nocase{text-transform:none}
-  tbody td{padding:13px 14px;border-bottom:1px solid var(--border-soft);color:var(--text);font-family:var(--mono);font-size:13px;white-space:nowrap;}
-  tbody tr:last-child td{border-bottom:0;}
-  tbody tr:hover td{background:var(--table-row-hover);}
-  td.idx{color:var(--muted-2);width:56px;}
-  td.num{text-align:right;font-variant-numeric:tabular-nums;}
-  td.ppm{color:var(--text-strong);font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
-  td.dim{color:var(--muted-2)}
-  td.last{text-align:right;}
-
-  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
-  .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D;}
-  .badge.waspada{background:#3B1F05;color:#FBBF24;border:1px solid #78350F;}
-  .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D;}
-  [data-theme="light"] .badge.aman{background:#DCFCE7;color:#15803D;border-color:#86EFAC;}
-  [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A;}
-  [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA;}
-  .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor;}
+  table{min-width:1020px}
+  td.idx{width:56px}
 
   /* PAGINATION */
-  .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;flex-wrap:wrap;}
-  .pg-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s;font-family:var(--sans);}
-  .pg-btn:hover:not(:disabled){background:var(--border);color:var(--text);}
-  .pg-btn:disabled{opacity:.35;cursor:not-allowed;}
-  .pg-btn.active{background:var(--sky);border-color:var(--sky);color:#082F49;}
-  .pg-sep{color:var(--muted-2);font-size:13px;padding:0 4px;}
+  .pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;flex-wrap:wrap}
+  .pg-btn{min-width:40px;padding:0 10px;font-family:var(--mono);font-size:13px}
+  .pg-btn.active{background:var(--accent);color:var(--on-accent)}
+  .pg-sep{color:var(--muted);font-size:13px;padding:0 4px}
 
   /* RESPONSIF */
   @media (max-width:720px){
-    .topbar{height:auto;flex-wrap:wrap;padding:10px 16px;gap:10px}
+    .topbar{height:auto;flex-wrap:wrap;padding:12px 16px}
     .topbar .device-select-wrap{order:3;width:100%}
     .topbar .device-select{max-width:none;width:100%}
-    main{padding:16px 16px 40px}
-    .card{padding:16px}
+    main{padding:20px 16px 40px}
+    .toolbar-title{font-size:24px}
     .toolbar-info{margin-left:0;width:100%}
     .export .field{flex:1 1 130px}
     .export .field input{width:100%}
-    .export .btn{width:100%;justify-content:center}
-    .pg-btn{min-width:32px;height:32px;padding:0 8px}
-  }
-  @media (max-width:420px){
-    .brand-sub{display:none}
-    .nav-label{display:none}
+    .export .btn{width:100%}
+    .pg-btn{min-width:36px;height:36px;padding:0 8px}
   }
 </style>
 <script src="/auth.js"></script>
@@ -130,10 +66,10 @@
 <body>
 
 <header class="topbar">
-  <div class="brand-text">
-    <span class="brand-title">EPEN DASHBOARD</span>
-    <span class="brand-sub">Log Data Sensor</span>
-  </div>
+  <a class="brand" href="/lab.html" aria-label="EPEN — Ringkasan Lab">
+    <span class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(45 12 12)"><rect x="9.5" y="0.5" width="5" height="9" rx="2"/><path d="M12 9.5v5.5"/><path d="M10.6 15h2.8L12 20.5z"/></g><path d="M2.5 21.5h6"/><path d="M3.5 12.5c-1.2-1.4 1.2-2.6 0-4M7 9c-1.2-1.4 1.2-2.6 0-4"/></svg></span>
+    <span class="brand-text"><span class="brand-title">EPEN</span><span class="brand-sub">Log Data Sensor</span></span>
+  </a>
 
   <div class="device-select-wrap">
     <select id="deviceSelect" class="device-select" aria-label="Pilih perangkat">
@@ -188,7 +124,7 @@
       <table>
         <thead>
           <tr>
-            <th style="width:56px">#</th>
+            <th style="width:56px">No.</th>
             <th>Waktu (WIB)</th>
             <th class="num">TVOC Mentah (ppb)</th>
             <th class="num">TVOC Kalman (ppb)</th>
@@ -202,7 +138,7 @@
           </tr>
         </thead>
         <tbody id="logTableBody">
-          <tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Memuat data...</td></tr>
+          <tr><td colspan="11" class="empty-row">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -265,7 +201,7 @@ function renderTable(data, page) {
           <td class="num">${fmtNum(d.fan_duty_percent)}</td>
           <td class="last">${fmtNum(d.fan_rpm)}</td>
         </tr>`).join('')
-    : '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
+    : '<tr><td colspan="11" class="empty-row">Tidak ada data</td></tr>';
 }
 
 /* RENDER PAGINATION */
@@ -304,7 +240,7 @@ async function loadPage(page) {
   currentPage = page;
 
   $('logTableBody').innerHTML =
-    '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Memuat...</td></tr>';
+    '<tr><td colspan="11" class="empty-row">Memuat...</td></tr>';
 
   try {
     const res = await fetch(`/api/sensor?device_id=${encodeURIComponent(deviceId)}&page=${page}`);
@@ -326,7 +262,7 @@ async function loadPage(page) {
   } catch (e) {
     console.error('[logs]', e);
     $('logTableBody').innerHTML =
-      '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Gagal memuat data. Coba muat ulang halaman.</td></tr>';
+      '<tr><td colspan="11" class="empty-row">Gagal memuat data. Coba muat ulang halaman.</td></tr>';
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -413,7 +349,7 @@ async function loadDevices() {
     if (!data.length) {
       sel.innerHTML = '<option>Belum ada perangkat</option>';
       $('toolbarSub').textContent = 'Belum ada perangkat terdaftar';
-      $('logTableBody').innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data</td></tr>';
+      $('logTableBody').innerHTML = '<tr><td colspan="11" class="empty-row">Tidak ada data</td></tr>';
       $('exportBtn').disabled = true;
       return;
     }

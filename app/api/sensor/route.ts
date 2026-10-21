@@ -5,17 +5,17 @@ import { requireUser } from '@/lib/auth'
 import { ALERT_COOLDOWN_MS, shouldNotify } from '@/lib/sensor'
 import { isUuid, parseSensorPayload } from '@/lib/validation'
 import { sendWarningEmail } from '@/lib/email'
+import { buildSensorLogXlsx } from '@/lib/export-xlsx'
 
 const PAGE_SIZE      = 50
 const DEFAULT_LIMIT  = 30
 const MAX_LIMIT      = 100
-const CSV_MAX_ROWS   = 50_000
-const WIB_OFFSET_MS  = 7 * 3600 * 1000
+const EXPORT_MAX_ROWS = 50_000
+const WIB_OFFSET_MS   = 7 * 3600 * 1000
+const XLSX_MIME       = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
-const CSV_COLUMNS = [
-  'tvoc_raw_ppb', 'tvoc_kalman_ppb', 'eco2_ppm', 'temperature_celsius', 'humidity_percent',
-  'dust_outlet_ugm3', 'air_status', 'fuzzy_level', 'fan_duty_percent', 'fan_rpm',
-] as const
+// Ekspor sampai 50.000 baris bisa butuh beberapa detik
+export const maxDuration = 60
 
 const mapLog = (log: sensor_logs) => ({
   id: log.id.toString(),
@@ -44,15 +44,9 @@ function parsePositiveInt(v: string): number | null {
   return /^\d+$/.test(v) && Number(v) >= 1 ? Number(v) : null
 }
 
-/** "2026-10-16 10:12:45" dalam WIB (UTC+7, tanpa DST). */
-function toWib(d: Date): string {
-  return new Date(d.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 19).replace('T', ' ')
-}
-
-function csvCell(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  const s = String(v)
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+/** "20261016" — tanggal dalam WIB (UTC+7, tanpa DST), untuk nama file. */
+function wibDateCompact(d: Date): string {
+  return new Date(d.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10).replace(/-/g, '')
 }
 
 export async function GET(req: NextRequest) {
@@ -63,11 +57,13 @@ export async function GET(req: NextRequest) {
   if (device_id !== null && !isUuid(device_id)) return badRequest('device_id harus UUID')
 
   try {
-    // Ekspor CSV wajib login; mode lain (dashboard, halaman log) tetap publik
-    if (searchParams.get('format') === 'csv') {
+    // Ekspor Excel wajib login; mode lain (dashboard, halaman log) tetap publik
+    const format = searchParams.get('format')
+    if (format !== null) {
+      if (format !== 'xlsx') return badRequest('format harus xlsx')
       const user = await requireUser(req, ['pengelola'])
       if (user instanceof NextResponse) return user
-      return await exportCsv(device_id, searchParams.get('from'), searchParams.get('to'))
+      return await exportXlsx(device_id, searchParams.get('from'), searchParams.get('to'))
     }
 
     const where = device_id ? { device_id } : undefined
@@ -113,8 +109,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-async function exportCsv(device_id: string | null, fromParam: string | null, toParam: string | null) {
-  if (!device_id) return badRequest('device_id wajib diisi untuk ekspor CSV')
+async function exportXlsx(device_id: string | null, fromParam: string | null, toParam: string | null) {
+  if (!device_id) return badRequest('device_id wajib diisi untuk ekspor Excel')
 
   const from = fromParam ? new Date(fromParam) : null
   const to   = toParam   ? new Date(toParam)   : null
@@ -127,11 +123,17 @@ async function exportCsv(device_id: string | null, fromParam: string | null, toP
     ...(from || to ? { recorded_at: { ...(from && { gte: from }), ...(to && { lte: to }) } } : {}),
   }
 
-  const row_count = await prisma.sensor_logs.count({ where })
-  if (row_count > CSV_MAX_ROWS) {
+  const [device, row_count] = await Promise.all([
+    prisma.devices.findUnique({ where: { id: device_id }, select: { device_name: true } }),
+    prisma.sensor_logs.count({ where }),
+  ])
+  if (!device) {
+    return NextResponse.json({ error: 'Device tidak ditemukan', device_id }, { status: 404 })
+  }
+  if (row_count > EXPORT_MAX_ROWS) {
     return NextResponse.json(
       {
-        error: `Rentang terlalu besar: ${row_count.toLocaleString('id-ID')} baris (maks ${CSV_MAX_ROWS.toLocaleString('id-ID')}). Persempit rentang tanggal.`,
+        error: `Rentang terlalu besar: ${row_count.toLocaleString('id-ID')} baris (maks ${EXPORT_MAX_ROWS.toLocaleString('id-ID')}). Persempit rentang tanggal.`,
         row_count,
       },
       { status: 400 }
@@ -141,21 +143,21 @@ async function exportCsv(device_id: string | null, fromParam: string | null, toP
   const logs = await prisma.sensor_logs.findMany({
     where,
     orderBy: { recorded_at: 'asc' },
-    take: CSV_MAX_ROWS,
+    take: EXPORT_MAX_ROWS,
   })
 
-  const lines = [
-    ['recorded_at_wib', ...CSV_COLUMNS].join(','),
-    ...logs.map(log => [toWib(log.recorded_at), ...CSV_COLUMNS.map(c => log[c])].map(csvCell).join(',')),
-  ]
+  const xlsx = await buildSensorLogXlsx(logs, device.device_name)
 
-  const datePart = (d: Date | null) => (d ? toWib(d).slice(0, 10).replace(/-/g, '') : 'all')
-  const filename = `epen-${device_id.slice(0, 8)}-${datePart(from)}-${datePart(to)}.csv`
+  // Contoh: epen-meja-1-20261021-20261021.xlsx
+  const slug = device.device_name.toLowerCase().replace(/^epen\s*/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const datePart = (d: Date | null) => (d ? wibDateCompact(d) : 'all')
+  const filename = `epen-${slug || device_id.slice(0, 8)}-${datePart(from)}-${datePart(to)}.xlsx`
 
-  return new NextResponse(lines.join('\r\n') + '\r\n', {
+  return new NextResponse(new Uint8Array(xlsx), {
     headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Type': XLSX_MIME,
       'Content-Disposition': `attachment; filename="${filename}"`,
+      'X-Row-Count': String(logs.length),
     },
   })
 }

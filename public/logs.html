@@ -163,7 +163,7 @@
     </div>
 
     <form class="export" id="exportForm" novalidate>
-      <div class="export-title">Ekspor CSV</div>
+      <div class="export-title">Ekspor Excel</div>
       <div class="field">
         <label for="fromDate">Dari tanggal</label>
         <input type="date" id="fromDate" required>
@@ -174,14 +174,14 @@
       </div>
       <button type="submit" class="btn" id="exportBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span id="exportLabel">Ekspor CSV</span>
+        <span id="exportLabel">Ekspor Excel (.xlsx)</span>
       </button>
       <span class="export-note">Waktu dalam WIB, mencakup seluruh hari pada kedua tanggal. Maksimal 50.000 baris per ekspor.</span>
       <div class="export-msg" id="exportMsg" role="status"></div>
     </form>
     <div class="export export-locked" id="exportLocked" hidden>
-      <div class="export-title">Ekspor CSV</div>
-      <span class="export-note">Ekspor CSV hanya untuk Pengelola Lab. <a id="exportLoginLink" href="/login.html">Masuk</a> untuk mengunduh data.</span>
+      <div class="export-title">Ekspor Excel</div>
+      <span class="export-note">Ekspor Excel hanya untuk Pengelola Lab. <a id="exportLoginLink" href="/login.html">Masuk</a> untuk mengunduh data.</span>
     </div>
 
     <div class="table-scroll">
@@ -337,14 +337,14 @@ function goPage(page) {
   loadPage(page);
 }
 
-/* EKSPOR CSV */
+/* EKSPOR EXCEL */
 function showExportMsg(text, kind) {
   const el = $('exportMsg');
   el.textContent = text;
   el.className = 'export-msg' + (kind ? ' ' + kind : '');
 }
 
-async function exportCsv(e) {
+async function exportExcel(e) {
   e.preventDefault();
   if (!currentDeviceId) return;
 
@@ -354,7 +354,7 @@ async function exportCsv(e) {
 
   // Rentang satu hari penuh dalam WIB (UTC+7)
   const params = new URLSearchParams({
-    format:    'csv',
+    format:    'xlsx',
     device_id: currentDeviceId,
     from:      `${fromDate}T00:00:00+07:00`,
     to:        `${toDate}T23:59:59.999+07:00`,
@@ -373,17 +373,17 @@ async function exportCsv(e) {
     }
 
     const blob = await res.blob();
-    const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'epen-log.csv';
+    const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'epen-log.xlsx';
     const url  = URL.createObjectURL(blob);
     const a    = Object.assign(document.createElement('a'), { href: url, download: name });
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Jangan cabut URL blob terlalu cepat: browser bisa belum selesai menulis file,
+    // dan file yang langsung dibuka dari bar unduhan jadi terpotong (Excel menolaknya).
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
 
-    // Baris pertama CSV adalah header
-    const text = await blob.text();
-    const rows = Math.max(0, text.trim().split(/\r?\n/).length - 1);
+    const rows = Number(res.headers.get('X-Row-Count') ?? 0);
     showExportMsg(rows
       ? `${rows.toLocaleString('id-ID')} baris diekspor ke ${name}.`
       : `Tidak ada data pada rentang ini. File ${name} hanya berisi header.`, 'ok');
@@ -391,7 +391,7 @@ async function exportCsv(e) {
     showExportMsg(err.message, 'err');
   } finally {
     btn.disabled = false;
-    $('exportLabel').textContent = 'Ekspor CSV';
+    $('exportLabel').textContent = 'Ekspor Excel (.xlsx)';
   }
 }
 
@@ -443,9 +443,9 @@ async function loadDevices() {
 }
 
 $('fromDate').value = $('toDate').value = todayWib();
-$('exportForm').addEventListener('submit', exportCsv);
+$('exportForm').addEventListener('submit', exportExcel);
 EpenAuth.renderWidget($('authWidget'));
-// Ekspor CSV hanya untuk Pengelola Lab (server juga menolak tanpa login)
+// Ekspor Excel hanya untuk Pengelola Lab (server juga menolak tanpa login)
 EpenAuth.ready.then(u => {
   if (u) return;
   $('exportForm').hidden = true;

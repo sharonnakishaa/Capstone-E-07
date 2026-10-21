@@ -97,14 +97,14 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | F-03 | Tautan ke log | Klik "Lihat Semua Data →". | Halaman log terbuka. | | |
 | F-04 | Ganti perangkat | Kalau ada > 1 device, ganti pilihan di dropdown topbar. | Semua kartu, grafik, statistik, info perangkat, dan tabel berganti ke data device terpilih. | | |
 
-## G. Halaman log dan ekspor CSV
+## G. Halaman log dan ekspor Excel
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, suhu, RH, debu outlet, status fuzzy (badge), level, duty %, RPM. | | |
 | G-02 | Pagination | Klik halaman 2, halaman terakhir, lalu tombol ‹ dan ›. | 50 baris per halaman. Info "Menampilkan X–Y dari Z" sesuai, dan tombol nonaktif di halaman pertama dan terakhir. | | |
-| G-03 | Ekspor hari ini | Masuk sebagai Pengelola Lab. Biarkan tanggal default (hari ini), lalu klik **Ekspor CSV**. | File `epen-<id>-<tanggal>-<tanggal>.csv` terunduh, dan muncul pesan "N baris diekspor". | | |
-| G-04 | Isi CSV | Buka file CSV di editor teks atau spreadsheet. | Baris pertama adalah header. Kolom `recorded_at_wib` berisi waktu WIB, dan data urut dari waktu terlama. | | |
+| G-03 | Ekspor hari ini | Masuk sebagai Pengelola Lab. Biarkan tanggal default (hari ini), lalu klik **Ekspor Excel (.xlsx)**. | File `epen-meja-1-<tanggal>-<tanggal>.xlsx` terunduh, dan muncul pesan "N baris diekspor". | | |
+| G-04 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. | | |
 | G-05 | Rentang terbalik | Isi "Dari" = besok dan "Sampai" = hari ini, lalu klik Ekspor. | Muncul pesan merah "Tanggal "Dari" tidak boleh setelah tanggal "Sampai"", dan tidak ada file yang terunduh. | | |
 | G-06 | Rentang tanpa data | Pilih tanggal sebelum data seed ada. | Muncul pesan "Tidak ada data pada rentang ini", dan file hanya berisi header. | | |
 | G-07 | Batas 50.000 baris | Pilih rentang yang berisi > 50.000 data (± 69 jam data terus-menerus). | Muncul pesan merah dari server "Rentang terlalu besar: … baris (maks 50.000)", dan tidak ada file yang terunduh. | | |
@@ -185,13 +185,13 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | M-01 | Akses tanpa login | Dalam keadaan belum masuk, buka Ringkasan Lab, dashboard detail, dan halaman log. | Ketiga halaman tampil normal. Di topbar ada tombol **Masuk**. | | |
-| M-02 | Aksi terkunci | Masih tanpa login, lihat panel Info Perangkat dan bagian Ekspor CSV di halaman log. | Di Info Perangkat tertulis "Masuk untuk mencatat penggantian filter" (bukan tombol "Filter diganti…"). Di halaman log tertulis "Ekspor CSV hanya untuk Pengelola Lab", dan form ekspor tidak tampil. | | |
+| M-02 | Aksi terkunci | Masih tanpa login, lihat panel Info Perangkat dan bagian Ekspor Excel di halaman log. | Di Info Perangkat tertulis "Masuk untuk mencatat penggantian filter" (bukan tombol "Filter diganti…"). Di halaman log tertulis "Ekspor Excel hanya untuk Pengelola Lab", dan form ekspor tidak tampil. | | |
 | M-03 | Password salah | Klik **Masuk**, isi email benar dan password salah. | Muncul pesan merah "Email atau password salah", kolom password dikosongkan, dan pengguna tetap di halaman login. | | |
 | M-04 | Email tidak terdaftar | Isi email yang tidak terdaftar. | Pesan yang sama persis dengan M-03, tanpa memberi tahu apakah emailnya terdaftar. | | |
-| M-05 | Login berhasil | Dari halaman log, klik **Masuk**, lalu isi email dan password yang benar. | Kembali ke halaman log yang sama (device yang sama). Nama pengguna dan tombol **Keluar** tampil di topbar, dan form Ekspor CSV muncul. | | |
+| M-05 | Login berhasil | Dari halaman log, klik **Masuk**, lalu isi email dan password yang benar. | Kembali ke halaman log yang sama (device yang sama). Nama pengguna dan tombol **Keluar** tampil di topbar, dan form Ekspor Excel muncul. | | |
 | M-06 | Sesi bertahan | Pindah ke Ringkasan Lab dan dashboard detail, lalu tutup dan buka lagi browser. | Tetap dalam keadaan masuk di semua halaman. Tombol "Filter diganti…" tersedia. | | |
 | M-07 | Logout | Klik **Keluar**. | Halaman dimuat ulang dalam keadaan belum masuk, dan aksi kembali terkunci seperti M-02. | | |
-| M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=csv&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
+| M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=xlsx&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
 | M-09 | Cabut akses | Masuk dengan akun A, lalu hapus akun A di Prisma Studio, lalu coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
 
 ---
@@ -206,7 +206,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | D. Statistik sesi | 4 | | | |
 | E. Info perangkat | 9 | | | |
 | F. Tabel log di dashboard | 4 | | | |
-| G. Halaman log dan ekspor CSV | 7 | | | |
+| G. Halaman log dan ekspor Excel | 7 | | | |
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 5 | | | |
 | J. Tampilan | 5 | | | |

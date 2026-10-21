@@ -36,11 +36,11 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 
 **Halaman log (`/logs.html`)**
 - Semua data sensor dengan pagination 50 baris per halaman.
-- Ekspor CSV berdasarkan rentang tanggal (WIB), maksimal 50.000 baris. Khusus Pengelola Lab.
+- Ekspor Excel (`.xlsx`) berdasarkan rentang tanggal (WIB), maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
-- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter** dan **ekspor CSV**. Lihat [Login dan akun](#login-dan-akun).
+- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter** dan **ekspor Excel**. Lihat [Login dan akun](#login-dan-akun).
 
 **Backend**
 - Validasi payload ESP32: tipe, rentang, dan enum. Semua field yang salah dilaporkan sekaligus.
@@ -146,7 +146,7 @@ Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjun
 |---|---|---|
 | Ringkasan Lab, dashboard detail, halaman log | ✅ | ✅ |
 | Catat penggantian filter | ❌ | ✅ |
-| Ekspor CSV | ❌ | ✅ |
+| Ekspor Excel | ❌ | ✅ |
 
 Belum ada halaman pendaftaran atau manajemen akun. Akun dibuat lewat script:
 
@@ -178,7 +178,7 @@ npm run db:retention -- --days=0      # khusus pengujian: ringkas semua jam yang
 - Script **aman dijalankan berulang kali**. Kalau jam yang sama sudah pernah diringkas, hasilnya digabung, bukan diduplikasi.
 - Isi setiap baris ringkasan: jumlah sampel, sampel saat kipas menyala, rata-rata dan maksimum TVOC (Kalman, atau mentah kalau Kalman kosong), maksimum TVOC mentah, rata-rata dan maksimum debu outlet, rata-rata suhu dan RH, serta jumlah sampel per status.
 - `filter_runtime_hours` menjumlahkan sampel kipas menyala dari log mentah **dan** dari ringkasan per jam, jadi jam operasi filter tetap benar setelah data mentah dihapus.
-- Ekspor CSV dan halaman log hanya membaca data mentah. Ekspor CSV setiap sesi uji penting segera setelah selesai.
+- Ekspor Excel dan halaman log hanya membaca data mentah. Ekspor setiap sesi uji penting segera setelah selesai.
 
 Belum ada penjadwalan otomatis. Untuk sementara, jalankan script ini manual (misalnya seminggu sekali). Setelah lokasi deploy ditentukan, script bisa dijadwalkan lewat cron di server, Vercel Cron, atau `pg_cron` di Supabase.
 
@@ -192,7 +192,7 @@ app/
     devices/route.ts    GET /api/devices — daftar device + info filter
     devices/[id]/filter/route.ts
                         POST — catat penggantian filter
-    sensor/route.ts     GET/POST /api/sensor — data sensor, CSV, alert email
+    sensor/route.ts     GET/POST /api/sensor — data sensor, ekspor Excel, alert email
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
@@ -207,7 +207,7 @@ prisma/
 public/
   lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
   index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)
-  logs.html             Halaman log + ekspor CSV
+  logs.html             Halaman log + ekspor Excel
 scripts/
   lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
   seed.ts               Seed user, device, dan data historis
@@ -246,7 +246,7 @@ Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TEST
 
 > **Status:** kontrak ini adalah **draf** dan masih harus dikonfirmasi ke tim firmware. Kontrak ini menjadi acuan implementasi backend.
 
-Semua body dan respons memakai JSON (`Content-Type: application/json`), kecuali ekspor CSV. Waktu dalam respons JSON memakai ISO 8601 UTC, misalnya `2026-10-16T03:12:45.000Z`. Waktu pembacaan (`recorded_at`) diisi oleh **server** saat data diterima, jadi ESP32 tidak perlu mengirim timestamp.
+Semua body dan respons memakai JSON (`Content-Type: application/json`), kecuali ekspor Excel. Waktu dalam respons JSON memakai ISO 8601 UTC, misalnya `2026-10-16T03:12:45.000Z`. Waktu pembacaan (`recorded_at`) diisi oleh **server** saat data diterima, jadi ESP32 tidak perlu mengirim timestamp.
 
 ### `POST /api/sensor` — kirim data dari ESP32
 
@@ -369,9 +369,9 @@ Endpoint ini punya tiga mode, ditentukan oleh query parameter.
 |---|---|---|
 | `device_id`, `limit` (default 30, maks 100) | Terbaru | Dashboard |
 | `device_id`, `page` (≥ 1, 50 baris per halaman) | Pagination | Halaman log |
-| `format=csv`, `device_id`, `from`, `to` | Ekspor CSV | Tombol Ekspor CSV |
+| `format=xlsx`, `device_id`, `from`, `to` | Ekspor Excel | Tombol Ekspor Excel |
 
-Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode CSV.
+Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
 
 **Objek log**
 
@@ -416,34 +416,48 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode CSV.
 }
 ```
 
-**Mode CSV — `200 OK`**
+**Mode ekspor Excel — `200 OK`**
 
-`GET /api/sensor?format=csv&device_id=<uuid>&from=2026-10-16T00:00:00%2B07:00&to=2026-10-16T23:59:59%2B07:00`
+`GET /api/sensor?format=xlsx&device_id=<uuid>&from=2026-10-16T00:00:00%2B07:00&to=2026-10-16T23:59:59%2B07:00`
 
-- `from` dan `to` berupa ISO 8601. `device_id` wajib.
+- `from` dan `to` berupa ISO 8601. `device_id` wajib. `format` selain `xlsx` ditolak dengan `400`.
 - Header respons:
-  - `Content-Type: text/csv; charset=utf-8`
-  - `Content-Disposition: attachment; filename="epen-<device>-<from>-<to>.csv"`
-- Baris diurutkan dari waktu terlama ke terbaru.
+  - `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - `Content-Disposition: attachment; filename="epen-<nama-alat>-<YYYYMMDD>-<YYYYMMDD>.xlsx"`, misalnya `epen-meja-1-20261021-20261021.xlsx`
+  - `X-Row-Count: <jumlah baris data>`
+- Satu sheet bernama sesuai nama alat. Baris diurutkan dari waktu terlama ke terbaru.
+- Format tampilan: baris judul tebal dengan teks putih di latar biru tua (`#1F3864`), baris judul dibekukan (*freeze*), dan border tipis hanya di area tabel (baris judul dan baris data). Di luar tabel tidak ada border.
+- Waktu disimpan sebagai **tanggal Excel asli** dalam **WIB**, dan angka sebagai **angka asli** (bukan teks), jadi data bisa langsung diurutkan, difilter, dan dihitung. Excel menampilkan pemisah desimal sesuai pengaturan bahasa komputer.
 - Maksimal **50.000 baris** (dengan interval 5 detik, setara ±69 jam data). Kalau rentang yang diminta berisi lebih dari itu, server **tidak memotong data**. Server menolak request dengan `400` supaya pengguna mempersempit rentang tanggalnya:
   ```json
   { "error": "Rentang terlalu besar: 61.240 baris (maks 50.000). Persempit rentang tanggal.", "row_count": 61240 }
   ```
-- Kolom waktu ditulis dalam **WIB (Asia/Jakarta)**.
 - **Wajib login sebagai Pengelola Lab.** Mode terbaru dan pagination tetap publik.
 
-```csv
-recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidity_percent,dust_outlet_ugm3,air_status,fuzzy_level,fan_duty_percent,fan_rpm
-2026-10-16 10:12:45,412,286,640,27.4,63.1,18.5,WASPADA,MED,85,2810
-```
+| Kolom | Isi | Format |
+|---|---|---|
+| Waktu (WIB) | `recorded_at` + 7 jam | `yyyy-mm-dd hh:mm:ss` |
+| TVOC Mentah (ppb) | `tvoc_raw_ppb` | `0` |
+| TVOC Kalman (ppb) | `tvoc_kalman_ppb` | `0.0` |
+| eCO₂ (ppm) | `eco2_ppm` | `0` |
+| Suhu (°C) | `temperature_celsius` | `0.0` |
+| RH (%) | `humidity_percent` | `0.0` |
+| Debu Outlet (µg/m³) | `dust_outlet_ugm3` | `0.0` |
+| Status Fuzzy | `air_status` | teks |
+| Level | `fuzzy_level` | teks |
+| Duty (%) | `fan_duty_percent` | `0` |
+| RPM | `fan_rpm` | `0` |
+
+Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu tetap berborder supaya garis tabel tidak bolong.
 
 **Error**
 
 | Kode | Kapan terjadi |
 |---|---|
-| `400` | Parameter tidak valid, misalnya `page` bukan angka, `from`/`to` bukan tanggal, atau `device_id` tidak ada di mode CSV |
-| `400` | Mode CSV: hasil lebih dari 50.000 baris (respons menyertakan `row_count`) |
-| `401` | Mode CSV tanpa login |
+| `400` | Parameter tidak valid, misalnya `page` bukan angka, `from`/`to` bukan tanggal, atau `device_id` tidak ada di mode ekspor |
+| `400` | Mode ekspor: hasil lebih dari 50.000 baris (respons menyertakan `row_count`) |
+| `401` | Mode ekspor tanpa login |
+| `404` | Mode ekspor: `device_id` tidak terdaftar |
 | `500` | Kesalahan server atau database |
 
 ---

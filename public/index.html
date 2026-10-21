@@ -229,6 +229,8 @@
   [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
   [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
   .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .nav-back{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,color .15s;flex-shrink:0}
+  .nav-back:hover{background:var(--border);color:var(--text)}
   .link-all{color:var(--sky);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:-.01em;white-space:nowrap}
   [data-theme="light"] .link-all{color:#0284C7}
 
@@ -274,9 +276,14 @@
   <div class="brand">
     <div class="brand-text">
       <span class="brand-title">EPEN DASHBOARD</span>
-      <span class="brand-sub">Fume Extractor · Lab DTETI</span>
+      <span class="brand-sub">Detail Perangkat</span>
     </div>
   </div>
+
+  <a href="/lab.html" class="nav-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Ringkasan Lab
+  </a>
 
   <div class="device-pill">
     <span class="dot off" id="connDot"></span>
@@ -503,7 +510,7 @@
         <div class="chart-title">Log Data Terakhir</div>
         <div class="chart-sub">5 record terbaru dari sensor</div>
       </div>
-      <a href="/logs.html" class="link-all">Lihat Semua Data →</a>
+      <a href="/logs.html" class="link-all" id="logsLink">Lihat Semua Data →</a>
     </div>
     <div class="table-scroll">
       <table>
@@ -963,6 +970,13 @@ async function loadDevices(){
   devices=(await res.json()).data;
 }
 
+/** Simpan device terpilih di URL supaya bisa dibagikan, dan bawa ke halaman log. */
+function syncDeviceUrl(){
+  const q=`?device=${encodeURIComponent(currentDeviceId)}`;
+  history.replaceState(null,'',location.pathname+q);
+  $('logsLink').href='/logs.html'+q;
+}
+
 async function initDevices(){
   const sel=$('deviceSelect');
   for(;;){
@@ -981,9 +995,14 @@ async function initDevices(){
     return;
   }
   sel.innerHTML=devices.map(d=>`<option value="${esc(d.id)}">${esc(d.device_name)} — ${esc(d.location)}</option>`).join('');
-  currentDeviceId=devices[0].id;
+  // Device bisa dipilih lewat URL (?device=<id>), misalnya dari kartu di Ringkasan Lab
+  const fromUrl=new URLSearchParams(location.search).get('device');
+  currentDeviceId=devices.some(d=>d.id===fromUrl)?fromUrl:devices[0].id;
+  sel.value=currentDeviceId;
+  syncDeviceUrl();
   sel.addEventListener('change',()=>{
     currentDeviceId=sel.value;
+    syncDeviceUrl();
     hideHover();
     closeFilterForm();
     $('filterFlash').hidden=true;

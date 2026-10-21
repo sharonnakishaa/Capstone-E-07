@@ -1,8 +1,11 @@
-// Simulator ESP32: mengirim POST /api/sensor setiap 5 detik.
+// Simulator ESP32: mengirim POST /api/sensor setiap 5 detik, untuk satu atau beberapa device.
 //
 //   npm run simulate                                   # skenario normal, device aktif pertama
 //   npm run simulate -- --scenario=spike
 //   npm run simulate -- --scenario=offline --device=<uuid> --url=http://localhost:3000
+//   npm run simulate -- --all                          # semua device aktif, masing-masing ESP32 virtual
+//   npm run simulate -- --all --scenario=normal,spike  # skenario dibagi bergiliran ke tiap device
+//   npm run simulate -- --device=<uuid1>,<uuid2>
 //
 // Skenario:
 //   normal  — siklus menyolder biasa, puncak sesekali masuk WASPADA/BERBAHAYA
@@ -16,6 +19,11 @@ import { DeviceSimulator, Scenario, TICK_SEC } from './lib/simulation'
 const OFFLINE_CYCLE = { onlineSec: 60, offlineSec: 30 }
 const SCENARIOS: Scenario[] = ['normal', 'spike', 'offline']
 
+interface Target {
+  id: string
+  label: string
+}
+
 function parseArgs(): Record<string, string> {
   return Object.fromEntries(
     process.argv.slice(2)
@@ -27,15 +35,23 @@ function parseArgs(): Record<string, string> {
   )
 }
 
-async function resolveDeviceId(fromArg?: string): Promise<string> {
-  if (fromArg) return fromArg
+async function resolveTargets(args: Record<string, string>): Promise<Target[]> {
+  const ids = args.device ? args.device.split(',').map(s => s.trim()).filter(Boolean) : []
+  const all = 'all' in args
 
+  // Nama device diambil dari database supaya log mudah dibaca; kalau gagal, pakai potongan UUID.
   const prisma = new PrismaClient()
   try {
-    const device = await prisma.devices.findFirst({ where: { is_active: true }, orderBy: { created_at: 'asc' } })
-    if (!device) throw new Error('Tidak ada device aktif. Jalankan `npm run db:seed` dulu atau pakai --device=<uuid>.')
-    console.log(`--device tidak diisi, memakai device aktif pertama: ${device.device_name}`)
-    return device.id
+    if (ids.length) {
+      const found = await prisma.devices.findMany({ where: { id: { in: ids } }, select: { id: true, device_name: true } })
+        .catch(() => [] as { id: string; device_name: string }[])
+      return ids.map(id => ({ id, label: found.find(d => d.id === id)?.device_name ?? id.slice(0, 8) }))
+    }
+
+    const devices = await prisma.devices.findMany({ where: { is_active: true }, orderBy: { created_at: 'asc' } })
+    if (!devices.length) throw new Error('Tidak ada device aktif. Jalankan `npm run db:seed` dulu atau pakai --device=<uuid>.')
+    if (!all) console.log(`--device tidak diisi, memakai device aktif pertama: ${devices[0].device_name}`)
+    return (all ? devices : devices.slice(0, 1)).map(d => ({ id: d.id, label: d.device_name }))
   } finally {
     await prisma.$disconnect()
   }
@@ -44,65 +60,75 @@ async function resolveDeviceId(fromArg?: string): Promise<string> {
 const fmtTime = (d: Date) => d.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false })
 
 async function main() {
-  const args     = parseArgs()
-  const scenario = (args.scenario || 'normal') as Scenario
-  const baseUrl  = (args.url || 'http://localhost:3000').replace(/\/$/, '')
-  const apiKey   = process.env.API_KEY
+  const args      = parseArgs()
+  const scenarios = (args.scenario || 'normal').split(',').map(s => s.trim()) as Scenario[]
+  const baseUrl   = (args.url || 'http://localhost:3000').replace(/\/$/, '')
+  const apiKey    = process.env.API_KEY
 
-  if (!SCENARIOS.includes(scenario)) {
-    throw new Error(`Skenario tidak dikenal: "${scenario}". Pilihan: ${SCENARIOS.join(', ')}`)
+  const unknown = scenarios.filter(s => !SCENARIOS.includes(s))
+  if (unknown.length) {
+    throw new Error(`Skenario tidak dikenal: "${unknown.join(', ')}". Pilihan: ${SCENARIOS.join(', ')}`)
   }
   if (!apiKey) throw new Error('API_KEY belum diisi di .env')
 
-  const deviceId = await resolveDeviceId(args.device)
+  const targets  = await resolveTargets(args)
   const endpoint = `${baseUrl}/api/sensor`
-  const sim      = new DeviceSimulator(scenario)
+  const multi    = targets.length > 1
+  const labelW   = Math.max(...targets.map(t => t.label.length))
 
-  console.log(`Simulator ESP32 — skenario "${scenario}" → ${endpoint}`)
-  console.log(`device_id ${deviceId}  (Ctrl+C untuk berhenti)\n`)
+  console.log(`Simulator ESP32 → ${endpoint}  (Ctrl+C untuk berhenti)`)
+  targets.forEach((t, i) => console.log(`  ${t.label.padEnd(labelW)}  ${t.id}  skenario "${scenarios[i % scenarios.length]}"`))
+  console.log('')
 
   const cycleSec = OFFLINE_CYCLE.onlineSec + OFFLINE_CYCLE.offlineSec
-  const startMs  = Date.now()
-  let tick = 0
 
-  const loop = async () => {
-    const now = new Date()
-    const r   = sim.step(now)
-    const silent = scenario === 'offline' && (tick * TICK_SEC) % cycleSec >= OFFLINE_CYCLE.onlineSec
+  targets.forEach((target, i) => {
+    const scenario = scenarios[i % scenarios.length]
+    const sim      = new DeviceSimulator(scenario)
+    const prefix   = multi ? `[${target.label.padEnd(labelW)}]  ` : ''
+    // Waktu mulai digeser antar device supaya request tidak datang bersamaan.
+    const startMs  = Date.now() + Math.round(i * TICK_SEC * 1000 / targets.length)
+    let tick = 0
 
-    const line = [
-      fmtTime(now),
-      `raw ${String(r.tvoc_raw_ppb).padStart(4)}`,
-      `kalman ${r.tvoc_kalman_ppb.toFixed(1).padStart(6)}`,
-      r.air_status.padEnd(9),
-      r.fuzzy_level.padEnd(4),
-      `${String(r.fan_duty_percent).padStart(3)}%`,
-      `${String(r.fan_rpm).padStart(4)} rpm`,
-      `debu ${r.dust_outlet_ugm3.toFixed(1).padStart(5)}`,
-    ].join('  ')
+    const loop = async () => {
+      const now = new Date()
+      const r   = sim.step(now)
+      const silent = scenario === 'offline' && (tick * TICK_SEC) % cycleSec >= OFFLINE_CYCLE.onlineSec
 
-    if (silent) {
-      console.log(`${line}  ⏸ offline (tidak mengirim)`)
-    } else {
-      try {
-        const res = await fetch(endpoint, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-          body:    JSON.stringify({ device_id: deviceId, ...r }),
-        })
-        const suffix = res.ok ? '' : `  ${await res.text()}`
-        console.log(`${line}  → ${res.status}${suffix}`)
-      } catch (err) {
-        console.log(`${line}  ✗ gagal terhubung (${(err as Error).message})`)
+      const line = prefix + [
+        fmtTime(now),
+        `raw ${String(r.tvoc_raw_ppb).padStart(4)}`,
+        `kalman ${r.tvoc_kalman_ppb.toFixed(1).padStart(6)}`,
+        r.air_status.padEnd(9),
+        r.fuzzy_level.padEnd(4),
+        `${String(r.fan_duty_percent).padStart(3)}%`,
+        `${String(r.fan_rpm).padStart(4)} rpm`,
+        `debu ${r.dust_outlet_ugm3.toFixed(1).padStart(5)}`,
+      ].join('  ')
+
+      if (silent) {
+        console.log(`${line}  ⏸ offline (tidak mengirim)`)
+      } else {
+        try {
+          const res = await fetch(endpoint, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+            body:    JSON.stringify({ device_id: target.id, ...r }),
+          })
+          const suffix = res.ok ? '' : `  ${await res.text()}`
+          console.log(`${line}  → ${res.status}${suffix}`)
+        } catch (err) {
+          console.log(`${line}  ✗ gagal terhubung (${(err as Error).message})`)
+        }
       }
+
+      tick++
+      // Jadwal dikoreksi terhadap waktu mulai supaya interval tidak bergeser.
+      setTimeout(loop, Math.max(0, startMs + tick * TICK_SEC * 1000 - Date.now()))
     }
 
-    tick++
-    // Jadwal dikoreksi terhadap waktu mulai supaya interval tidak bergeser.
-    setTimeout(loop, Math.max(0, startMs + tick * TICK_SEC * 1000 - Date.now()))
-  }
-
-  await loop()
+    setTimeout(loop, Math.max(0, startMs - Date.now()))
+  })
 }
 
 main().catch(err => {

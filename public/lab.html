@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>EPEN — Ringkasan Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F172A;--surface:#1E293B;--surface-2:#172033;--border:#334155;--border-soft:#243044;
+    --text:#F1F5F9;--text-strong:#FFFFFF;--muted:#94A3B8;--muted-2:#64748B;
+    --sky:#38BDF8;--emerald:#22C55E;--amber:#F59E0B;--red:#EF4444;
+    --series:#38BDF8;
+    --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --topbar-bg:#0F172A;
+    --err-bg:#3B0A0A;--err-border:#7F1D1D;--err-text:#FECACA;
+  }
+  [data-theme="light"]{
+    --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;--border:#E2E8F0;--border-soft:#E2E8F0;
+    --text:#1E293B;--text-strong:#0F172A;--muted:#475569;--muted-2:#64748B;
+    --series:#0284C7;
+    --topbar-bg:#FFFFFF;
+    --err-bg:#FEE2E2;--err-border:#FECACA;--err-text:#991B1B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  body{min-height:100vh;font-size:14px;line-height:1.4;}
+
+  /* TOPBAR */
+  .topbar{height:64px;border-bottom:1px solid var(--border);background:var(--topbar-bg);display:flex;align-items:center;padding:0 32px;gap:16px;position:sticky;top:0;z-index:10;}
+  .brand-text{display:flex;flex-direction:column;line-height:1.15}
+  .brand-title{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em}
+  .brand-sub{font-size:11.5px;color:var(--muted-2);font-weight:500}
+  .updated{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted-2);white-space:nowrap}
+  .theme-toggle{width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;flex-shrink:0;}
+  .theme-toggle:hover{background:var(--border);color:var(--text)}
+  .theme-toggle svg{width:18px;height:18px}
+
+  main{max-width:1280px;margin:0 auto;padding:24px 24px 48px;display:flex;flex-direction:column;gap:24px}
+
+  /* RINGKASAN */
+  .summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap}
+  .sum-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .sum-label{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .sum-title{font-size:22px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;line-height:1.25}
+  .sum-pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .sum-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--border-soft);background:var(--surface-2);font-size:12px;font-weight:600;color:var(--muted)}
+  .sum-pill b{font-family:var(--mono);font-size:15px;color:var(--text-strong)}
+  .sum-pill i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .sum-pill.zero{opacity:.5}
+
+  .error{display:none;padding:12px 16px;border-radius:10px;background:var(--err-bg);border:1px solid var(--err-border);color:var(--err-text);font-size:13px}
+  .error.show{display:block}
+
+  /* GRUP & GRID */
+  .group-title{font-size:16px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;margin:0 0 12px}
+  .group-title small{font-size:12px;font-weight:500;color:var(--muted-2);margin-left:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+
+  /* KARTU DEVICE */
+  .dev-card{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--muted-2);border-radius:12px;padding:16px 18px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s;min-width:0}
+  .dev-card:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(15,23,42,.12)}
+  .dev-card:focus-visible{outline:2px solid var(--series);outline-offset:2px}
+  .dc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .dc-name{font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;overflow-wrap:anywhere}
+  .dc-loc{font-size:11.5px;color:var(--muted-2)}
+  .dc-value{display:flex;align-items:baseline;gap:6px}
+  .dc-value .num{font-family:var(--mono);font-size:36px;font-weight:700;color:var(--text-strong);letter-spacing:-.02em;line-height:1}
+  .dc-value .unit{font-size:12.5px;color:var(--muted);font-weight:500}
+  .dc-raw{font-family:var(--mono);font-size:11.5px;color:var(--muted-2);margin-top:-6px}
+  .dc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 0;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft)}
+  .dc-stats .k{display:block;font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .dc-stats .v{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap}
+  .dc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted-2)}
+  .chip-warn{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+  :root:not([data-theme="light"]) .chip-warn{background:#3B1F05;color:#FBBF24;border-color:#78350F}
+  .dev-card.offline .dc-value,.dev-card.offline .dc-raw,.dev-card.offline .dc-stats{opacity:.5}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+  .badge.aman{background:#052E16;color:#4ADE80;border:1px solid #14532D}
+  .badge.waspada{background:#3B1F05;color:#FBBF24;border:1px solid #78350F}
+  .badge.bahaya{background:#3B0A0A;color:#F87171;border:1px solid #7F1D1D}
+  .badge.off{background:#1E293B;color:#CBD5E1;border:1px solid #475569}
+  [data-theme="light"] .badge.aman{background:#DCFCE7;color:#15803D;border-color:#86EFAC}
+  [data-theme="light"] .badge.waspada{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+  [data-theme="light"] .badge.bahaya{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
+  [data-theme="light"] .badge.off{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+  .badge .dot-s{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+  .empty{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted)}
+
+  @media (max-width:720px){
+    .topbar{padding:0 16px;gap:10px}
+    .updated{font-size:10.5px}
+    main{padding:16px 16px 40px;gap:16px}
+    .summary{padding:16px}
+    .sum-title{font-size:18px}
+    .sum-pills{margin-left:0}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (max-width:420px){
+    .brand-sub{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-text">
+    <span class="brand-title">EPEN DASHBOARD</span>
+    <span class="brand-sub">Ringkasan Lab</span>
+  </div>
+  <span class="updated" id="updated">Memuat...</span>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
+</header>
+
+<main>
+  <section class="summary" aria-live="polite">
+    <div class="sum-text">
+      <span class="sum-label">Kondisi Seluruh Alat</span>
+      <span class="sum-title" id="sumTitle">Memuat data...</span>
+    </div>
+    <div class="sum-pills" id="sumPills"></div>
+  </section>
+
+  <div class="error" id="errorBox" role="alert"></div>
+
+  <div id="groups"></div>
+</main>
+
+<script>
+/* THEME */
+(function(){
+  const root=document.documentElement,btn=document.getElementById('themeToggle');
+  const MOON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
+  const SUN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  function apply(t){
+    root.dataset.theme=t;btn.innerHTML=t==='light'?MOON:SUN;
+    try{localStorage.setItem('epen-theme',t)}catch(e){}
+    if(window.CFG&&window._last) render(window._last);
+  }
+  btn.addEventListener('click',()=>apply(root.dataset.theme==='light'?'dark':'light'));
+  const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
+  apply(saved==='dark'?'dark':'light');
+})();
+
+/* HELPERS */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const isLight=()=>document.documentElement.dataset.theme==='light';
+function fmtNum(v,d=0){return v==null?'—':Number(v).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('id-ID',{timeZone:'Asia/Jakarta',hour12:false});}
+function fmtAge(ms){
+  const s=Math.max(0,Math.round(ms/1000));
+  if(s<60) return `${s} detik lalu`;
+  if(s<3600) return `${Math.floor(s/60)} menit lalu`;
+  if(s<86400) return `${Math.floor(s/3600)} jam lalu`;
+  return `${Math.floor(s/86400)} hari lalu`;
+}
+const OFFLINE_COLOR=()=>isLight()?'#64748B':'#94A3B8';
+const statusColor=k=>k==='OFFLINE'?OFFLINE_COLOR():(isLight()?CFG.statuses[k].text_light:CFG.statuses[k].color);
+const BADGE={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya',OFFLINE:'off'};
+// Urutan tampil: yang paling perlu ditangani di atas. OFFLINE di atas AMAN karena alat tidak terpantau.
+const SEVERITY={BERBAHAYA:3,WASPADA:2,OFFLINE:1,AMAN:0};
+
+/* CONFIG */
+window.CFG=null;
+async function loadConfig(){
+  for(;;){
+    try{
+      const res=await fetch('/api/config');
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      window.CFG=await res.json();
+      return;
+    }catch(e){
+      showError('Gagal memuat konfigurasi. Mencoba lagi...');
+      await sleep(5000);
+    }
+  }
+}
+function showError(msg){const el=$('errorBox');el.textContent=msg;el.classList.toggle('show',!!msg);}
+
+/* RENDER */
+function deviceState(d,serverTime){
+  const l=d.latest;
+  if(!l) return {status:'OFFLINE',ageMs:null};
+  const ageMs=new Date(serverTime)-new Date(l.recorded_at);
+  const status=ageMs>CFG.offline_after_ms?'OFFLINE':(l.air_status in CFG.statuses?l.air_status:'AMAN');
+  return {status,ageMs};
+}
+
+function cardHtml(d,st){
+  const l=d.latest, off=st.status==='OFFLINE';
+  const tvoc=l?(l.tvoc_kalman_ppb??l.tvoc_raw_ppb):null;
+  const lvl=l&&l.fuzzy_level?l.fuzzy_level:null;
+  const dustWarn=d.dust_samples>0&&d.dust_outlet_avg_ugm3>CFG.outlet_dust.warn_ugm3;
+  const foot=!l
+    ?'Belum ada data dari perangkat'
+    :off?`Data terakhir ${fmtAge(st.ageMs)}`:`Diperbarui ${fmtAge(st.ageMs)}`;
+  return `
+    <a class="dev-card${off?' offline':''}" href="/index.html?device=${encodeURIComponent(d.id)}" style="border-left-color:${statusColor(st.status)}"
+       aria-label="${esc(d.device_name)}: ${st.status}">
+      <div class="dc-head">
+        <div>
+          <div class="dc-name">${esc(d.device_name)}</div>
+          <div class="dc-loc">${esc(d.location)}</div>
+        </div>
+        <span class="badge ${BADGE[st.status]}"><span class="dot-s"></span>${st.status}</span>
+      </div>
+      <div class="dc-value"><span class="num">${tvoc==null?'—':fmtNum(Math.round(tvoc))}</span><span class="unit">ppb TVOC</span></div>
+      <div class="dc-raw">${l&&l.tvoc_kalman_ppb!=null?`Mentah ${fmtNum(l.tvoc_raw_ppb)} ppb`:'&nbsp;'}</div>
+      <div class="dc-stats">
+        <div><span class="k">Kipas</span><span class="v">${l?`${lvl?esc(lvl)+' · ':''}${fmtNum(l.fan_duty_percent)}%`:'—'}</span></div>
+        <div><span class="k">RPM</span><span class="v">${l?fmtNum(l.fan_rpm):'—'}</span></div>
+        <div><span class="k">Debu</span><span class="v">${l?fmtNum(l.dust_outlet_ugm3,1):'—'}</span></div>
+      </div>
+      <div class="dc-foot">
+        <span>${foot}</span>
+        ${dustWarn?`<span class="chip-warn" title="Rata-rata debu outlet ${fmtNum(d.dust_outlet_avg_ugm3,1)} µg/m³ melebihi batas ${fmtNum(CFG.outlet_dust.warn_ugm3)} µg/m³">⚠ Periksa filter</span>`:''}
+      </div>
+    </a>`;
+}
+
+function render({data,server_time}){
+  window._last={data,server_time};
+  const items=data.map(d=>({d,st:deviceState(d,server_time)}));
+  const counts={BERBAHAYA:0,WASPADA:0,AMAN:0,OFFLINE:0};
+  items.forEach(it=>counts[it.st.status]++);
+
+  // Ringkasan atas
+  const n=items.length;
+  let title;
+  if(!n) title='Belum ada perangkat terdaftar';
+  else if(counts.BERBAHAYA) title=`${counts.BERBAHAYA} dari ${n} alat BERBAHAYA`;
+  else if(counts.WASPADA) title=`${counts.WASPADA} dari ${n} alat WASPADA`;
+  else if(counts.OFFLINE===n) title=`Semua alat (${n}) OFFLINE`;
+  else if(counts.OFFLINE) title=`${counts.AMAN} alat AMAN, ${counts.OFFLINE} OFFLINE`;
+  else title=`Semua alat (${n}) AMAN`;
+  $('sumTitle').textContent=title;
+  $('sumTitle').style.color=counts.BERBAHAYA?statusColor('BERBAHAYA'):counts.WASPADA?statusColor('WASPADA'):'';
+  $('sumPills').innerHTML=['BERBAHAYA','WASPADA','AMAN','OFFLINE'].map(k=>`
+    <span class="sum-pill${counts[k]?'':' zero'}"><i style="background:${statusColor(k)}"></i>${k}<b>${counts[k]}</b></span>`).join('');
+  document.title=(counts.BERBAHAYA?`(${counts.BERBAHAYA} BERBAHAYA) `:counts.WASPADA?`(${counts.WASPADA} WASPADA) `:'')+'EPEN — Ringkasan Lab';
+
+  // Kartu, dikelompokkan per lokasi
+  if(!n){
+    $('groups').innerHTML='<div class="empty">Belum ada perangkat aktif. Daftarkan perangkat terlebih dahulu (atau jalankan <code>npm run db:seed</code>).</div>';
+    return;
+  }
+  const byName=(a,b)=>a.d.device_name.localeCompare(b.d.device_name,'id',{numeric:true});
+  const groups=new Map();
+  items.forEach(it=>{if(!groups.has(it.d.location))groups.set(it.d.location,[]);groups.get(it.d.location).push(it);});
+  const showHeading=groups.size>1;
+  $('groups').innerHTML=[...groups.entries()]
+    .sort((a,b)=>a[0].localeCompare(b[0],'id',{numeric:true}))
+    .map(([loc,list])=>{
+      list.sort((a,b)=>SEVERITY[b.st.status]-SEVERITY[a.st.status]||byName(a,b));
+      return `<section>
+        ${showHeading?`<h2 class="group-title">${esc(loc)}<small>${list.length} alat</small></h2>`:''}
+        <div class="grid">${list.map(it=>cardHtml(it.d,it.st)).join('')}</div>
+      </section>`;
+    }).join('<div style="height:20px"></div>');
+}
+
+/* FETCH */
+let inFlight=false;
+async function loadOverview(){
+  if(inFlight) return;
+  inFlight=true;
+  try{
+    const res=await fetch('/api/overview');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json=await res.json();
+    render(json);
+    showError('');
+    $('updated').textContent=`Diperbarui ${fmtTime(json.server_time)}`;
+  }catch(e){
+    console.error('[overview]',e);
+    showError('Server tidak dapat dihubungi. Data di bawah mungkin sudah tidak terbaru. Mencoba lagi...');
+  }finally{
+    inFlight=false;
+  }
+}
+
+(async function init(){
+  await loadConfig();
+  await loadOverview();
+  setInterval(loadOverview,CFG.poll_interval_ms);
+})();
+</script>
+</body>
+</html>

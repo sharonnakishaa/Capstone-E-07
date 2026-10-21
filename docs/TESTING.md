@@ -161,6 +161,24 @@ Uji ini memakai `--days=0` supaya data hasil seed langsung diproses. **Data ment
 | K-03 | Jam operasi filter tetap | Muat ulang dashboard setelah K-02. | Jam operasi filter sama dengan sebelum K-02 (selisih ≤ 1 jam). | | |
 | K-04 | Dijalankan ulang | Jalankan lagi `npm run db:retention -- --days=0` dalam jam yang sama. | Muncul "Tidak ada data yang melewati masa retensi", dan tidak ada ringkasan ganda. | | |
 
+## L. Ringkasan Lab (banyak alat)
+
+Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --scenario=normal,spike,offline,normal`.
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| L-01 | Halaman utama | Buka `http://localhost:3000/`. | Dialihkan ke `/lab.html`, dan tampil 4 kartu: Epen Meja 1 sampai 4. | | |
+| L-02 | Isi kartu | Bandingkan satu kartu dengan baris terbaru di terminal simulator untuk alat yang sama. | Status, TVOC Kalman (besar), TVOC mentah, level dan duty kipas, RPM, serta debu outlet sesuai. | | |
+| L-03 | Urutan kartu | Amati urutan kartu selama beberapa menit. | Kartu BERBAHAYA selalu paling atas, diikuti WASPADA, OFFLINE, lalu AMAN. Status yang sama diurutkan menurut nama (Meja 2 sebelum Meja 10). | | |
+| L-04 | Ringkasan atas | Hitung kartu per status. | Pill BERBAHAYA/WASPADA/AMAN/OFFLINE menunjukkan jumlah yang sama. Judul menyebut status terburuk, misalnya "1 dari 4 alat BERBAHAYA". | | |
+| L-05 | Judul tab | Amati judul tab browser saat ada alat BERBAHAYA. | Judul tab diawali "(1 BERBAHAYA)". | | |
+| L-06 | OFFLINE per alat | Tunggu fase offline alat dengan skenario `offline`. | Hanya kartu alat itu yang berubah jadi OFFLINE (pudar, "Data terakhir … lalu"). Kartu lain tidak terpengaruh. | | |
+| L-07 | Periksa filter | Tunggu ±3 menit pada alat dengan skenario `spike`. | Kartu alat itu menampilkan chip "⚠ Periksa filter". | | |
+| L-08 | Buka detail | Klik salah satu kartu. | Dashboard detail terbuka untuk alat yang diklik (nama di dropdown sesuai), dan URL berisi `?device=<id>`. | | |
+| L-09 | Navigasi | Dari dashboard detail, buka "Lihat Semua Data", lalu kembali dengan "Dashboard", lalu "‹ Ringkasan Lab". | Halaman log dan dashboard tetap menampilkan alat yang sama, dan tombol terakhir kembali ke Ringkasan Lab. | | |
+| L-10 | Banyak lokasi | Di Prisma Studio, ubah `location` salah satu device menjadi lokasi lain. | Kartu dikelompokkan per lokasi dengan judul grup dan jumlah alat. | | |
+| L-11 | Tampilan 375 px | DevTools → iPhone SE. | Kartu tersusun satu kolom tanpa scroll horizontal. | | |
+
 ---
 
 ## Ringkasan hasil
@@ -178,4 +196,5 @@ Uji ini memakai `--days=0` supaya data hasil seed langsung diproses. **Data ment
 | I. Validasi API | 5 | | | |
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 4 | | | |
-| **Total** | **66** | | | |
+| L. Ringkasan Lab | 11 | | | |
+| **Total** | **77** | | | |

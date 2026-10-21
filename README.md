@@ -17,7 +17,14 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 
 ## Fitur
 
-**Dashboard (`/index.html`)**
+**Ringkasan Lab (`/lab.html`, halaman utama)**
+- Satu kartu per Epen: status fuzzy, TVOC Kalman dan mentah, level dan duty kipas, RPM, debu outlet, serta umur data terakhir.
+- Kartu diurutkan dari yang paling perlu ditangani: BERBAHAYA → WASPADA → OFFLINE → AMAN. Kalau lokasinya lebih dari satu, kartu dikelompokkan per lokasi.
+- Ringkasan jumlah alat per status di bagian atas, dan judul tab browser ikut menampilkan jumlah alat BERBAHAYA/WASPADA.
+- Penanda "Periksa filter" kalau rata-rata debu outlet melebihi batas.
+- Klik kartu untuk membuka dashboard detail alat tersebut. Halaman ini bisa dibuka tanpa login, misalnya di monitor lab.
+
+**Dashboard detail (`/index.html?device=<id>`)**
 - Banner status fuzzy terkini (AMAN / WASPADA / BERBAHAYA) sesuai `air_status` yang dikirim ESP32.
 - Indikator koneksi: **TERHUBUNG** kalau umur data terakhir ≤ 15 detik (dihitung terhadap `server_time`), **OFFLINE** kalau lebih lama, lengkap dengan banner "Tidak ada data dari perangkat".
 - Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
@@ -41,7 +48,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - **Next.js 16** (App Router). Route Handlers ada di `app/api/*`.
 - **Prisma** + **PostgreSQL** (Supabase).
 - **Nodemailer** untuk notifikasi email.
-- Frontend berupa HTML/CSS/JS murni di `public/index.html` dan `public/logs.html`. Grafiknya SVG buatan sendiri, tanpa library chart. Dashboard mengambil data baru dengan polling tiap 5 detik.
+- Frontend berupa HTML/CSS/JS murni di `public/lab.html`, `public/index.html`, dan `public/logs.html`. Grafiknya SVG buatan sendiri, tanpa library chart. Halaman mengambil data baru dengan polling tiap 5 detik.
 
 ## Menjalankan secara lokal
 
@@ -51,9 +58,9 @@ Kebutuhan: Node.js 20+ dan database PostgreSQL (Supabase).
 npm install                 # juga menjalankan `prisma generate`
 cp .env.example .env        # lalu isi nilainya, lihat tabel di bawah
 npx prisma db push          # sinkronkan skema ke database
-npm run db:seed             # 1 user, 1 device, ±3 jam data historis
+npm run db:seed             # 1 user, 1 device, ±3 jam data historis (--devices=N untuk N alat)
 npm run dev                 # http://localhost:3000
-npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 detik
+npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 detik (--all untuk semua alat)
 ```
 
 | Script | Fungsi |
@@ -69,23 +76,27 @@ npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 det
 | `npm run db:retention` | Ringkas data mentah lama per jam lalu hapus (lihat [Retensi data](#retensi-data)) |
 
 Halaman:
-- `/` → dialihkan ke `/index.html` (dashboard)
-- `/logs.html` → log data lengkap
+- `/` → dialihkan ke `/lab.html` (Ringkasan Lab)
+- `/index.html?device=<id>` → dashboard detail satu alat (tanpa `?device=`, yang dibuka adalah alat pertama)
+- `/logs.html?device=<id>` → log data lengkap satu alat
 
 > **Windows: `EPERM: operation not permitted, rename ... query_engine-windows.dll.node`** saat `npm run build` atau `npm install`. Artinya file engine Prisma sedang dipakai proses lain. Hentikan dulu `npm run dev`, `npm run simulate`, dan Prisma Studio, lalu ulangi perintahnya.
 
 ## Seed data
 
 ```bash
-npm run db:seed
+npm run db:seed                   # 1 alat
+npm run db:seed -- --devices=4    # 4 alat (maksimal 20)
 ```
 
 Seed membuat:
 - user `admin@epen.local` (password dummy `epen123`),
-- device `Epen #1` di `Lab DTETI` dengan `inlet_distance_cm = 5`,
-- ±2.160 log (3 jam × interval 5 detik) yang berakhir di waktu sekarang. `filter_installed_at` diisi dengan waktu awal data.
+- device `Epen Meja 1` … `Epen Meja N` di `Lab DTETI` dengan `inlet_distance_cm = 5`. MAC address-nya `24:6F:28:00:00:01`, `…:02`, dan seterusnya.
+- ±2.160 log per alat (3 jam × interval 5 detik) yang berakhir di waktu sekarang. `filter_installed_at` diisi dengan waktu awal data.
 
-Di akhir, seed mencetak `device_id` dan perintah simulator yang siap disalin. Seed aman dijalankan ulang: user dan device di-upsert, log lama milik device itu dihapus, dan `last_alert_at` direset supaya alur email bisa diuji dari awal.
+Di akhir, seed mencetak `device_id` setiap alat dan perintah simulator yang siap disalin. Seed aman dijalankan ulang: user dan device di-upsert, log dan ringkasan lama milik device itu dihapus, dan `last_alert_at` direset supaya alur email bisa diuji dari awal. Alat hasil seed sebelumnya yang tidak termasuk N dinonaktifkan, jadi tidak muncul di Ringkasan Lab.
+
+> **Perhatian:** lokal dan Production memakai database Supabase yang sama. Seed juga mengubah data yang terlihat di `capstone-e-07.vercel.app`.
 
 ## Simulator ESP32
 
@@ -95,13 +106,18 @@ Hardware belum tersambung, jadi pengujian memakai simulator yang mengirim `POST 
 npm run simulate                                     # skenario normal, device aktif pertama
 npm run simulate -- --scenario=spike
 npm run simulate -- --scenario=offline --device=<uuid> --url=http://localhost:3000
+npm run simulate -- --all                                    # semua alat aktif
+npm run simulate -- --all --scenario=normal,spike,offline    # skenario dibagi bergiliran ke tiap alat
 ```
 
 | Opsi | Default | Keterangan |
 |---|---|---|
-| `--scenario` | `normal` | `normal`, `spike`, atau `offline` |
-| `--device` | device aktif pertama di database | UUID device tujuan |
-| `--url` | `http://localhost:3000` | Alamat server |
+| `--scenario` | `normal` | `normal`, `spike`, atau `offline`. Bisa beberapa, dipisah koma, dan dibagikan bergiliran ke tiap alat. |
+| `--device` | device aktif pertama di database | UUID device tujuan. Bisa beberapa, dipisah koma. |
+| `--all` | — | Jalankan satu ESP32 virtual untuk setiap device aktif. |
+| `--url` | `http://localhost:3000` | Alamat server, misalnya `https://capstone-e-07.vercel.app` |
+
+Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim antaralat digeser supaya request tidak datang bersamaan.
 
 `API_KEY` dibaca dari `.env`.
 
@@ -142,11 +158,12 @@ Belum ada penjadwalan otomatis. Untuk sementara, jalankan script ini manual (mis
 app/
   api/
     config/route.ts     GET /api/config — konfigurasi untuk frontend
+    overview/route.ts   GET /api/overview — status terkini semua alat (Ringkasan Lab)
     devices/route.ts    GET /api/devices — daftar device + info filter
     devices/[id]/filter/route.ts
                         POST — catat penggantian filter
     sensor/route.ts     GET/POST /api/sensor — data sensor, CSV, alert email
-  layout.tsx, page.tsx  Root layout; "/" dialihkan ke /index.html
+  layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, level fuzzy, ambang, interval
   validation.ts         Validasi payload POST dari ESP32
@@ -156,7 +173,8 @@ lib/
 prisma/
   schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly)
 public/
-  index.html            Dashboard (HTML/CSS/JS murni, grafik SVG)
+  lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
+  index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)
   logs.html             Halaman log + ekspor CSV
 scripts/
   lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
@@ -391,6 +409,45 @@ recorded_at_wib,tvoc_raw_ppb,tvoc_kalman_ppb,eco2_ppm,temperature_celsius,humidi
 | `400` | Parameter tidak valid, misalnya `page` bukan angka, `from`/`to` bukan tanggal, atau `device_id` tidak ada di mode CSV |
 | `400` | Mode CSV: hasil lebih dari 50.000 baris (respons menyertakan `row_count`) |
 | `500` | Kesalahan server atau database |
+
+---
+
+### `GET /api/overview` — status terkini semua alat
+
+Dipakai halaman Ringkasan Lab. Satu request mengembalikan log terakhir setiap device aktif beserta rata-rata debu outlet dari `outlet_dust.window` data terakhir. Semua dihitung dalam satu query yang memakai index `(device_id, recorded_at)`.
+
+**`200 OK`**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid-perangkat",
+      "device_name": "Epen Meja 3",
+      "location": "Lab DTETI",
+      "latest": {
+        "id": "10482",
+        "tvoc_raw_ppb": 640,
+        "tvoc_kalman_ppb": 512.8,
+        "temperature_celsius": 28.1,
+        "humidity_percent": 60.2,
+        "dust_outlet_ugm3": 31.4,
+        "air_status": "BERBAHAYA",
+        "fuzzy_level": "FAST",
+        "fan_duty_percent": 100,
+        "fan_rpm": 3290,
+        "recorded_at": "2026-10-18T03:12:45.000Z"
+      },
+      "dust_outlet_avg_ugm3": 33.5,
+      "dust_samples": 30
+    }
+  ],
+  "server_time": "2026-10-18T03:12:47.120Z"
+}
+```
+
+- `latest` bernilai `null` kalau device belum pernah mengirim data.
+- Status OFFLINE ditentukan di frontend: `server_time − latest.recorded_at > offline_after_ms`.
 
 ---
 

@@ -402,15 +402,17 @@ document.addEventListener('click',async e=>{
     const d=devices.find(x=>x.id===t.dataset.toggle);
     if(!d) return;
     const activate=!d.is_active;
-    if(!activate){
-      const yes=await confirmDialog({
-        title:'Nonaktifkan alat?',
-        html:`<strong>${esc(d.device_name)}</strong> (${esc(d.mac_address)}) tidak akan tampil di Ringkasan Lab, dan data yang dikirimnya ditolak sampai diaktifkan lagi.<br><br>Data lama tetap tersimpan, dan alat bisa diaktifkan kembali kapan saja dari halaman ini.`,
-        confirmText:'Nonaktifkan',
-        danger:true,
-      });
-      if(!yes) return;
-    }
+    const yes=await confirmDialog(activate?{
+      title:'Aktifkan alat?',
+      html:`<strong>${esc(d.device_name)}</strong> (${esc(d.mac_address)}) akan tampil lagi di Ringkasan Lab, dan data yang dikirimnya kembali diterima. Kalau alatnya sedang menyala, data baru masuk dalam ±5 detik.<br><br>Data selama alat nonaktif tidak tersimpan, karena saat itu ditolak server.`,
+      confirmText:'Aktifkan',
+    }:{
+      title:'Nonaktifkan alat?',
+      html:`<strong>${esc(d.device_name)}</strong> (${esc(d.mac_address)}) tidak akan tampil di Ringkasan Lab, dan data yang dikirimnya ditolak sampai diaktifkan lagi.<br><br>Data lama tetap tersimpan, dan alat bisa diaktifkan kembali kapan saja dari halaman ini.`,
+      confirmText:'Nonaktifkan',
+      danger:true,
+    });
+    if(!yes) return;
     t.disabled=true;
     try{
       await api(`/api/admin/devices/${encodeURIComponent(d.id)}`,{method:'PATCH',body:JSON.stringify({is_active:activate})});

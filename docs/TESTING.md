@@ -165,6 +165,9 @@ Uji ini memakai `--days=0` supaya data hasil seed langsung diproses. **Data ment
 | K-02 | Ringkas dan hapus | Catat jam operasi filter di dashboard, lalu jalankan `npm run db:retention -- --days=0`. | Script melaporkan N ringkasan ditulis dan M log dihapus, dengan angka yang sama seperti K-01. Di Prisma Studio, `sensor_hourly` berisi N baris dan `sensor_logs` hanya berisi data jam berjalan. | | |
 | K-03 | Jam operasi filter tetap | Muat ulang dashboard setelah K-02. | Jam operasi filter sama dengan sebelum K-02 (selisih ≤ 1 jam). | | |
 | K-04 | Dijalankan ulang | Jalankan lagi `npm run db:retention -- --days=0` dalam jam yang sama. | Muncul "Tidak ada data yang melewati masa retensi", dan tidak ada ringkasan ganda. | | |
+| K-05 | Cron: tanpa secret | `curl "https://capstone-e-07.vercel.app/api/cron/retention?dry_run=1"` (tanpa header). | `401 Unauthorized`. | | |
+| K-06 | Cron: dry run | Ulangi dengan `-H "Authorization: Bearer <CRON_SECRET>"`. | `200` dengan `dry_run: true`, `cutoff` sekitar 60 hari lalu, dan `row_count`. Jumlah baris di database tidak berubah. | | |
+| K-07 | Cron terjadwal | Buka *Vercel → Project → Settings → Cron Jobs* keesokan harinya. | Ada jadwal `/api/cron/retention` (`0 19 * * *`), dan eksekusi terakhir sukses. Log Vercel memuat baris `[cron/retention] …`. | | |
 
 ## L. Ringkasan Lab (banyak alat)
 
@@ -229,8 +232,8 @@ Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari 
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 8 | | | |
 | J. Tampilan | 5 | | | |
-| K. Retensi data | 4 | | | |
+| K. Retensi data | 7 | | | |
 | L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 9 | | | |
 | N. Kelola Alat | 8 | | | |
-| **Total** | **99** | | | |
+| **Total** | **102** | | | |

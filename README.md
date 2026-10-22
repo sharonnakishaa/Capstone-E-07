@@ -200,7 +200,21 @@ Cara kerja sesi:
 
 ## Retensi data
 
-Data mentah dikirim tiap 5 detik, yaitu 17.280 baris per hari per device kalau alat menyala terus. Supaya database tidak penuh, data mentah yang lebih tua dari **60 hari** (`RAW_RETENTION_DAYS` di `lib/sensor.ts`) diringkas per jam ke tabel `sensor_hourly`, lalu dihapus dari `sensor_logs`.
+Data mentah dikirim tiap 5 detik, yaitu 17.280 baris per hari per device kalau alat menyala terus. Supaya database tidak penuh, data mentah yang lebih tua dari **60 hari** (`RAW_RETENTION_DAYS` di `lib/sensor.ts`) diringkas per jam ke tabel `sensor_hourly`, lalu dihapus dari `sensor_logs`. Logikanya ada di `lib/retention.ts` dan dipakai bersama oleh cron dan script manual.
+
+**Otomatis (Production): Vercel Cron**
+
+`vercel.json` menjadwalkan `GET /api/cron/retention` **setiap hari pukul 19.00 UTC (02.00 WIB)**, saat lab sepi.
+
+- Endpoint hanya berjalan kalau header `Authorization: Bearer <CRON_SECRET>` cocok. Vercel mengirim header ini otomatis kalau env `CRON_SECRET` diset di project. Tanpa `CRON_SECRET`, endpoint menolak berjalan (`500`) dan mencatatnya di log.
+- Hasilnya tercatat di log Vercel, misalnya `[cron/retention] 17280 log < … → 24 ringkasan, 17280 dihapus (850 ms)`. Riwayat eksekusi ada di *Vercel → Project → Settings → Cron Jobs*.
+- Cek manual tanpa mengubah data:
+  ```bash
+  curl -H "Authorization: Bearer <CRON_SECRET>" "https://capstone-e-07.vercel.app/api/cron/retention?dry_run=1"
+  ```
+- Di paket Vercel Hobby, cron boleh berjalan maksimal sekali sehari dan waktunya bisa meleset dalam rentang jam yang sama. Itu cukup untuk retensi.
+
+**Manual**
 
 ```bash
 npm run db:retention -- --dry-run     # lihat apa yang akan diproses, tanpa mengubah database
@@ -214,8 +228,6 @@ npm run db:retention -- --days=0      # khusus pengujian: ringkas semua jam yang
 - Isi setiap baris ringkasan: jumlah sampel, sampel saat kipas menyala, rata-rata dan maksimum TVOC (Kalman, atau mentah kalau Kalman kosong), maksimum TVOC mentah, rata-rata dan maksimum debu outlet, rata-rata suhu dan RH, serta jumlah sampel per status.
 - `filter_runtime_hours` menjumlahkan sampel kipas menyala dari log mentah **dan** dari ringkasan per jam, jadi jam operasi filter tetap benar setelah data mentah dihapus.
 - Ekspor Excel dan halaman log hanya membaca data mentah. Ekspor setiap sesi uji penting segera setelah selesai.
-
-Belum ada penjadwalan otomatis. Untuk sementara, jalankan script ini manual (misalnya seminggu sekali). Setelah lokasi deploy ditentukan, script bisa dijadwalkan lewat cron di server, Vercel Cron, atau `pg_cron` di Supabase.
 
 ## Struktur folder
 
@@ -231,11 +243,14 @@ app/
     admin/devices/...   GET/POST/PATCH — Kelola Alat (khusus pengelola)
     admin/unregistered-macs/[mac]
                         DELETE — abaikan MAC dari "alat baru terdeteksi"
+    cron/retention/route.ts
+                        GET — retensi data harian (Vercel Cron, dilindungi CRON_SECRET)
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
   validation.ts         Validasi payload POST dari ESP32
   devices.ts            Perhitungan jam operasi filter
+  retention.ts          Retensi data (dipakai cron dan script db:retention)
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
   password.ts           Hash dan verifikasi password (scrypt)
   email.ts              Template dan pengiriman email peringatan
@@ -252,11 +267,12 @@ scripts/
   lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
   seed.ts               Seed user, device, dan data historis
   simulate.ts           Simulator ESP32
-  retention.ts          Retensi data: ringkas per jam lalu hapus data mentah lama
+  retention.ts          Jalankan retensi data secara manual
   user-add.ts           Buat akun Pengelola Lab / reset password
   device-add.ts         Daftarkan alat berdasarkan MAC address
 docs/
   TESTING.md            Checklist uji manual fungsional dashboard
+vercel.json             Jadwal Vercel Cron (retensi data harian)
 ```
 
 ## Pengujian
@@ -271,6 +287,7 @@ Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TEST
 | `DIRECT_URL` | ✅ | Connection string *direct* (port 5432). Dipakai Prisma untuk `db push` atau migrasi. |
 | `API_KEY` | ✅ | Kunci rahasia yang harus dikirim ESP32 di header `x-api-key`. |
 | `SESSION_SECRET` | ✅ | Kunci penandatangan cookie login, minimal 32 karakter acak. Buat dengan `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Tanpa variabel ini, login dan aksi Pengelola gagal, tapi halaman pemantauan tetap jalan. |
+| `CRON_SECRET` | ✅** | Kunci untuk Vercel Cron retensi data harian, minimal 32 karakter acak (buat dengan perintah yang sama). Vercel mengirimnya otomatis sebagai `Authorization: Bearer …`. |
 | `SMTP_HOST` | ✅* | Host SMTP, misalnya `smtp.gmail.com`. |
 | `SMTP_PORT` | | Default `587`. |
 | `SMTP_SECURE` | | `true` untuk port 465, selain itu `false`. |
@@ -280,6 +297,8 @@ Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TEST
 | `PORT` | | Port server, default `3000`. |
 
 \* Wajib kalau notifikasi email ingin diaktifkan.
+
+\*\* Wajib di Production (Vercel). Tidak perlu untuk pengembangan lokal kecuali ingin menguji endpoint cron.
 
 ---
 

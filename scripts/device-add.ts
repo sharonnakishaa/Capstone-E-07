@@ -64,6 +64,9 @@ async function main() {
         })
       })()
 
+  // Sama seperti UI Kelola Alat: MAC yang sudah terdaftar keluar dari "alat baru terdeteksi"
+  await prisma.unregistered_macs.deleteMany({ where: { mac_address: mac } })
+
   console.log(existing ? 'Alat diperbarui dan diaktifkan:' : 'Alat baru terdaftar:')
   console.log(`  nama      : ${device.device_name}`)
   console.log(`  lokasi    : ${device.location}`)

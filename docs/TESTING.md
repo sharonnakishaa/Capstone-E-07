@@ -199,6 +199,20 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=xlsx&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
 | M-09 | Cabut akses | Masuk dengan akun A, lalu hapus akun A di Prisma Studio, lalu coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
 
+## N. Kelola Alat
+
+Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari MAC yang belum terdaftar, misalnya simulator `npm run simulate` setelah alat seed dinonaktifkan (N-06), atau POST `mac_address: "24:6F:28:FF:FF:01"`.
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| N-01 | Akses | Tanpa login, buka `/devices.html`. Lalu masuk dan lihat topbar di halaman lain. | Tanpa login tampil pesan "Khusus Pengelola Lab" dan tombol Masuk. Setelah login, tautan **Kelola Alat** (ikon roda gigi) muncul di topbar Ringkasan Lab, dashboard, dan halaman log. | | |
+| N-02 | Alat baru terdeteksi | Kirim data dari MAC yang belum terdaftar, lalu tunggu ≤ 10 detik di halaman Kelola Alat. | MAC muncul di panel **Alat baru terdeteksi** dengan titik hijau "Sedang mengirim data" dan jumlah kiriman yang bertambah. | | |
+| N-03 | Daftarkan dari deteksi | Klik **Daftarkan**, isi nama "Epen Uji", lalu klik **Daftarkan alat**. | MAC terisi otomatis. Muncul pesan hijau, MAC hilang dari panel deteksi, alat muncul di Daftar alat sebagai AKTIF, dan kiriman berikutnya `201` serta tampil di Ringkasan Lab. | | |
+| N-04 | Abaikan | Untuk MAC lain di panel deteksi, klik **Abaikan**. | MAC hilang dari panel. Kalau alat itu masih mengirim, MAC-nya muncul lagi dalam ≤ 10 detik. | | |
+| N-05 | Tambah manual & validasi | Tambah alat dengan MAC `246F28ABCDEF`, lalu dengan MAC alat yang sudah terdaftar. | Pesan merah: format MAC salah, lalu "MAC … sudah terdaftar sebagai …". Tidak ada alat ganda. | | |
+| N-06 | Nonaktifkan | Klik **Nonaktifkan** pada alat seed dan konfirmasi. | Status jadi NONAKTIF, alat hilang dari Ringkasan Lab, dan data yang dikirim ke MAC itu ditolak `404`. Data lamanya tetap ada di halaman log setelah diaktifkan lagi. | | |
+| N-07 | Ubah | Klik **Ubah**, ganti nama dan jarak inlet, lalu simpan. | Form berpindah ke mode "Ubah alat" dengan tombol Batal. Setelah simpan, nama baru tampil di daftar dan di Ringkasan Lab, dan jarak inlet baru tampil di Info Perangkat. | | |
+| N-08 | Tampilan 375 px | DevTools → iPhone SE, buka Kelola Alat dan Ringkasan Lab dalam keadaan login. | Topbar tetap satu baris (tombol Kelola Alat dan Keluar berupa ikon). Panel, form, dan tabel tersusun satu kolom, dan tabel bisa digeser di dalam kartunya. | | |
 ---
 
 ## Ringkasan hasil
@@ -218,4 +232,5 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | K. Retensi data | 4 | | | |
 | L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 9 | | | |
-| **Total** | **91** | | | |
+| N. Kelola Alat | 8 | | | |
+| **Total** | **99** | | | |

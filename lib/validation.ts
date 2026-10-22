@@ -134,3 +134,62 @@ export function parseSensorPayload(body: unknown):
     },
   }
 }
+
+// ─── Input kelola alat (halaman Kelola Alat) ────────────────────────────────
+
+export interface DeviceInput {
+  mac_address?: string
+  device_name?: string
+  location?: string
+  inlet_distance_cm?: number
+  is_active?: boolean
+}
+
+const TEXT_MAX = 60
+
+/**
+ * Validasi input tambah/edit alat. `partial = true` untuk edit (semua field opsional);
+ * saat tambah, mac_address dan device_name wajib.
+ */
+export function parseDeviceInput(body: unknown, partial: boolean):
+  | { ok: true; data: DeviceInput }
+  | { ok: false; details: FieldError[] } {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return { ok: false, details: [{ field: '(body)', message: 'harus objek JSON' }] }
+  }
+  const b = body as Record<string, unknown>
+  const details: FieldError[] = []
+  const data: DeviceInput = {}
+  const given = (f: string) => b[f] !== undefined
+
+  if (given('mac_address') || !partial) {
+    const mac = normalizeMac(b.mac_address)
+    if (mac) data.mac_address = mac
+    else details.push({ field: 'mac_address', message: 'harus format MAC seperti 24:6F:28:AB:CD:EF' })
+  }
+
+  for (const field of ['device_name', 'location'] as const) {
+    if (!given(field) && (partial || field === 'location')) continue
+    const v = typeof b[field] === 'string' ? (b[field] as string).trim() : ''
+    if (!v) details.push({ field, message: 'wajib diisi' })
+    else if (v.length > TEXT_MAX) details.push({ field, message: `maksimal ${TEXT_MAX} karakter` })
+    else data[field] = v
+  }
+
+  if (given('inlet_distance_cm')) {
+    const v = b.inlet_distance_cm
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 100) data.inlet_distance_cm = v
+    else details.push({ field: 'inlet_distance_cm', message: 'harus angka > 0 dan ≤ 100 (cm)' })
+  }
+
+  if (given('is_active')) {
+    if (typeof b.is_active === 'boolean') data.is_active = b.is_active
+    else details.push({ field: 'is_active', message: 'harus true atau false' })
+  }
+
+  if (details.length) return { ok: false, details }
+  if (partial && Object.keys(data).length === 0) {
+    return { ok: false, details: [{ field: '(body)', message: 'tidak ada field yang diubah' }] }
+  }
+  return { ok: true, data }
+}

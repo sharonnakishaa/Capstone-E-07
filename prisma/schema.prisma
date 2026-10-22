@@ -64,6 +64,15 @@ model sensor_logs {
   @@index([device_id, recorded_at])
 }
 
+// MAC yang mengirim data tapi belum terdaftar di devices — ditampilkan di halaman Kelola Alat
+// sebagai "Alat baru terdeteksi" supaya bisa didaftarkan tanpa mengetik MAC.
+model unregistered_macs {
+  mac_address   String   @id @db.VarChar
+  first_seen_at DateTime @default(now()) @db.Timestamptz
+  last_seen_at  DateTime @default(now()) @db.Timestamptz
+  attempts      Int      @default(1)
+}
+
 // 4. Tabel SENSOR_HOURLY — ringkasan per jam dari sensor_logs yang sudah melewati masa retensi.
 // Diisi oleh scripts/retention.ts. TVOC memakai nilai Kalman, atau nilai mentah kalau Kalman kosong.
 model sensor_hourly {

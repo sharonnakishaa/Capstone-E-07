@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>EPEN — Kelola Alat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700;800&family=Playfair+Display+SC:wght@700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/epen.css">
+<style>
+  .nav-back{margin-left:auto}
+
+  main{max-width:1280px;margin:0 auto;padding:32px 24px 56px;display:flex;flex-direction:column;gap:24px}
+  /* epen.css memberi display ke tombol/kartu, jadi atribut hidden perlu dipaksa */
+  [hidden]{display:none!important}
+  .page-head .h-title{font-size:30px}
+  .page-sub{font-size:14px;color:var(--muted);margin-top:6px;max-width:760px}
+
+  .top-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .card-head{margin-bottom:16px}
+
+  /* ALAT BARU TERDETEKSI */
+  .unreg-list{display:flex;flex-direction:column;gap:10px}
+  .unreg-item{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:var(--surface-2)}
+  .unreg-mac{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text-strong);display:flex;align-items:center;gap:8px}
+  .unreg-note{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .unreg-actions{display:flex;gap:8px}
+  .live{width:9px;height:9px;border-radius:50%;background:var(--ink-aman);flex-shrink:0}
+  .live.stale{background:var(--muted-2)}
+  .empty-box{padding:18px;border:2px dashed var(--border-soft);border-radius:10px;color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  /* FORM */
+  .dev-form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .dev-form .full{grid-column:1/-1}
+  .field input{width:100%}
+  .field .hint{font-size:12px;color:var(--muted-2)}
+  .form-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .btn-sm{height:34px;padding:0 12px;font-size:13px}
+
+  .msg{display:none;font-size:13.5px;padding:10px 12px;border-radius:8px;font-weight:600;line-height:1.45}
+  .msg.err{display:block;background:var(--err-bg);border:2px solid var(--err-border);color:var(--err-text)}
+  .msg.ok{display:block;background:var(--tint-aman);border:2px solid var(--ink-aman);color:var(--ink-aman)}
+
+  /* TABEL */
+  table{min-width:860px}
+  td.name{font-family:var(--sans);font-weight:700;color:var(--text-strong)}
+  td.loc{font-family:var(--sans)}
+  tr.inactive td{color:var(--muted-2)}
+  tr.inactive td.name{color:var(--muted)}
+  td.actions{text-align:right}
+  td.actions .btn-ghost{margin-left:6px}
+
+  /* TERKUNCI */
+  .locked{display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:560px}
+  .locked p{margin:0;color:var(--muted)}
+
+  @media (max-width:900px){
+    .top-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    main{padding:20px 16px 40px;gap:16px}
+    .page-head .h-title{font-size:24px}
+    .dev-form{grid-template-columns:1fr}
+    .unreg-actions,.form-actions{width:100%}
+    .unreg-actions button,.form-actions button{flex:1}
+  }
+</style>
+<script src="/auth.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/lab.html" aria-label="EPEN — Ringkasan Lab">
+    <span class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(45 12 12)"><rect x="9.5" y="0.5" width="5" height="9" rx="2"/><path d="M12 9.5v5.5"/><path d="M10.6 15h2.8L12 20.5z"/></g><path d="M2.5 21.5h6"/><path d="M3.5 12.5c-1.2-1.4 1.2-2.6 0-4M7 9c-1.2-1.4 1.2-2.6 0-4"/></svg></span>
+    <span class="brand-text"><span class="brand-title">EPEN</span><span class="brand-sub">Kelola Alat</span></span>
+  </a>
+
+  <a href="/lab.html" class="nav-back" aria-label="Kembali ke Ringkasan Lab">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <span class="nav-label">Ringkasan Lab</span>
+  </a>
+
+  <div id="authWidget"></div>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
+</header>
+
+<main id="lockedView" hidden>
+  <section class="card locked">
+    <span class="tag">Khusus Pengelola Lab</span>
+    <div class="h-title">Kelola Alat</div>
+    <p>Halaman ini dipakai untuk mendaftarkan, mengubah, dan menonaktifkan alat Epen. Masuk sebagai Pengelola Lab untuk melanjutkan.</p>
+    <a class="btn" id="lockedLogin" href="/login.html">Masuk</a>
+  </section>
+</main>
+
+<main id="mainView" hidden>
+  <div class="page-head">
+    <div class="h-title">Kelola Alat</div>
+    <p class="page-sub">Alat dikenali dari MAC address ESP32. Nyalakan alat yang belum terdaftar — MAC-nya akan muncul di <strong>Alat baru terdeteksi</strong> dalam beberapa detik, tinggal beri nama lalu daftarkan.</p>
+  </div>
+
+  <div class="msg" id="pageMsg" role="status"></div>
+
+  <div class="top-grid">
+    <section class="card">
+      <div class="card-head">
+        <div class="h-title">Alat baru terdeteksi</div>
+        <div class="chart-sub">MAC yang mengirim data tapi belum terdaftar. Diperbarui otomatis.</div>
+      </div>
+      <div class="unreg-list" id="unregList"><div class="empty-box">Memuat...</div></div>
+    </section>
+
+    <section class="card" id="formCard">
+      <div class="card-head">
+        <div class="h-title" id="formTitle">Tambah alat</div>
+        <div class="chart-sub" id="formSub">Daftarkan alat baru berdasarkan MAC address-nya.</div>
+      </div>
+      <form class="dev-form" id="devForm" novalidate>
+        <div class="field full">
+          <label for="fMac">MAC address</label>
+          <input id="fMac" autocomplete="off" spellcheck="false" placeholder="24:6F:28:AB:CD:EF" maxlength="17" required>
+          <span class="hint">Dari Serial Monitor ESP32, atau klik "Daftarkan" di Alat baru terdeteksi.</span>
+        </div>
+        <div class="field">
+          <label for="fName">Nama alat</label>
+          <input id="fName" autocomplete="off" placeholder="Epen Meja 1" maxlength="60" required>
+        </div>
+        <div class="field">
+          <label for="fLoc">Lokasi</label>
+          <input id="fLoc" autocomplete="off" placeholder="Lab DTETI" maxlength="60">
+        </div>
+        <div class="field">
+          <label for="fInlet">Jarak inlet (cm)</label>
+          <input id="fInlet" type="number" min="0.5" max="100" step="0.5" value="5">
+        </div>
+        <div class="msg full" id="formMsg" role="status"></div>
+        <div class="form-actions full">
+          <button type="submit" class="btn" id="saveBtn">Daftarkan alat</button>
+          <button type="button" class="btn-ghost" id="cancelBtn" hidden>Batal</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <div class="h-title">Daftar alat</div>
+      <div class="chart-sub" id="tableSub">—</div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Lokasi</th>
+            <th>MAC</th>
+            <th class="num">Inlet</th>
+            <th>Status</th>
+            <th>Data terakhir</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="devBody">
+          <tr><td colspan="7" class="empty-row">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+/* THEME */
+(function(){
+  const root=document.documentElement,btn=document.getElementById('themeToggle');
+  const MOON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
+  const SUN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  function apply(t){root.dataset.theme=t;btn.innerHTML=t==='light'?MOON:SUN;try{localStorage.setItem('epen-theme',t)}catch(e){}}
+  btn.addEventListener('click',()=>apply(root.dataset.theme==='light'?'dark':'light'));
+  const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
+  apply(saved==='dark'?'dark':'light');
+})();
+
+/* HELPERS */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const REFRESH_MS=10000;
+const LIVE_MS=15000; // dianggap masih mengirim kalau terakhir terlihat ≤ 15 detik
+function fmtNum(v,d=0){return v==null?'—':Number(v).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:d});}
+function fmtTime(iso){return new Date(iso).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',hour12:false,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+' WIB';}
+function fmtAge(ms){
+  const s=Math.max(0,Math.round(ms/1000));
+  if(s<60) return `${s} detik lalu`;
+  if(s<3600) return `${Math.floor(s/60)} menit lalu`;
+  if(s<86400) return `${Math.floor(s/3600)} jam lalu`;
+  return `${Math.floor(s/86400)} hari lalu`;
+}
+function showMsg(id,text,kind){const el=$(id);el.textContent=text;el.className='msg'+(el.classList.contains('full')?' full':'')+(kind?' '+kind:'');}
+let flashTimer;
+function flash(text){showMsg('pageMsg',text,'ok');clearTimeout(flashTimer);flashTimer=setTimeout(()=>showMsg('pageMsg','',null),6000);}
+
+/** fetch JSON ke API admin; sesi berakhir (401) → tampilkan halaman terkunci. */
+async function api(path,opts={}){
+  const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+  const json=await res.json().catch(()=>null);
+  if(res.status===401){showLocked();throw new Error(json?.error??'Silakan masuk terlebih dahulu');}
+  if(!res.ok){
+    const detail=json?.details?.map(d=>`${d.field}: ${d.message}`).join('; ');
+    throw new Error(detail?`${json.error} — ${detail}`:json?.error??`Gagal (HTTP ${res.status})`);
+  }
+  return json;
+}
+
+/* STATE */
+let devices=[], unregistered=[], serverTime=new Date().toISOString();
+let editingId=null;
+
+/* RENDER — ALAT BARU TERDETEKSI */
+function renderUnregistered(){
+  const box=$('unregList');
+  if(!unregistered.length){
+    box.innerHTML=`<div class="empty-box">Belum ada alat baru. Nyalakan alat yang belum terdaftar dan pastikan firmware mengirim <code>mac_address</code> — MAC-nya akan muncul di sini dalam ±5–10 detik.</div>`;
+    return;
+  }
+  box.innerHTML=unregistered.map(u=>{
+    const age=new Date(serverTime)-new Date(u.last_seen_at);
+    const live=age<=LIVE_MS;
+    return `<div class="unreg-item">
+      <div>
+        <div class="unreg-mac"><span class="live${live?'':' stale'}" title="${live?'Sedang mengirim data':'Tidak mengirim data lagi'}"></span>${esc(u.mac_address)}</div>
+        <div class="unreg-note">${live?'Sedang mengirim data':'Terakhir mengirim '+fmtAge(age)} · ${fmtNum(u.attempts)}× kiriman · pertama ${fmtTime(u.first_seen_at)}</div>
+      </div>
+      <div class="unreg-actions">
+        <button type="button" class="btn btn-sm" data-register="${esc(u.mac_address)}">Daftarkan</button>
+        <button type="button" class="btn-ghost btn-sm" data-ignore="${esc(u.mac_address)}">Abaikan</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* RENDER — DAFTAR ALAT */
+function renderDevices(){
+  const active=devices.filter(d=>d.is_active).length;
+  $('tableSub').textContent=`${devices.length} alat terdaftar · ${active} aktif, ${devices.length-active} nonaktif. Alat nonaktif tidak tampil di Ringkasan Lab dan datanya ditolak server; data lamanya tetap tersimpan.`;
+  $('devBody').innerHTML=devices.length?devices.map(d=>{
+    const last=d.last_seen_at?fmtAge(new Date(serverTime)-new Date(d.last_seen_at)):'Belum pernah';
+    return `<tr class="${d.is_active?'':'inactive'}">
+      <td class="name">${esc(d.device_name)}</td>
+      <td class="loc">${esc(d.location)}</td>
+      <td>${esc(d.mac_address)}</td>
+      <td class="num">${fmtNum(d.inlet_distance_cm,1)} cm</td>
+      <td>${d.is_active?'<span class="badge aman"><span class="dot-s"></span>Aktif</span>':'<span class="badge off"><span class="dot-s"></span>Nonaktif</span>'}</td>
+      <td>${esc(last)}</td>
+      <td class="actions">
+        <button type="button" class="btn-ghost btn-sm" data-edit="${esc(d.id)}">Ubah</button>
+        <button type="button" class="btn-ghost btn-sm" data-toggle="${esc(d.id)}">${d.is_active?'Nonaktifkan':'Aktifkan'}</button>
+      </td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7" class="empty-row">Belum ada alat terdaftar</td></tr>';
+}
+
+/* LOAD */
+let loading=false;
+async function loadData(){
+  if(loading) return;
+  loading=true;
+  try{
+    const json=await api('/api/admin/devices');
+    devices=json.devices; unregistered=json.unregistered; serverTime=json.server_time;
+    renderUnregistered();
+    renderDevices();
+  }catch(e){
+    console.error('[admin/devices]',e);
+    if(!$('lockedView').hidden) return;
+    showMsg('pageMsg','Gagal memuat daftar alat. Mencoba lagi...','err');
+  }finally{
+    loading=false;
+  }
+}
+
+/* FORM — tambah / ubah */
+function resetForm(){
+  editingId=null;
+  $('devForm').reset();
+  $('fInlet').value='5';
+  $('formTitle').textContent='Tambah alat';
+  $('formSub').textContent='Daftarkan alat baru berdasarkan MAC address-nya.';
+  $('saveBtn').textContent='Daftarkan alat';
+  $('cancelBtn').hidden=true;
+  showMsg('formMsg','',null);
+}
+function startRegister(mac){
+  resetForm();
+  $('fMac').value=mac;
+  $('formCard').scrollIntoView({behavior:'smooth',block:'start'});
+  $('fName').focus({preventScroll:true});
+}
+function startEdit(id){
+  const d=devices.find(x=>x.id===id);
+  if(!d) return;
+  editingId=id;
+  $('fMac').value=d.mac_address;
+  $('fName').value=d.device_name;
+  $('fLoc').value=d.location;
+  $('fInlet').value=d.inlet_distance_cm;
+  $('formTitle').textContent=`Ubah alat`;
+  $('formSub').textContent=`Mengubah "${d.device_name}". Ganti MAC hanya kalau tadi salah ketik.`;
+  $('saveBtn').textContent='Simpan perubahan';
+  $('cancelBtn').hidden=false;
+  showMsg('formMsg','',null);
+  $('formCard').scrollIntoView({behavior:'smooth',block:'start'});
+  $('fName').focus({preventScroll:true});
+}
+
+$('devForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const body={
+    mac_address:$('fMac').value.trim(),
+    device_name:$('fName').value.trim(),
+    inlet_distance_cm:Number($('fInlet').value),
+  };
+  const loc=$('fLoc').value.trim();
+  if(loc) body.location=loc;
+  if(!body.mac_address||!body.device_name) return showMsg('formMsg','Isi MAC address dan nama alat.','err');
+
+  const btn=$('saveBtn'), label=btn.textContent;
+  btn.disabled=true; btn.textContent='Menyimpan...';
+  try{
+    if(editingId){
+      await api(`/api/admin/devices/${encodeURIComponent(editingId)}`,{method:'PATCH',body:JSON.stringify(body)});
+      flash(`"${body.device_name}" diperbarui.`);
+    }else{
+      await api('/api/admin/devices',{method:'POST',body:JSON.stringify(body)});
+      flash(`"${body.device_name}" terdaftar. Data dari alat ini sekarang diterima dan tampil di Ringkasan Lab.`);
+    }
+    resetForm();
+    await loadData();
+  }catch(err){
+    showMsg('formMsg',err.message,'err');
+  }finally{
+    btn.disabled=false;
+    if(btn.textContent==='Menyimpan...') btn.textContent=label;
+  }
+});
+$('cancelBtn').addEventListener('click',resetForm);
+
+/* AKSI DI DAFTAR */
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('button');
+  if(!t) return;
+
+  if(t.dataset.register) return startRegister(t.dataset.register);
+  if(t.dataset.edit) return startEdit(t.dataset.edit);
+
+  if(t.dataset.ignore){
+    const mac=t.dataset.ignore;
+    t.disabled=true;
+    try{
+      await api(`/api/admin/unregistered-macs/${encodeURIComponent(mac)}`,{method:'DELETE'});
+      flash(`${mac} diabaikan. Kalau alat itu masih mengirim data, MAC-nya akan muncul lagi.`);
+      await loadData();
+    }catch(err){showMsg('pageMsg',err.message,'err');t.disabled=false;}
+    return;
+  }
+
+  if(t.dataset.toggle){
+    const d=devices.find(x=>x.id===t.dataset.toggle);
+    if(!d) return;
+    const activate=!d.is_active;
+    if(!activate&&!confirm(`Nonaktifkan "${d.device_name}"?\n\nAlat tidak tampil di Ringkasan Lab dan data yang dikirimnya ditolak sampai diaktifkan lagi. Data lama tetap tersimpan.`)) return;
+    t.disabled=true;
+    try{
+      await api(`/api/admin/devices/${encodeURIComponent(d.id)}`,{method:'PATCH',body:JSON.stringify({is_active:activate})});
+      flash(`"${d.device_name}" ${activate?'diaktifkan':'dinonaktifkan'}.`);
+      if(editingId===d.id) resetForm();
+      await loadData();
+    }catch(err){showMsg('pageMsg',err.message,'err');t.disabled=false;}
+  }
+});
+
+/* AKSES */
+function showLocked(){
+  $('lockedLogin').href=EpenAuth.loginUrl();
+  $('mainView').hidden=true;
+  $('lockedView').hidden=false;
+}
+
+EpenAuth.renderWidget($('authWidget'));
+EpenAuth.ready.then(u=>{
+  if(!u) return showLocked();
+  $('mainView').hidden=false;
+  loadData();
+  setInterval(()=>{ if(!document.hidden) loadData(); },REFRESH_MS);
+});
+</script>
+</body>
+</html>

@@ -60,7 +60,9 @@
     .grid{grid-template-columns:1fr}
   }
   @media (max-width:420px){
-    .updated-label{display:none}
+    /* Topbar sempit: jam pembaruan disembunyikan (tiap kartu sudah menampilkan umur datanya) */
+    .updated{display:none}
+    #authWidget{margin-left:auto}
   }
 </style>
 <script src="/auth.js"></script>

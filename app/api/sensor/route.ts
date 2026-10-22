@@ -188,8 +188,15 @@ export async function POST(req: NextRequest) {
     })
     if (!device || !device.is_active) {
       if ('mac_address' in ref) {
-        // Dicatat supaya MAC alat baru mudah didaftarkan dengan `npm run device:add`
         console.warn(`[sensor] MAC belum terdaftar atau nonaktif: ${ref.mac_address}`)
+        // MAC yang benar-benar baru dicatat supaya muncul di halaman Kelola Alat ("Alat baru terdeteksi")
+        if (!device) {
+          await prisma.unregistered_macs.upsert({
+            where:  { mac_address: ref.mac_address },
+            update: { last_seen_at: new Date(), attempts: { increment: 1 } },
+            create: { mac_address: ref.mac_address },
+          })
+        }
         return NextResponse.json(
           { error: 'MAC belum terdaftar atau alat tidak aktif', mac_address: ref.mac_address },
           { status: 404 }

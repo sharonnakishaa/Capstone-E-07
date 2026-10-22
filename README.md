@@ -40,7 +40,11 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
-- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter** dan **ekspor Excel**. Lihat [Login dan akun](#login-dan-akun).
+- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter**, **ekspor Excel**, dan **Kelola Alat**. Lihat [Login dan akun](#login-dan-akun).
+
+**Kelola Alat (`/devices.html`, khusus Pengelola Lab)**
+- Daftarkan alat dari panel **Alat baru terdeteksi** (MAC yang mengirim data tapi belum terdaftar) tanpa mengetik MAC.
+- Tambah, ubah, serta aktifkan/nonaktifkan alat. Lihat [Mendaftarkan alat](#mendaftarkan-alat).
 
 **Backend**
 - Validasi payload ESP32: tipe, rentang, dan enum. Semua field yang salah dilaporkan sekaligus.
@@ -79,7 +83,7 @@ npm run simulate            # terminal lain: kirim data seperti ESP32 tiap 5 det
 | `npm run simulate` | Jalankan simulator ESP32 |
 | `npm run db:retention` | Ringkas data mentah lama per jam lalu hapus (lihat [Retensi data](#retensi-data)) |
 | `npm run user:add` | Buat akun Pengelola Lab atau reset password (lihat [Login dan akun](#login-dan-akun)) |
-| `npm run device:add` | Daftarkan alat Epen berdasarkan MAC address (lihat [Mendaftarkan alat](#mendaftarkan-alat)) |
+| `npm run device:add` | Daftarkan alat lewat terminal (cadangan untuk halaman Kelola Alat, lihat [Mendaftarkan alat](#mendaftarkan-alat)) |
 
 Halaman:
 - `/` → dialihkan ke `/lab.html` (Ringkasan Lab)
@@ -106,16 +110,30 @@ Di akhir, seed mencetak `device_id` setiap alat dan perintah simulator yang siap
 
 ## Mendaftarkan alat
 
-Firmware mengirim `mac_address` (format `24:6F:28:AB:CD:EF`, tercetak di Serial Monitor) sebagai identitas, jadi firmware semua alat bisa identik. Setiap MAC harus didaftarkan dulu:
+Firmware mengirim `mac_address` (format `24:6F:28:AB:CD:EF`, tercetak di Serial Monitor) sebagai identitas, jadi firmware semua alat bisa identik. Setiap MAC harus didaftarkan dulu.
+
+**Lewat UI — halaman Kelola Alat (`/devices.html`, khusus Pengelola Lab)**
+
+Setelah login, buka tautan **Kelola Alat** (ikon roda gigi) di topbar.
+
+1. Nyalakan alat yang belum terdaftar. Data darinya ditolak `404`, tapi MAC-nya tercatat dan muncul di panel **Alat baru terdeteksi** dalam ±5–10 detik, dengan titik hijau kalau alat sedang mengirim data.
+2. Klik **Daftarkan**. MAC terisi otomatis di form, jadi cukup isi nama (lokasi default `Lab DTETI`, jarak inlet default 5 cm).
+3. Klik **Daftarkan alat**. Kiriman berikutnya dari alat itu langsung diterima dan alatnya muncul di Ringkasan Lab.
+
+Di halaman yang sama:
+- **Tambah alat manual:** isi MAC dari Serial Monitor kalau alatnya belum dinyalakan.
+- **Ubah:** nama, lokasi, jarak inlet, atau MAC (misalnya memperbaiki salah ketik).
+- **Nonaktifkan / Aktifkan:** alat nonaktif tidak tampil di Ringkasan Lab dan datanya ditolak, tapi data lamanya tetap tersimpan. Pakai ini untuk alat dummy hasil seed. **Alat tidak bisa dihapus dari UI**, karena menghapus alat ikut menghapus semua datanya.
+- **Abaikan:** menghapus MAC dari daftar "Alat baru terdeteksi" (misalnya alat uji milik orang lain). Kalau alat itu masih mengirim data, MAC-nya akan muncul lagi.
+
+**Lewat terminal (cadangan)**
 
 ```bash
 npm run device:add -- --mac=24:6F:28:AB:CD:EF --name="Epen Meja 1"
 npm run device:add -- --mac=24:6F:28:AB:CD:EF --name="Epen Meja 1" --location="Lab DTETI" --inlet=5
 ```
 
-- Kalau MAC sudah terdaftar, script memperbarui nama, lokasi, dan jarak inlet, lalu mengaktifkan kembali alatnya.
-- Lokasi default `Lab DTETI`, jarak inlet default 5 cm.
-- Data dari MAC yang belum terdaftar ditolak `404`, dan MAC-nya dicatat di log server (`[sensor] MAC belum terdaftar…`), jadi mudah dicari lalu didaftarkan.
+Kalau MAC sudah terdaftar, script memperbarui nama, lokasi, dan jarak inlet, lalu mengaktifkan kembali alatnya.
 
 ## Simulator ESP32
 
@@ -162,6 +180,7 @@ Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjun
 |---|---|---|
 | Ringkasan Lab, dashboard detail, halaman log | ✅ | ✅ |
 | Catat penggantian filter | ❌ | ✅ |
+| Kelola Alat (daftarkan, ubah, nonaktifkan) | ❌ | ✅ |
 | Ekspor Excel | ❌ | ✅ |
 
 Belum ada halaman pendaftaran atau manajemen akun. Akun dibuat lewat script:
@@ -209,6 +228,9 @@ app/
     devices/[id]/filter/route.ts
                         POST — catat penggantian filter
     sensor/route.ts     GET/POST /api/sensor — data sensor, ekspor Excel, alert email
+    admin/devices/...   GET/POST/PATCH — Kelola Alat (khusus pengelola)
+    admin/unregistered-macs/[mac]
+                        DELETE — abaikan MAC dari "alat baru terdeteksi"
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
@@ -219,11 +241,13 @@ lib/
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
-  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly)
+  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly, unregistered_macs)
 public/
   lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
   index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)
   logs.html             Halaman log + ekspor Excel
+  devices.html          Kelola Alat — daftarkan, ubah, nonaktifkan alat (khusus pengelola)
+  auth.js               Widget Masuk/Keluar + tautan Kelola Alat untuk semua halaman
 scripts/
   lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
   seed.ts               Seed user, device, dan data historis
@@ -337,7 +361,7 @@ Semua error memakai bentuk `{ "error": string, ... }`.
 | `400` | Body bukan JSON valid | `{ "error": "Body bukan JSON valid" }` |
 | `400` | Validasi gagal: field wajib kosong, tipe salah, di luar rentang, atau enum tidak valid | lihat contoh di bawah |
 | `401` | Header `x-api-key` tidak ada atau salah | `{ "error": "Unauthorized" }` |
-| `404` | `mac_address` belum terdaftar atau alat nonaktif (MAC-nya juga dicatat di log server) | `{ "error": "MAC belum terdaftar atau alat tidak aktif", "mac_address": "24:6F:28:AB:CD:EF" }` |
+| `404` | `mac_address` belum terdaftar atau alat nonaktif. MAC yang belum terdaftar muncul di **Kelola Alat → Alat baru terdeteksi**. | `{ "error": "MAC belum terdaftar atau alat tidak aktif", "mac_address": "24:6F:28:AB:CD:EF" }` |
 | `404` | `device_id` tidak terdaftar atau perangkat nonaktif | `{ "error": "Device tidak ditemukan atau tidak aktif", "device_id": "..." }` |
 | `500` | Kesalahan server atau database | `{ "error": "Internal server error" }` |
 
@@ -484,6 +508,23 @@ Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu t
 | `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role } }` dan cookie `epen_session`. `401` kalau email/password salah (pesannya sama untuk keduanya), `400` kalau body tidak lengkap. |
 | `POST /api/auth/logout` | — | `200 { success: true }`, cookie dihapus. |
 | `GET /api/auth/me` | — | `200 { user: {...} }` kalau login, atau `200 { user: null }`. |
+
+---
+
+### Kelola Alat — `/api/admin/*` (khusus pengelola)
+
+Semua endpoint di bawah ini wajib login sebagai Pengelola Lab (`401` tanpa login).
+
+| Endpoint | Body | Respons |
+|---|---|---|
+| `GET /api/admin/devices` | — | `200 { devices: [...], unregistered: [...], server_time }`. `devices` berisi semua alat, aktif maupun nonaktif, beserta `mac_address` dan `last_seen_at`. `unregistered` berisi MAC yang mengirim data tapi belum terdaftar (`first_seen_at`, `last_seen_at`, `attempts`), maksimal 50, terbaru dulu. |
+| `POST /api/admin/devices` | `{ mac_address, device_name, location?, inlet_distance_cm? }` | `201 { device }`. MAC dihapus dari daftar `unregistered`. `409` kalau MAC sudah terdaftar, `400` kalau validasi gagal. |
+| `PATCH /api/admin/devices/:id` | Sebagian dari `{ mac_address, device_name, location, inlet_distance_cm, is_active }` | `200 { device }`. `409` kalau MAC dipakai alat lain, `404` kalau alat tidak ada. |
+| `DELETE /api/admin/unregistered-macs/:mac` | — | `200 { success, deleted }`. MAC dihapus dari daftar "alat baru terdeteksi". |
+
+Aturan validasi: MAC berformat `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi), nama dan lokasi 1–60 karakter, jarak inlet > 0 dan ≤ 100 cm. Tidak ada endpoint hapus alat; nonaktifkan dengan `PATCH { "is_active": false }`.
+
+MAC dicatat ke `unregistered_macs` oleh `POST /api/sensor` setiap kali alat yang belum terdaftar mengirim data (`404`). Alat yang terdaftar tapi nonaktif **tidak** dicatat di sini.
 
 ---
 

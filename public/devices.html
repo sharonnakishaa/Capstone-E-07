@@ -170,6 +170,19 @@
   </section>
 </main>
 
+<dialog class="modal" id="confirmModal" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+  <form method="dialog">
+    <div class="modal-body">
+      <h2 class="modal-title" id="confirmTitle">Konfirmasi</h2>
+      <p class="modal-text" id="confirmText"></p>
+    </div>
+    <div class="modal-actions">
+      <button value="cancel" class="btn-ghost" id="confirmCancel">Batal</button>
+      <button value="ok" class="btn" id="confirmOk">OK</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 /* THEME */
 (function(){
@@ -211,6 +224,27 @@ async function api(path,opts={}){
   }
   return json;
 }
+
+/**
+ * Modal konfirmasi bergaya EPEN (pengganti confirm() bawaan browser).
+ * Memakai <dialog>: Esc / klik Batal → false, tombol konfirmasi → true. Fokus awal di Batal
+ * supaya Enter tidak langsung menjalankan aksi berisiko.
+ */
+function confirmDialog({title,html,confirmText='OK',danger=false}){
+  const dlg=$('confirmModal'), ok=$('confirmOk');
+  $('confirmTitle').textContent=title;
+  $('confirmText').innerHTML=html;
+  ok.textContent=confirmText;
+  ok.className='btn'+(danger?' btn-danger':'');
+  dlg.returnValue='';
+  dlg.showModal();
+  $('confirmCancel').focus();
+  return new Promise(resolve=>{
+    dlg.addEventListener('close',()=>resolve(dlg.returnValue==='ok'),{once:true});
+  });
+}
+// Klik di luar kotak modal (area latar) = batal
+$('confirmModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) e.currentTarget.close('cancel'); });
 
 /* STATE */
 let devices=[], unregistered=[], serverTime=new Date().toISOString();
@@ -368,7 +402,15 @@ document.addEventListener('click',async e=>{
     const d=devices.find(x=>x.id===t.dataset.toggle);
     if(!d) return;
     const activate=!d.is_active;
-    if(!activate&&!confirm(`Nonaktifkan "${d.device_name}"?\n\nAlat tidak tampil di Ringkasan Lab dan data yang dikirimnya ditolak sampai diaktifkan lagi. Data lama tetap tersimpan.`)) return;
+    if(!activate){
+      const yes=await confirmDialog({
+        title:'Nonaktifkan alat?',
+        html:`<strong>${esc(d.device_name)}</strong> (${esc(d.mac_address)}) tidak akan tampil di Ringkasan Lab, dan data yang dikirimnya ditolak sampai diaktifkan lagi.<br><br>Data lama tetap tersimpan, dan alat bisa diaktifkan kembali kapan saja dari halaman ini.`,
+        confirmText:'Nonaktifkan',
+        danger:true,
+      });
+      if(!yes) return;
+    }
     t.disabled=true;
     try{
       await api(`/api/admin/devices/${encodeURIComponent(d.id)}`,{method:'PATCH',body:JSON.stringify({is_active:activate})});

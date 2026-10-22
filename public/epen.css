@@ -98,6 +98,18 @@ td.dim{color:var(--muted-2)}
 td.last{text-align:right}
 td.empty-row{text-align:center;color:var(--muted);padding:32px;font-family:var(--sans)}
 
+/* MODAL KONFIRMASI — <dialog class="modal"> (lihat devices.html) */
+.modal{width:min(440px,calc(100vw - 32px));padding:0;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:var(--sh-lg)}
+.modal::backdrop{background:rgba(20,12,8,.45)}
+.modal-body{padding:22px 22px 18px;display:flex;flex-direction:column;gap:10px}
+.modal-title{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text-strong);line-height:1.2;margin:0}
+.modal-text{margin:0;font-size:14.5px;color:var(--muted);line-height:1.55}
+.modal-text strong{color:var(--text-strong)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:2px solid var(--line);background:var(--surface-2);border-radius:0 0 10px 10px}
+.btn-danger{background:var(--ink-bahaya);color:var(--surface)}
+.modal[open]{animation:modal-in .14s ease-out}
+@keyframes modal-in{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+
 @media (max-width:720px){
   .topbar{padding:0 16px;gap:10px}
   .card{padding:16px}

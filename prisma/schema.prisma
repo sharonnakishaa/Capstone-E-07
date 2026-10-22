@@ -52,8 +52,8 @@ model sensor_logs {
   tvoc_baseline_ppb   Float?                    // Baseline udara bersih yang direkam ESP32 saat menyala
   eco2_ppm            Float
   dust_outlet_ugm3    Float?                    // Debu di outlet (GP2Y), indikator efektivitas filter
-  temperature_celsius Float
-  humidity_percent    Float
+  temperature_celsius Float?                    // null kalau SHT31 gagal dibaca
+  humidity_percent    Float?                    // null kalau SHT31 gagal dibaca
   air_status          String    @default("AMAN") // Keluaran fuzzy ESP32: AMAN | WASPADA | BERBAHAYA
   fan_duty_percent    Float                     // 0–100 %, keluaran fuzzy Sugeno (kontinu)
   fan_rpm             Int?                      // Dari sinyal tacho kipas
@@ -85,8 +85,8 @@ model sensor_hourly {
   tvoc_raw_max_ppb        Float
   dust_outlet_avg_ugm3    Float?
   dust_outlet_max_ugm3    Float?
-  temperature_avg_celsius Float
-  humidity_avg_percent    Float
+  temperature_avg_celsius Float?
+  humidity_avg_percent    Float?
   aman_samples            Int
   waspada_samples         Int
   berbahaya_samples       Int

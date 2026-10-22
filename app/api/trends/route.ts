@@ -18,6 +18,8 @@ interface DayRow {
   dust_max: number | null
   temp_sum: number | null
   rh_sum: number | null
+  temp_n: number            // data yang punya nilai suhu (SHT31 bisa gagal baca)
+  rh_n: number
   aman: number
   waspada: number
   berbahaya: number
@@ -69,6 +71,8 @@ export async function GET(req: NextRequest) {
                MAX(dust_outlet_ugm3)                               AS dust_max,
                SUM(temperature_celsius)                            AS temp_sum,
                SUM(humidity_percent)                               AS rh_sum,
+               COUNT(temperature_celsius)                          AS temp_n,
+               COUNT(humidity_percent)                             AS rh_n,
                COUNT(*) FILTER (WHERE air_status = 'AMAN')         AS aman,
                COUNT(*) FILTER (WHERE air_status = 'WASPADA')      AS waspada,
                COUNT(*) FILTER (WHERE air_status = 'BERBAHAYA')    AS berbahaya
@@ -88,6 +92,8 @@ export async function GET(req: NextRequest) {
                MAX(dust_outlet_max_ugm3)                          AS dust_max,
                SUM(temperature_avg_celsius * samples)             AS temp_sum,
                SUM(humidity_avg_percent * samples)                AS rh_sum,
+               SUM(samples) FILTER (WHERE temperature_avg_celsius IS NOT NULL) AS temp_n,
+               SUM(samples) FILTER (WHERE humidity_avg_percent IS NOT NULL)    AS rh_n,
                SUM(aman_samples)                                  AS aman,
                SUM(waspada_samples)                               AS waspada,
                SUM(berbahaya_samples)                             AS berbahaya
@@ -105,6 +111,8 @@ export async function GET(req: NextRequest) {
              MAX(dust_max)::float8                 AS dust_max,
              SUM(temp_sum)::float8                 AS temp_sum,
              SUM(rh_sum)::float8                   AS rh_sum,
+             COALESCE(SUM(temp_n), 0)::int         AS temp_n,
+             COALESCE(SUM(rh_n), 0)::int           AS rh_n,
              SUM(aman)::int                        AS aman,
              SUM(waspada)::int                     AS waspada,
              SUM(berbahaya)::int                   AS berbahaya
@@ -135,8 +143,8 @@ export async function GET(req: NextRequest) {
         tvoc_max_ppb:            round1(r.tvoc_max),
         dust_avg_ugm3:           round1(r.dust_n > 0 && r.dust_sum !== null ? r.dust_sum / r.dust_n : null),
         dust_max_ugm3:           round1(r.dust_max),
-        temperature_avg_celsius: round1(r.temp_sum === null ? null : r.temp_sum / r.samples),
-        humidity_avg_percent:    round1(r.rh_sum === null ? null : r.rh_sum / r.samples),
+        temperature_avg_celsius: round1(r.temp_n > 0 && r.temp_sum !== null ? r.temp_sum / r.temp_n : null),
+        humidity_avg_percent:    round1(r.rh_n > 0 && r.rh_sum !== null ? r.rh_sum / r.rh_n : null),
       }
     })
 

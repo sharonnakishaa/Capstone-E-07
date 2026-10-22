@@ -144,6 +144,7 @@ Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan MAC alat has
 | I-06 | Format MAC | POST dengan `mac_address: "246F28ABCDEF"`, lalu dengan `mac_address` **dan** `device_id` sekaligus. | Keduanya `400`: "harus format MAC seperti 24:6F:28:AB:CD:EF" dan "kirim salah satu saja". MAC huruf kecil (`24:6f:28:00:00:01`) tetap diterima `201`. | | |
 | I-07 | Firmware lama | POST dengan `device_id` (UUID hasil seed) dan `fuzzy_level: "MED"`. | `201`. `fuzzy_level` diabaikan tanpa error. | | |
 | I-08 | Daftarkan alat | `npm run device:add -- --mac=24:6F:28:FF:FF:FF --name="Epen Uji"`, lalu ulangi I-04. | Script mencetak MAC dan device_id. POST yang tadinya `404` sekarang `201`, dan alat "Epen Uji" muncul di Ringkasan Lab. | | |
+| I-09 | Suhu/RH kosong | POST payload valid dengan `temperature_celsius: null` dan `humidity_percent: null` (meniru SHT31 gagal baca). | `201`. Data tersimpan, kartu Suhu dan Kelembapan di dashboard menampilkan "—", dan nilai TVOC serta status tetap tampil normal. Payload dengan `temperature_celsius: "nan"` tetap ditolak `400`. | | |
 
 ## J. Tampilan
 
@@ -244,11 +245,11 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | F. Tabel log di dashboard | 4 | | | |
 | G. Halaman log dan ekspor Excel | 7 | | | |
 | H. Notifikasi email | 5 | | | |
-| I. Validasi API | 8 | | | |
+| I. Validasi API | 9 | | | |
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 7 | | | |
 | L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 9 | | | |
 | N. Kelola Alat | 8 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| **Total** | **110** | | | |
+| **Total** | **111** | | | |

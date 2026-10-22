@@ -14,8 +14,8 @@ export interface SensorReading {
   tvoc_kalman_ppb: number | null
   tvoc_baseline_ppb: number | null
   eco2_ppm: number
-  temperature_celsius: number
-  humidity_percent: number
+  temperature_celsius: number | null // null kalau SHT31 gagal dibaca
+  humidity_percent: number | null
   dust_outlet_ugm3: number | null
   air_status: StatusLabel
   fan_duty_percent: number
@@ -101,8 +101,9 @@ export function parseSensorPayload(body: unknown):
   optional('tvoc_kalman_ppb',     { min: 0 })
   optional('tvoc_baseline_ppb',   { min: 0 })
   required('eco2_ppm',            { min: 0 })
-  required('temperature_celsius', {})
-  required('humidity_percent',    { min: 0, max: 100 })
+  // Opsional: kalau SHT31 gagal dibaca, data TVOC & status tetap disimpan
+  optional('temperature_celsius', {})
+  optional('humidity_percent',    { min: 0, max: 100 })
   optional('dust_outlet_ugm3',    { min: 0 })
   required('fan_duty_percent',    { min: 0, max: 100 })
   optional('fan_rpm',             { min: 0, max: INT4_MAX, integer: true })
@@ -125,8 +126,8 @@ export function parseSensorPayload(body: unknown):
       tvoc_kalman_ppb:     num('tvoc_kalman_ppb'),
       tvoc_baseline_ppb:   num('tvoc_baseline_ppb'),
       eco2_ppm:            b.eco2_ppm as number,
-      temperature_celsius: b.temperature_celsius as number,
-      humidity_percent:    b.humidity_percent as number,
+      temperature_celsius: num('temperature_celsius'),
+      humidity_percent:    num('humidity_percent'),
       dust_outlet_ugm3:    num('dust_outlet_ugm3'),
       air_status:          b.air_status as StatusLabel,
       fan_duty_percent:    b.fan_duty_percent as number,

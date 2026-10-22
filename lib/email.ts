@@ -12,8 +12,8 @@ export interface WarningEmailPayload {
   fan_duty_percent: number
   fan_rpm: number | null
   dust_outlet_ugm3: number | null
-  temperature_celsius: number
-  humidity_percent: number
+  temperature_celsius: number | null
+  humidity_percent: number | null
   timestamp: Date
 }
 

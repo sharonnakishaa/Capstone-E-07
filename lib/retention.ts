@@ -74,10 +74,15 @@ export async function runRetention(
     ON CONFLICT (device_id, hour_start) DO UPDATE SET
       tvoc_avg_ppb            = (sensor_hourly.tvoc_avg_ppb * sensor_hourly.samples + EXCLUDED.tvoc_avg_ppb * EXCLUDED.samples)
                                 / (sensor_hourly.samples + EXCLUDED.samples),
-      temperature_avg_celsius = (sensor_hourly.temperature_avg_celsius * sensor_hourly.samples + EXCLUDED.temperature_avg_celsius * EXCLUDED.samples)
-                                / (sensor_hourly.samples + EXCLUDED.samples),
-      humidity_avg_percent    = (sensor_hourly.humidity_avg_percent * sensor_hourly.samples + EXCLUDED.humidity_avg_percent * EXCLUDED.samples)
-                                / (sensor_hourly.samples + EXCLUDED.samples),
+      -- Suhu, RH, dan debu boleh kosong (sensor gagal baca): kalau salah satu sisi null, pakai sisi lainnya
+      temperature_avg_celsius = COALESCE(
+                                  (sensor_hourly.temperature_avg_celsius * sensor_hourly.samples + EXCLUDED.temperature_avg_celsius * EXCLUDED.samples)
+                                  / (sensor_hourly.samples + EXCLUDED.samples),
+                                  sensor_hourly.temperature_avg_celsius, EXCLUDED.temperature_avg_celsius),
+      humidity_avg_percent    = COALESCE(
+                                  (sensor_hourly.humidity_avg_percent * sensor_hourly.samples + EXCLUDED.humidity_avg_percent * EXCLUDED.samples)
+                                  / (sensor_hourly.samples + EXCLUDED.samples),
+                                  sensor_hourly.humidity_avg_percent, EXCLUDED.humidity_avg_percent),
       dust_outlet_avg_ugm3    = COALESCE(
                                   (sensor_hourly.dust_outlet_avg_ugm3 * sensor_hourly.samples + EXCLUDED.dust_outlet_avg_ugm3 * EXCLUDED.samples)
                                   / (sensor_hourly.samples + EXCLUDED.samples),

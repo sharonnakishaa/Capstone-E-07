@@ -28,7 +28,8 @@ export const STATUS_META: Record<StatusLabel, {
 
 // Ambang status fuzzy di firmware, dihitung di ATAS baseline udara bersih tiap alat.
 // Garis ambang di grafik = tvoc_baseline_ppb + nilai ini. Samakan dengan firmware (epen_config.h)
-// kalau fungsi keanggotaan fuzzy-nya berubah.
+// kalau fungsi keanggotaan fuzzy-nya berubah. Nilai firmware: 206,97 dan 359,48 ppb (dibulatkan;
+// selisih < 1 ppb tidak terlihat di grafik).
 export const TVOC_THRESHOLD_ABOVE_BASELINE_PPB = {
   waspada:   207,
   berbahaya: 359,

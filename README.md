@@ -313,7 +313,7 @@ Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TEST
 
 ## API Contract
 
-> **Status:** kontrak ini adalah **draf** dan masih harus dikonfirmasi ke tim firmware. Kontrak ini menjadi acuan implementasi backend.
+> **Status:** kontrak ini **sudah disepakati dengan tim firmware** dan sudah diverifikasi terhadap kode firmware (Oktober 2026).
 
 Semua body dan respons memakai JSON (`Content-Type: application/json`), kecuali ekspor Excel. Waktu dalam respons JSON memakai ISO 8601 UTC, misalnya `2026-10-16T03:12:45.000Z`. Waktu pembacaan (`recorded_at`) diisi oleh **server** saat data diterima, jadi ESP32 tidak perlu mengirim timestamp.
 
@@ -354,8 +354,8 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 | `tvoc_kalman_ppb` | number \| null | | Finite, ≥ 0 | TVOC Kalman **absolut** (= baseline + estimasi). `null` selama pemanasan. |
 | `tvoc_baseline_ppb` | number \| null | | Finite, ≥ 0 | Baseline udara bersih yang direkam saat alat menyala. `null` selama pemanasan. Dipakai untuk garis ambang. |
 | `eco2_ppm` | number | ✅ | Finite, ≥ 0 | eCO₂ dari SGP30, disimpan sebagai data pelengkap |
-| `temperature_celsius` | number | ✅ | Finite | Suhu dari SHT31 |
-| `humidity_percent` | number | ✅ | Finite, 0–100 | Kelembapan relatif dari SHT31 |
+| `temperature_celsius` | number \| null | | Finite | Suhu dari SHT31. Kirim `null` (bukan `NaN`) kalau SHT31 gagal dibaca. Data lain tetap disimpan. |
+| `humidity_percent` | number \| null | | Finite, 0–100 | Kelembapan relatif dari SHT31. `null` kalau SHT31 gagal dibaca. |
 | `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y). Sementara dikirim `null` oleh firmware. |
 | `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya. `AMAN` selama pemanasan. |
 | `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty kipas hasil fuzzy Sugeno (rata-rata terbobot, kontinu). 0 selama pemanasan. |
@@ -363,9 +363,9 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 
 \* Kirim **tepat satu** dari `mac_address` atau `device_id`. Mengirim keduanya ditolak `400`.
 
-- Field opsional boleh dihilangkan atau diisi `null`. Field yang tidak dikenal diabaikan, misalnya `fuzzy_level` dari firmware lama.
+- Field opsional boleh dihilangkan atau diisi `null`. **Jangan kirim `NaN` atau `Infinity`**: keduanya bukan JSON yang valid, sehingga seluruh request ditolak `400 Body bukan JSON valid`. Ganti dengan `null` sebelum diserialisasi. Field yang tidak dikenal diabaikan, misalnya `fuzzy_level` dari firmware lama.
 - **Fase pemanasan (±45 detik setelah alat menyala):** SGP30 pemanasan 15 detik, lalu baseline direkam 30 detik. Selama fase ini firmware mengirim `tvoc_kalman_ppb` dan `tvoc_baseline_ppb` = `null`, `air_status` = `AMAN`, dan kipas mati. Dashboard menampilkan keterangan **"Pemanasan sensor"**.
-- **Ambang status di firmware relatif terhadap baseline:** WASPADA mulai **baseline + 207 ppb**, BERBAHAYA mulai **baseline + 359 ppb** (`TVOC_THRESHOLD_ABOVE_BASELINE_PPB` di `lib/sensor.ts`, samakan dengan `epen_config.h`). Server tidak menghitung status. Ambang ini hanya dipakai untuk garis referensi grafik.
+- **Ambang status di firmware relatif terhadap baseline:** WASPADA mulai **baseline + 207 ppb**, BERBAHAYA mulai **baseline + 359 ppb** (`TVOC_THRESHOLD_ABOVE_BASELINE_PPB` di `lib/sensor.ts`). Nilai ini pembulatan dari batas keputusan fuzzy firmware, yaitu **206,97** dan **359,48 ppb** (0,475 dan 0,825 mg/m³ dengan faktor 0,002295 mg/m³ per ppb). Selisihnya di bawah 1 ppb dan tidak terlihat di grafik. Kalau fungsi keanggotaan di `epen_config.h` berubah, samakan angkanya di sini. Server tidak menghitung status. Ambang ini hanya dipakai untuk garis referensi grafik.
 - **Tingkat keluaran fuzzy:** 0 / 30 / 50 / 75 / 100 %. Karena keluarannya rata-rata terbobot, duty yang dikirim bisa bernilai di antaranya (misalnya 55 %). Tidak ada lagi label level.
 
 **Respons sukses — `201 Created`**

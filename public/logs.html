@@ -96,6 +96,7 @@
         <div class="toolbar-sub" id="toolbarSub">Memuat data...</div>
       </div>
       <div class="toolbar-info" id="toolbarInfo"></div>
+      <a href="/trends.html" class="btn-ghost" id="trendsLink">Lihat tren jangka panjang →</a>
     </div>
 
     <form class="export" id="exportForm" novalidate>
@@ -336,6 +337,7 @@ function syncDeviceUrl() {
   const q = `?device=${encodeURIComponent(currentDeviceId)}`;
   history.replaceState(null, '', location.pathname + q);
   $('backLink').href = '/index.html' + q;
+  $('trendsLink').href = '/trends.html' + q;
 }
 
 /* LOAD DEVICES */

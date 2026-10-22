@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>EPEN — Tren Jangka Panjang</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700;800&family=Playfair+Display+SC:wght@700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/epen.css">
+<style>
+  [hidden]{display:none!important}
+  .back-btn{margin-left:auto}
+
+  main{max-width:1280px;margin:0 auto;padding:32px 24px 56px;display:flex;flex-direction:column;gap:24px}
+
+  .device-select-wrap{position:relative;display:flex;align-items:center;min-width:0}
+  .device-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;height:40px;background:var(--surface);border:2px solid var(--line);border-radius:10px;box-shadow:var(--sh-sm);padding:0 34px 0 12px;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--text-strong);cursor:pointer;outline:none;max-width:280px;min-width:0;text-overflow:ellipsis}
+  .device-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .device-select option{background:var(--surface);color:var(--text)}
+  .select-chevron{position:absolute;right:12px;pointer-events:none;color:var(--text-strong)}
+
+  /* KEPALA HALAMAN */
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .page-head .h-title{font-size:30px}
+  .page-sub{font-size:14px;color:var(--muted);margin-top:6px}
+  .range{display:inline-flex;border:2px solid var(--line);border-radius:10px;box-shadow:var(--sh-sm);overflow:hidden;background:var(--surface)}
+  .range button{height:38px;padding:0 16px;border:0;border-right:2px solid var(--line);background:transparent;font-family:var(--sans);font-size:14px;font-weight:800;color:var(--text-strong);cursor:pointer}
+  .range button:last-child{border-right:0}
+  .range button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+  .range button:focus-visible{outline:2px solid var(--accent);outline-offset:-4px}
+
+  /* RINGKASAN */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .tile{display:flex;flex-direction:column;gap:6px}
+  .tile-label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .tile-value{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--text-strong);line-height:1.05}
+  .tile-value small{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px}
+  .tile-note{font-size:12.5px;color:var(--muted)}
+
+  /* GRAFIK */
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .charts .wide{grid-column:1/-1}
+  .chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px 16px;flex-wrap:wrap;margin-bottom:14px}
+  .legend{display:flex;gap:8px;flex-wrap:wrap}
+  .legend-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border:1.5px solid var(--border-soft);border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);background:var(--surface-2)}
+  .legend-pill .sw{width:14px;height:3px;border-radius:2px;background:currentColor}
+  .legend-pill .sw.box{width:10px;height:10px;border-radius:2px}
+  .legend-pill .sw.faint{opacity:.45;height:8px}
+  .legend-pill .sw.dash{background:none;background-image:linear-gradient(to right,currentColor 60%,transparent 0);background-size:5px 3px;background-repeat:repeat-x}
+  .chart-wrap{position:relative;height:260px;touch-action:pan-y}
+  .chart-wrap svg{display:block;width:100%;height:100%}
+  .chart-empty{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 24px;color:var(--muted);font-size:13.5px;border:2px dashed var(--border-soft);border-radius:10px}
+  .tip{position:absolute;top:6px;pointer-events:none;z-index:2;min-width:170px;padding:9px 11px;background:var(--surface);border:2px solid var(--line);border-radius:8px;box-shadow:var(--sh-sm);font-size:12.5px}
+  .tip-date{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:4px}
+  .tip-row{display:flex;justify-content:space-between;gap:14px;color:var(--muted)}
+  .tip-row b{font-family:var(--mono);color:var(--text-strong);font-weight:700}
+  .tip-key{display:inline-flex;align-items:center;gap:6px}
+  .tip-key i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+  .note{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .msg{padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:600;background:var(--err-bg);border:2px solid var(--err-border);color:var(--err-text)}
+
+  @media (max-width:1000px){
+    .tiles{grid-template-columns:repeat(2,1fr)}
+    .charts{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    .topbar{height:auto;flex-wrap:wrap;padding:12px 16px}
+    .topbar .device-select-wrap{order:3;width:100%}
+    .topbar .device-select{max-width:none;width:100%}
+    main{padding:20px 16px 40px;gap:16px}
+    .page-head .h-title{font-size:24px}
+    .range{width:100%}
+    .range button{flex:1}
+    .tile-value{font-size:24px}
+    .chart-wrap{height:220px}
+  }
+</style>
+<script src="/auth.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/lab.html" aria-label="EPEN — Ringkasan Lab">
+    <span class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(45 12 12)"><rect x="9.5" y="0.5" width="5" height="9" rx="2"/><path d="M12 9.5v5.5"/><path d="M10.6 15h2.8L12 20.5z"/></g><path d="M2.5 21.5h6"/><path d="M3.5 12.5c-1.2-1.4 1.2-2.6 0-4M7 9c-1.2-1.4 1.2-2.6 0-4"/></svg></span>
+    <span class="brand-text"><span class="brand-title">EPEN</span><span class="brand-sub">Tren Jangka Panjang</span></span>
+  </a>
+
+  <div class="device-select-wrap">
+    <select id="deviceSelect" class="device-select" aria-label="Pilih perangkat">
+      <option>Memuat...</option>
+    </select>
+    <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+
+  <a href="/index.html" class="back-btn" id="backLink" aria-label="Kembali ke dashboard">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <span class="nav-label">Dashboard</span>
+  </a>
+
+  <div id="authWidget"></div>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle tema"></button>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <div class="h-title">Tren Jangka Panjang</div>
+      <div class="page-sub" id="pageSub">Memuat...</div>
+    </div>
+    <div class="range" role="group" aria-label="Rentang waktu">
+      <button type="button" data-days="7">7 hari</button>
+      <button type="button" data-days="30">30 hari</button>
+      <button type="button" data-days="90">90 hari</button>
+    </div>
+  </div>
+
+  <div class="msg" id="errorMsg" role="alert" hidden></div>
+
+  <section class="tiles" aria-label="Ringkasan periode">
+    <div class="card tile">
+      <span class="tile-label">Alat menyala</span>
+      <span class="tile-value" id="tActive">—</span>
+      <span class="tile-note" id="tActiveNote">—</span>
+    </div>
+    <div class="card tile">
+      <span class="tile-label">Status Berbahaya</span>
+      <span class="tile-value" id="tDanger">—</span>
+      <span class="tile-note" id="tDangerNote">—</span>
+    </div>
+    <div class="card tile">
+      <span class="tile-label">Status Waspada</span>
+      <span class="tile-value" id="tWarn">—</span>
+      <span class="tile-note" id="tWarnNote">—</span>
+    </div>
+    <div class="card tile">
+      <span class="tile-label">Rata-rata TVOC</span>
+      <span class="tile-value" id="tTvoc">—</span>
+      <span class="tile-note" id="tTvocNote">—</span>
+    </div>
+  </section>
+
+  <section class="charts">
+    <article class="card wide">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Durasi status per hari</div>
+          <div class="chart-sub">Berapa jam udara berstatus Aman, Waspada, dan Berbahaya setiap hari</div>
+        </div>
+        <div class="legend" id="statusLegend"></div>
+      </div>
+      <div class="chart-wrap" id="statusChart"></div>
+    </article>
+
+    <article class="card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">TVOC harian</div>
+          <div class="chart-sub">Rata-rata (garis) dan puncak (batang) TVOC Kalman per hari</div>
+        </div>
+        <div class="legend">
+          <span class="legend-pill" style="color:var(--series)"><span class="sw"></span><span style="color:var(--muted)">Rata-rata</span></span>
+          <span class="legend-pill" style="color:var(--series)"><span class="sw box faint"></span><span style="color:var(--muted)">Puncak</span></span>
+        </div>
+      </div>
+      <div class="chart-wrap" id="tvocChart"></div>
+    </article>
+
+    <article class="card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Debu outlet harian</div>
+          <div class="chart-sub">Rata-rata debu setelah filter — naik perlahan berarti filter mulai jenuh</div>
+        </div>
+        <div class="legend" id="dustLegend"></div>
+      </div>
+      <div class="chart-wrap" id="dustChart"></div>
+    </article>
+  </section>
+
+  <p class="note">Durasi dihitung dari jumlah data × 5 detik (interval kirim alat), jadi jam saat alat mati atau offline tidak terhitung. Data 60 hari terakhir berasal dari log mentah; data yang lebih lama berasal dari ringkasan per jam hasil retensi. Hari dihitung dalam WIB.</p>
+</main>
+
+<script>
+/* THEME */
+(function(){
+  const root=document.documentElement,btn=document.getElementById('themeToggle');
+  const MOON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>`;
+  const SUN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  function apply(t){
+    root.dataset.theme=t;btn.innerHTML=t==='light'?MOON:SUN;
+    try{localStorage.setItem('epen-theme',t)}catch(e){}
+    if(window.CFG&&window._trend) renderAll(window._trend);
+  }
+  btn.addEventListener('click',()=>apply(root.dataset.theme==='light'?'dark':'light'));
+  const saved=(()=>{try{return localStorage.getItem('epen-theme')}catch(e){return null}})();
+  apply(saved==='dark'?'dark':'light');
+})();
+
+/* HELPERS */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const isLight=()=>document.documentElement.dataset.theme==='light';
+const statusColor=k=>isLight()?CFG.statuses[k].text_light:CFG.statuses[k].color;
+function fmtNum(v,d=0){return v==null?'—':Number(v).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:d});}
+function fmtHours(h){
+  if(h==null) return '—';
+  if(h<1) return `${fmtNum(h*60)} mnt`;
+  return `${fmtNum(h,1)} jam`;
+}
+const MONTHS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function fmtDay(iso,long){const [y,m,d]=iso.split('-').map(Number);return long?`${d} ${MONTHS[m-1]} ${y}`:`${d}/${m}`;}
+const STATUS_KEYS=['AMAN','WASPADA','BERBAHAYA'];
+
+/* CONFIG */
+window.CFG=null;
+async function loadConfig(){
+  const res=await fetch('/api/config');
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  window.CFG=await res.json();
+}
+
+/* KERANGKA GRAFIK HARIAN — sumbu, grid, label tanggal, area hover per hari */
+function frame(wrap,n,yMax,unit){
+  const W=wrap.clientWidth||600, H=wrap.clientHeight||260;
+  const pad={t:22,r:10,b:26,l:46};
+  const band=(W-pad.l-pad.r)/n;
+  const xAt=i=>pad.l+band*(i+0.5);
+  const yAt=v=>pad.t+(1-v/yMax)*(H-pad.t-pad.b);
+  const grid=cssVar('--border-soft'), axis=cssVar('--muted-2');
+  const ticks=niceTicks(yMax);
+  const gridSvg=ticks.map(v=>{const y=yAt(v).toFixed(1);return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="${grid}"/><text x="${pad.l-8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="${axis}" font-family="JetBrains Mono" font-size="10.5">${fmtNum(v,1)}</text>`;}).join('')
+    +`<text x="${pad.l-8}" y="${pad.t-10}" text-anchor="end" fill="${axis}" font-family="JetBrains Mono" font-size="9.5" font-style="italic">${unit}</text>`;
+  // Label tanggal: sebanyak yang muat (±56px per label)
+  const every=Math.max(1,Math.ceil(n/Math.max(1,Math.floor((W-pad.l-pad.r)/56))));
+  return {W,H,pad,band,xAt,yAt,gridSvg,
+    xLabels:days=>days.map((d,i)=>{
+      if(i%every!==(n-1)%every) return '';
+      // Label di dekat tepi kanan diratakan kanan supaya tidak terpotong
+      const x=xAt(i), edge=x>W-24;
+      return `<text x="${(edge?W-2:x).toFixed(1)}" y="${H-8}" text-anchor="${edge?'end':'middle'}" fill="${axis}" font-family="JetBrains Mono" font-size="10.5">${fmtDay(d.date)}</text>`;
+    }).join('')};
+}
+function niceTicks(max){
+  const raw=max/4, mag=Math.pow(10,Math.floor(Math.log10(raw||1)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw)||raw;
+  return Array.from({length:Math.floor(max/step)+1},(_,i)=>+(i*step).toFixed(6));
+}
+function niceMax(v,min){return Math.max(min,v*1.15);}
+
+/** Pasang tooltip + sorotan hari pada grafik. */
+function attachHover(wrap,f,n,html){
+  const hl=wrap.querySelector('.hl'), tip=document.createElement('div');
+  tip.className='tip'; tip.hidden=true; wrap.appendChild(tip);
+  const show=x=>{
+    const i=Math.max(0,Math.min(n-1,Math.floor((x-f.pad.l)/f.band)));
+    hl.setAttribute('x',(f.pad.l+f.band*i).toFixed(1)); hl.setAttribute('opacity','1');
+    tip.innerHTML=html(i); tip.hidden=false;
+    const cx=f.xAt(i), tw=tip.offsetWidth;
+    tip.style.left=(cx+14+tw>f.W?Math.max(0,cx-14-tw):cx+14)+'px';
+  };
+  wrap.onpointermove=e=>show(e.clientX-wrap.getBoundingClientRect().left);
+  wrap.onpointerleave=()=>{tip.hidden=true;hl.setAttribute('opacity','0');};
+}
+const hlRect=f=>`<rect class="hl" x="0" y="${f.pad.t}" width="${f.band.toFixed(1)}" height="${(f.H-f.pad.t-f.pad.b).toFixed(1)}" fill="${cssVar('--accent-soft')}" opacity="0"/>`;
+const tipRow=(key,color,val)=>`<div class="tip-row"><span class="tip-key">${color?`<i style="background:${color}"></i>`:''}${key}</span><b>${val}</b></div>`;
+
+/* GRAFIK 1 — durasi status per hari (batang bertumpuk) */
+function renderStatus(days){
+  const wrap=$('statusChart'), n=days.length;
+  $('statusLegend').innerHTML=STATUS_KEYS.map(k=>`<span class="legend-pill" style="color:${statusColor(k)}"><span class="sw box"></span><span style="color:var(--muted)">${esc(CFG.statuses[k].label)}</span></span>`).join('');
+  if(!days.some(d=>d.active_hours>0)){wrap.innerHTML='<div class="chart-empty">Belum ada data pada rentang ini</div>';return;}
+  const f=frame(wrap,n,niceMax(Math.max(...days.map(d=>d.active_hours)),1),'jam');
+  const bw=Math.max(2,Math.min(28,f.band*0.7)), gap=1.5, surf=cssVar('--surface');
+  const bars=days.map((d,i)=>{
+    let acc=0;
+    return STATUS_KEYS.map(k=>{
+      const h=d.status_hours[k]; if(!h) return '';
+      const y0=f.yAt(acc), y1=f.yAt(acc+h); acc+=h;
+      const hgt=Math.max(1,y0-y1-gap);
+      return `<rect x="${(f.xAt(i)-bw/2).toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${hgt.toFixed(1)}" rx="2" fill="${statusColor(k)}" stroke="${surf}" stroke-width="0"/>`;
+    }).join('');
+  }).join('');
+  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="Durasi status per hari">${hlRect(f)}${f.gridSvg}${bars}${f.xLabels(days)}</svg>`;
+  attachHover(wrap,f,n,i=>{
+    const d=days[i];
+    return `<div class="tip-date">${fmtDay(d.date,true)}</div>`
+      +STATUS_KEYS.map(k=>tipRow(esc(CFG.statuses[k].label),statusColor(k),fmtHours(d.status_hours[k]))).join('')
+      +tipRow('Total menyala','',fmtHours(d.active_hours));
+  });
+}
+
+/* GRAFIK 2 — TVOC harian (puncak = batang pudar, rata-rata = garis).
+   Titik per hari hanya digambar kalau lebar per hari ≥ 8px; di rentang panjang/layar sempit cukup garisnya. */
+function renderTvoc(days){
+  const wrap=$('tvocChart'), n=days.length;
+  if(!days.some(d=>d.tvoc_avg_ppb!=null)){wrap.innerHTML='<div class="chart-empty">Belum ada data TVOC pada rentang ini</div>';return;}
+  const series=cssVar('--series');
+  const f=frame(wrap,n,niceMax(Math.max(...days.map(d=>d.tvoc_max_ppb??0)),50),'ppb');
+  const bw=Math.max(2,Math.min(22,f.band*0.55));
+  const peaks=days.map((d,i)=>d.tvoc_max_ppb==null?'':`<rect x="${(f.xAt(i)-bw/2).toFixed(1)}" y="${f.yAt(d.tvoc_max_ppb).toFixed(1)}" width="${bw.toFixed(1)}" height="${(f.yAt(0)-f.yAt(d.tvoc_max_ppb)).toFixed(1)}" rx="2" fill="${series}" opacity="0.18"/>`).join('');
+  // Garis rata-rata terputus di hari tanpa data (tidak dihubungkan melewati celah)
+  let path='', pen=false;
+  days.forEach((d,i)=>{
+    if(d.tvoc_avg_ppb==null){pen=false;return;}
+    path+=`${pen?'L':'M'}${f.xAt(i).toFixed(1)} ${f.yAt(d.tvoc_avg_ppb).toFixed(1)} `; pen=true;
+  });
+  const dots=f.band<8?'':days.map((d,i)=>d.tvoc_avg_ppb==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d.tvoc_avg_ppb).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${series}" stroke-width="2"/>`).join('');
+  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="TVOC harian">${hlRect(f)}${f.gridSvg}${peaks}<path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
+  attachHover(wrap,f,n,i=>{
+    const d=days[i];
+    return `<div class="tip-date">${fmtDay(d.date,true)}</div>`
+      +tipRow('Rata-rata','',d.tvoc_avg_ppb==null?'—':fmtNum(d.tvoc_avg_ppb)+' ppb')
+      +tipRow('Puncak','',d.tvoc_max_ppb==null?'—':fmtNum(d.tvoc_max_ppb)+' ppb');
+  });
+}
+
+/* GRAFIK 3 — debu outlet harian + batas filter */
+function renderDust(days){
+  const wrap=$('dustChart'), n=days.length, warn=CFG.outlet_dust.warn_ugm3;
+  const warnColor=statusColor('WASPADA'), series=cssVar('--series');
+  $('dustLegend').innerHTML=`<span class="legend-pill" style="color:${series}"><span class="sw"></span><span style="color:var(--muted)">Rata-rata</span></span><span class="legend-pill" style="color:${warnColor}"><span class="sw dash"></span><span style="color:var(--muted)">Batas filter ${fmtNum(warn)}</span></span>`;
+  if(!days.some(d=>d.dust_avg_ugm3!=null)){wrap.innerHTML='<div class="chart-empty">Belum ada data debu outlet pada rentang ini (sensor GP2Y belum mengirim data)</div>';return;}
+  const f=frame(wrap,n,niceMax(Math.max(warn,...days.map(d=>d.dust_avg_ugm3??0)),warn*1.2),'µg/m³');
+  let path='', pen=false;
+  days.forEach((d,i)=>{
+    if(d.dust_avg_ugm3==null){pen=false;return;}
+    path+=`${pen?'L':'M'}${f.xAt(i).toFixed(1)} ${f.yAt(d.dust_avg_ugm3).toFixed(1)} `; pen=true;
+  });
+  const dots=f.band<8?'':days.map((d,i)=>d.dust_avg_ugm3==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d.dust_avg_ugm3).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${d.dust_avg_ugm3>warn?warnColor:series}" stroke-width="2"/>`).join('');
+  const wy=f.yAt(warn).toFixed(1);
+  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="Debu outlet harian">${hlRect(f)}${f.gridSvg}<line x1="${f.pad.l}" x2="${f.W-f.pad.r}" y1="${wy}" y2="${wy}" stroke="${warnColor}" stroke-width="1.5" stroke-dasharray="5 4"/><path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
+  attachHover(wrap,f,n,i=>{
+    const d=days[i];
+    return `<div class="tip-date">${fmtDay(d.date,true)}</div>`
+      +tipRow('Rata-rata','',d.dust_avg_ugm3==null?'—':fmtNum(d.dust_avg_ugm3,1)+' µg/m³')
+      +tipRow('Puncak','',d.dust_max_ugm3==null?'—':fmtNum(d.dust_max_ugm3,1)+' µg/m³');
+  });
+}
+
+/* RINGKASAN */
+function renderSummary(t){
+  const s=t.summary, pct=h=>s.active_hours?` (${fmtNum(h/s.active_hours*100)}% waktu menyala)`:'';
+  $('pageSub').textContent=`${t.device.device_name} — ${t.device.location} · ${fmtDay(t.from,true)} s.d. ${fmtDay(t.to,true)}`;
+  const tile=(id,hours)=>{const [v,u]=fmtHours(hours).split(' ');$(id).innerHTML=`${v}<small>${u??''}</small>`;};
+  tile('tActive',s.active_hours);
+  $('tActiveNote').textContent=`${s.days_with_data} dari ${t.days} hari ada data · kipas menyala ${fmtHours(s.fan_hours)}`;
+  tile('tDanger',s.berbahaya_hours);
+  $('tDangerNote').textContent=s.worst_day&&s.berbahaya_hours>0
+    ?`Terbanyak ${fmtDay(s.worst_day.date,true)} (${fmtHours(s.worst_day.berbahaya_hours)})${pct(s.berbahaya_hours)}`
+    :'Tidak ada status Berbahaya';
+  tile('tWarn',s.waspada_hours);
+  $('tWarnNote').textContent=s.waspada_hours>0?`Total periode${pct(s.waspada_hours)}`:'Tidak ada status Waspada';
+  $('tTvoc').innerHTML=s.tvoc_avg_ppb==null?'—':`${fmtNum(s.tvoc_avg_ppb)}<small>ppb</small>`;
+  $('tTvocNote').textContent='TVOC Kalman, ditimbang per data';
+}
+
+function renderAll(t){
+  window._trend=t;
+  renderSummary(t);
+  renderStatus(t.data);
+  renderTvoc(t.data);
+  renderDust(t.data);
+}
+
+/* STATE & URL */
+let currentDeviceId=null;
+let currentDays=[7,30,90].includes(Number(new URLSearchParams(location.search).get('days')))?Number(new URLSearchParams(location.search).get('days')):30;
+let reqId=0;
+
+function syncUrl(){
+  history.replaceState(null,'',`${location.pathname}?device=${encodeURIComponent(currentDeviceId)}&days=${currentDays}`);
+  $('backLink').href=`/index.html?device=${encodeURIComponent(currentDeviceId)}`;
+  document.querySelectorAll('.range button').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.days)===currentDays)));
+}
+
+async function loadTrend(){
+  if(!currentDeviceId) return;
+  const id=++reqId;
+  syncUrl();
+  $('errorMsg').hidden=true;
+  try{
+    const res=await fetch(`/api/trends?device_id=${encodeURIComponent(currentDeviceId)}&days=${currentDays}`);
+    const json=await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(json?.error??'HTTP '+res.status);
+    if(id!==reqId) return; // sudah ganti alat/rentang
+    renderAll(json);
+  }catch(e){
+    console.error('[trends]',e);
+    $('errorMsg').textContent='Gagal memuat tren. Coba muat ulang halaman.';
+    $('errorMsg').hidden=false;
+  }
+}
+
+async function init(){
+  EpenAuth.renderWidget($('authWidget'));
+  try{
+    await loadConfig();
+    const res=await fetch('/api/devices');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const {data}=await res.json();
+    const sel=$('deviceSelect');
+    if(!data.length){sel.innerHTML='<option>Belum ada perangkat</option>';$('pageSub').textContent='Belum ada perangkat terdaftar';return;}
+    sel.innerHTML=data.map(d=>`<option value="${esc(d.id)}">${esc(d.device_name)} — ${esc(d.location)}</option>`).join('');
+    const fromUrl=new URLSearchParams(location.search).get('device');
+    currentDeviceId=data.some(d=>d.id===fromUrl)?fromUrl:data[0].id;
+    sel.value=currentDeviceId;
+    sel.addEventListener('change',()=>{currentDeviceId=sel.value;loadTrend();});
+    document.querySelectorAll('.range button').forEach(b=>b.addEventListener('click',()=>{currentDays=Number(b.dataset.days);loadTrend();}));
+    let raf; window.addEventListener('resize',()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{if(window._trend)renderAll(window._trend);});});
+    loadTrend();
+  }catch(e){
+    console.error('[trends]',e);
+    $('errorMsg').textContent='Gagal memuat data. Coba muat ulang halaman.';
+    $('errorMsg').hidden=false;
+  }
+}
+init();
+</script>
+</body>
+</html>

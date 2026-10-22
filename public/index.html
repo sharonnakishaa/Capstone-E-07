@@ -167,6 +167,8 @@
   @media (max-width:420px){
     .info-grid{grid-template-columns:1fr}
   }
+  .text-link{display:inline-block;margin-top:6px;font-size:13px;font-weight:800;color:var(--accent);text-decoration:none}
+  .text-link:hover{text-decoration:underline;text-underline-offset:3px}
 </style>
 <script src="/auth.js"></script>
 </head>
@@ -302,6 +304,7 @@
         <div>
           <div class="chart-title">Tren TVOC</div>
           <div class="chart-sub" id="chartSub">—</div>
+          <a href="/trends.html" class="text-link" id="trendsLink">Lihat tren jangka panjang →</a>
         </div>
         <div class="legend" id="chartLegend"></div>
       </div>
@@ -915,6 +918,7 @@ function syncDeviceUrl(){
   const q=`?device=${encodeURIComponent(currentDeviceId)}`;
   history.replaceState(null,'',location.pathname+q);
   $('logsLink').href='/logs.html'+q;
+  $('trendsLink').href='/trends.html'+q;
 }
 
 async function initDevices(){

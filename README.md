@@ -34,6 +34,12 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
 - Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
 
+**Tren jangka panjang (`/trends.html?device=<id>`)**
+- Rekap **harian (WIB)** satu alat untuk **7, 30, atau 90 hari**. Bisa dibuka tanpa login, dan ditautkan dari dashboard detail serta halaman log.
+- Kotak ringkasan: total jam alat menyala, jam status Berbahaya dan Waspada (beserta hari terburuknya), dan rata-rata TVOC.
+- Grafik **durasi status per hari** (batang bertumpuk Aman/Waspada/Berbahaya, dalam jam), **TVOC harian** (rata-rata dan puncak), serta **debu outlet harian** dengan garis batas filter, untuk memantau filter yang mulai jenuh.
+- Data 60 hari terakhir dari log mentah, yang lebih lama dari ringkasan per jam hasil retensi, sehingga rentang 90 hari tetap utuh.
+
 **Halaman log (`/logs.html`)**
 - Semua data sensor dengan pagination 50 baris per halaman.
 - Ekspor Excel (`.xlsx`) berdasarkan rentang tanggal (WIB), maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
@@ -89,6 +95,7 @@ Halaman:
 - `/` → dialihkan ke `/lab.html` (Ringkasan Lab)
 - `/index.html?device=<id>` → dashboard detail satu alat (tanpa `?device=`, yang dibuka adalah alat pertama)
 - `/logs.html?device=<id>` → log data lengkap satu alat
+- `/trends.html?device=<id>&days=30` → tren jangka panjang satu alat (`days` = 7, 30, atau 90)
 
 > **Windows: `EPERM: operation not permitted, rename ... query_engine-windows.dll.node`** saat `npm run build` atau `npm install`. Artinya file engine Prisma sedang dipakai proses lain. Hentikan dulu `npm run dev`, `npm run simulate`, dan Prisma Studio, lalu ulangi perintahnya.
 
@@ -236,6 +243,7 @@ app/
   api/
     config/route.ts     GET /api/config — konfigurasi untuk frontend
     overview/route.ts   GET /api/overview — status terkini semua alat (Ringkasan Lab)
+    trends/route.ts     GET /api/trends — rekap harian satu alat (halaman Tren)
     devices/route.ts    GET /api/devices — daftar device + info filter
     devices/[id]/filter/route.ts
                         POST — catat penggantian filter
@@ -261,6 +269,7 @@ public/
   lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
   index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)
   logs.html             Halaman log + ekspor Excel
+  trends.html           Tren jangka panjang (7/30/90 hari) per alat
   devices.html          Kelola Alat — daftarkan, ubah, nonaktifkan alat (khusus pengelola)
   auth.js               Widget Masuk/Keluar + tautan Kelola Alat untuk semua halaman
 scripts/
@@ -544,6 +553,40 @@ Semua endpoint di bawah ini wajib login sebagai Pengelola Lab (`401` tanpa login
 Aturan validasi: MAC berformat `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi), nama dan lokasi 1–60 karakter, jarak inlet > 0 dan ≤ 100 cm. Tidak ada endpoint hapus alat; nonaktifkan dengan `PATCH { "is_active": false }`.
 
 MAC dicatat ke `unregistered_macs` oleh `POST /api/sensor` setiap kali alat yang belum terdaftar mengirim data (`404`). Alat yang terdaftar tapi nonaktif **tidak** dicatat di sini.
+
+---
+
+### `GET /api/trends` — tren harian satu alat
+
+`GET /api/trends?device_id=<uuid>&days=30`. Publik. `days` harus 7, 30, atau 90 (selain itu `400`), dan alat yang tidak ada dibalas `404`.
+
+Semua hari dalam rentang selalu ada di `data`. Hari tanpa data bernilai 0/`null`.
+
+```json
+{
+  "device": { "id": "uuid-perangkat", "device_name": "Epen Meja 1", "location": "Lab DTETI" },
+  "days": 30, "from": "2026-09-23", "to": "2026-10-22",
+  "data": [
+    {
+      "date": "2026-10-21",
+      "active_hours": 4, "fan_hours": 3.96,
+      "status_hours": { "AMAN": 2.79, "WASPADA": 0.9, "BERBAHAYA": 0.31 },
+      "tvoc_avg_ppb": 197, "tvoc_max_ppb": 559.5,
+      "dust_avg_ugm3": 8.2, "dust_max_ugm3": 19,
+      "temperature_avg_celsius": 27.8, "humidity_avg_percent": 60.4
+    }
+  ],
+  "summary": {
+    "active_hours": 143, "fan_hours": 138.6, "waspada_hours": 25.8, "berbahaya_hours": 7.9,
+    "days_with_data": 22, "tvoc_avg_ppb": 198,
+    "worst_day": { "date": "2026-09-28", "berbahaya_hours": 0.75 }
+  }
+}
+```
+
+- **Hari dalam WIB.** Durasi = jumlah data × 5 detik, jadi waktu saat alat mati atau offline tidak terhitung.
+- Rata-rata ditimbang dengan jumlah data. TVOC memakai nilai Kalman, atau nilai mentah kalau Kalman kosong.
+- Data dari `sensor_logs` (masa retensi) dan `sensor_hourly` (lebih lama) digabung per hari dalam satu query. Pada data dari ringkasan per jam, rata-rata debu ditimbang dengan jumlah sampel jam itu (perkiraan).
 
 ---
 

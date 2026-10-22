@@ -216,7 +216,21 @@ Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari 
 | N-06 | Nonaktifkan | Klik **Nonaktifkan** pada alat seed. Di modal konfirmasi, coba dulu **Batal**, tombol Esc, dan klik di luar kotak (ketiganya tidak mengubah apa pun), lalu ulangi dan klik **Nonaktifkan**. | Status jadi NONAKTIF, alat hilang dari Ringkasan Lab, dan data yang dikirim ke MAC itu ditolak `404`. Klik **Aktifkan** pada alat yang sama: muncul modal "Aktifkan alat?" (tombol terakota biasa, bukan merah). Setelah dikonfirmasi, alat tampil lagi di Ringkasan Lab, dan data lamanya tetap ada di halaman log. | | |
 | N-07 | Ubah | Klik **Ubah**, ganti nama dan jarak inlet, lalu simpan. | Form berpindah ke mode "Ubah alat" dengan tombol Batal. Setelah simpan, nama baru tampil di daftar dan di Ringkasan Lab, dan jarak inlet baru tampil di Info Perangkat. | | |
 | N-08 | Tampilan 375 px | DevTools → iPhone SE, buka Kelola Alat dan Ringkasan Lab dalam keadaan login. | Topbar tetap satu baris (tombol Kelola Alat dan Keluar berupa ikon). Panel, form, dan tabel tersusun satu kolom, dan tabel bisa digeser di dalam kartunya. | | |
----
+
+## O. Tren jangka panjang
+
+Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka `/trends.html` dari tautan **Lihat tren jangka panjang →** di dashboard detail.
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| O-01 | Navigasi | Klik **Lihat tren jangka panjang →** di dashboard detail dan di halaman log. | Halaman Tren terbuka untuk alat yang sama. URL berisi `?device=<id>&days=30`, dan tombol **Dashboard** kembali ke alat yang sama. | | |
+| O-02 | Rentang waktu | Klik **7 hari**, **30 hari**, lalu **90 hari**. | Tombol yang dipilih berwarna aksen. Jumlah hari di grafik dan teks "… s.d. …" berubah sesuai rentang, dan URL ikut berubah (`days=`). | | |
+| O-03 | Hari tanpa data | Pilih rentang yang mencakup hari tanpa data. | Hari itu tetap tampil di sumbu tanggal. Batang kosong, dan garis TVOC/debu terputus (tidak dihubungkan melewati celah). | | |
+| O-04 | Ringkasan | Bandingkan kotak ringkasan dengan grafik durasi status. | "Alat menyala" sama dengan jumlah semua batang. Jam Berbahaya dan Waspada sama dengan jumlah segmen merah dan kuning, dan "Terbanyak" menunjuk hari dengan segmen merah tertinggi. | | |
+| O-05 | Tooltip | Arahkan kursor (atau sentuh) ke beberapa hari di ketiga grafik. | Kolom hari tersorot, dan tooltip menampilkan tanggal lengkap serta nilai hari itu (jam per status, rata-rata/puncak TVOC, rata-rata/puncak debu). | | |
+| O-06 | Debu outlet | Lihat grafik debu outlet. | Garis putus-putus batas filter (25 µg/m³) tampil. Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
+| O-07 | Melewati retensi | Setelah ada data > 60 hari (atau setelah uji K-02), pilih **90 hari**. | Hari-hari yang data mentahnya sudah diringkas tetap muncul dengan nilai yang wajar (tidak kosong). | | |
+| O-08 | Tampilan 375 px | DevTools → iPhone SE, pilih 90 hari, tema gelap. | Kotak ringkasan dua kolom, grafik satu kolom, label tanggal terakhir tidak terpotong, dan tidak ada scroll horizontal. | | |---
 
 ## Ringkasan hasil
 
@@ -236,4 +250,5 @@ Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari 
 | L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 9 | | | |
 | N. Kelola Alat | 8 | | | |
-| **Total** | **102** | | | |
+| O. Tren jangka panjang | 8 | | | |
+| **Total** | **110** | | | |

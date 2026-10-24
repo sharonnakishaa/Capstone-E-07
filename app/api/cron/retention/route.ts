@@ -1,16 +1,10 @@
-import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { runRetention } from '@/lib/retention'
 import { purgeOldLoginFailures } from '@/lib/rate-limit'
+import { safeEqual } from '@/lib/secure-compare'
 
 // Ringkas + hapus data sehari biasanya hanya beberapa detik; batas ini untuk jaga-jaga
 export const maxDuration = 60
-
-/** Bandingkan secret tanpa membocorkan panjang/isi lewat waktu respons. */
-function safeEqual(a: string, b: string): boolean {
-  const x = Buffer.from(a), y = Buffer.from(b)
-  return x.length === y.length && timingSafeEqual(x, y)
-}
 
 /**
  * Retensi data harian, dipanggil Vercel Cron (lihat vercel.json).

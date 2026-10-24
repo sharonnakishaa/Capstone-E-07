@@ -269,6 +269,7 @@ lib/
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
   password.ts           Hash dan verifikasi password (scrypt)
   rate-limit.ts         Rate limit login (percobaan gagal per IP dan per email)
+  secure-compare.ts     Perbandingan secret waktu-konstan (API key, CRON_SECRET)
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/

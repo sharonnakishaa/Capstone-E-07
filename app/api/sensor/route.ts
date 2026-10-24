@@ -6,6 +6,7 @@ import { ALERT_COOLDOWN_MS, shouldNotify } from '@/lib/sensor'
 import { isUuid, parseSensorPayload } from '@/lib/validation'
 import { sendWarningEmail } from '@/lib/email'
 import { buildSensorLogXlsx } from '@/lib/export-xlsx'
+import { safeEqual } from '@/lib/secure-compare'
 
 const PAGE_SIZE      = 50
 const DEFAULT_LIMIT  = 30
@@ -163,8 +164,14 @@ async function exportXlsx(device_id: string | null, fromParam: string | null, to
 }
 
 export async function POST(req: NextRequest) {
+  const expectedKey = process.env.API_KEY
+  if (!expectedKey) {
+    console.error('[sensor] API_KEY belum diset di server — semua kiriman ditolak')
+    return NextResponse.json({ error: 'API_KEY belum diset di server' }, { status: 500 })
+  }
+  // Perbandingan waktu-konstan: API key tidak bisa ditebak dari lamanya respons
   const apiKey = req.headers.get('x-api-key')
-  if (!apiKey || apiKey !== process.env.API_KEY) {
+  if (!apiKey || !safeEqual(apiKey, expectedKey)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

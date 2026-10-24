@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { runRetention } from '@/lib/retention'
+import { purgeOldLoginFailures } from '@/lib/rate-limit'
 
 // Ringkas + hapus data sehari biasanya hanya beberapa detik; batas ini untuk jaga-jaga
 export const maxDuration = 60
@@ -30,11 +31,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await runRetention({ dryRun })
+    // Sekalian bersihkan catatan login gagal yang sudah lewat (rate limit login)
+    const login_failures_purged = dryRun ? 0 : await purgeOldLoginFailures()
     console.info(
       `[cron/retention] ${dryRun ? 'dry run: ' : ''}${result.row_count} log < ${result.cutoff.toISOString()} → ` +
-      `${result.summarized} ringkasan, ${result.deleted} dihapus (${result.duration_ms} ms)`
+      `${result.summarized} ringkasan, ${result.deleted} dihapus (${result.duration_ms} ms); ` +
+      `${login_failures_purged} catatan login gagal dibersihkan`
     )
-    return NextResponse.json({ success: true, ...result })
+    return NextResponse.json({ success: true, ...result, login_failures_purged })
   } catch (err) {
     console.error('[cron/retention]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

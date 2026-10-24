@@ -77,22 +77,39 @@ function showMsg(t){$('msg').textContent=t;$('msg').classList.toggle('show',!!t)
 // Kalau sudah masuk, langsung lanjut
 fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.user)location.replace(nextUrl());}).catch(()=>{});
 
+/** Terlalu banyak percobaan gagal (429): kunci tombol dengan hitung mundur sampai boleh mencoba lagi. */
+let lockTimer;
+function lockForm(sec){
+  const btn=$('submitBtn'), until=Date.now()+sec*1000;
+  clearInterval(lockTimer);
+  const tick=()=>{
+    const left=Math.ceil((until-Date.now())/1000);
+    if(left<=0){clearInterval(lockTimer);btn.disabled=false;btn.textContent='Masuk';showMsg('');return;}
+    btn.disabled=true;
+    btn.textContent=`Coba lagi dalam ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
+  };
+  tick(); lockTimer=setInterval(tick,1000);
+}
+
 $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const email=$('email').value.trim(), password=$('password').value;
   if(!email||!password) return showMsg('Isi email dan password.');
   const btn=$('submitBtn');
   btn.disabled=true; btn.textContent='Memeriksa...'; showMsg('');
+  let retryAfter=0;
   try{
     const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
     const json=await res.json().catch(()=>null);
+    if(res.status===429) retryAfter=Number(json?.retry_after_sec)||Number(res.headers.get('Retry-After'))||60;
     if(!res.ok) throw new Error(json?.error??`Gagal masuk (HTTP ${res.status}).`);
     location.replace(nextUrl());
   }catch(err){
     showMsg(err.message);
     $('password').value='';
     $('password').focus();
-    btn.disabled=false; btn.textContent='Masuk';
+    if(retryAfter) lockForm(retryAfter);
+    else { btn.disabled=false; btn.textContent='Masuk'; }
   }
 });
 </script>

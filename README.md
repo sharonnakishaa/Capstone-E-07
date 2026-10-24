@@ -203,7 +203,14 @@ Cara kerja sesi:
 - Setelah login, browser menyimpan cookie `epen_session` (`HttpOnly`, `SameSite=Lax`, `Secure` di Production) yang berlaku **7 hari**.
 - Isi cookie ditandatangani HMAC-SHA256 dengan `SESSION_SECRET`, jadi tidak bisa dipalsukan. Mengganti `SESSION_SECRET` membuat semua sesi yang ada tidak berlaku.
 - Password disimpan sebagai hash scrypt (modul `crypto` bawaan Node, tanpa dependency tambahan).
-- Login yang gagal dijeda ±0,6 detik untuk memperlambat tebakan password. Pembatasan jumlah percobaan (rate limit) belum ada.
+- Login yang gagal dijeda ±0,6 detik untuk memperlambat tebakan password.
+- **Rate limit login** (`lib/rate-limit.ts`): hanya percobaan **gagal** yang dihitung, dalam jendela geser 15 menit:
+  - maksimal **10 gagal per IP**, untuk menahan tebakan dari satu komputer atau jaringan;
+  - maksimal **20 gagal per email**, dari IP mana pun, untuk menahan serangan ke satu akun dari banyak komputer.
+
+  Kalau salah satu batas terlewati, server membalas `429` dengan header `Retry-After` dan `retry_after_sec`, **tanpa memeriksa password**. Halaman login menonaktifkan tombol Masuk dengan hitung mundur. Saat tinggal 3 percobaan, pesan error menyebut sisa percobaan. Kunci terbuka sendiri begitu percobaan lama keluar dari jendela 15 menit. Login berhasil menghapus catatan gagal email itu.
+- Penghitung disimpan di tabel `login_failures` (bukan memori), karena di Vercel setiap request bisa ditangani instance serverless yang berbeda. Catatan lebih dari 1 hari dibersihkan oleh cron retensi harian.
+- Keterbatasan: karena dihitung per IP, pengguna di balik IP yang sama (misalnya Wi-Fi kampus) berbagi kuota 10 percobaan gagal. Angka batas bisa diubah di `LOGIN_LIMIT`.
 
 ## Retensi data
 
@@ -261,10 +268,11 @@ lib/
   retention.ts          Retensi data (dipakai cron dan script db:retention)
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
   password.ts           Hash dan verifikasi password (scrypt)
+  rate-limit.ts         Rate limit login (percobaan gagal per IP dan per email)
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
-  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly, unregistered_macs)
+  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly, unregistered_macs, login_failures)
 public/
   lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
   index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)

@@ -202,7 +202,9 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | M-07 | Logout | Klik **Keluar**. | Halaman dimuat ulang dalam keadaan belum masuk, dan aksi kembali terkunci seperti M-02. | | |
 | M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=xlsx&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
 | M-09 | Cabut akses | Masuk dengan akun A, lalu hapus akun A di Prisma Studio, lalu coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
-
+| M-10 | Peringatan sisa percobaan | Dari satu browser, masukkan password salah 7 kali berturut-turut untuk email yang sama. | Mulai percobaan ke-7, pesan error menyebut "Sisa N percobaan sebelum dikunci 15 menit". | | |
+| M-11 | Terkunci | Lanjutkan sampai percobaan gagal ke-10, lalu coba sekali lagi (bahkan dengan password **benar**). | Respons `429`: "Terlalu banyak percobaan masuk yang gagal. Coba lagi dalam … menit". Tombol Masuk nonaktif dengan hitung mundur, dan password benar pun ditolak selama terkunci. Setelah hitung mundur habis, login dengan password benar berhasil. | | |
+| M-12 | Reset setelah berhasil | Salah 3 kali, lalu masuk dengan password benar. Keluar, lalu salah 1 kali lagi. | Login berhasil. Setelah itu, pesan salah tidak menyebut sisa percobaan, karena catatan gagal untuk email itu sudah direset. | | |
 ## N. Kelola Alat
 
 Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari MAC yang belum terdaftar, misalnya simulator `npm run simulate` setelah alat seed dinonaktifkan (N-06), atau POST `mac_address: "24:6F:28:FF:FF:01"`.
@@ -249,7 +251,7 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 7 | | | |
 | L. Ringkasan Lab | 12 | | | |
-| M. Login Pengelola Lab | 9 | | | |
+| M. Login Pengelola Lab | 12 | | | |
 | N. Kelola Alat | 8 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| **Total** | **111** | | | |
+| **Total** | **114** | | | |

@@ -117,7 +117,7 @@ td.empty-row{text-align:center;color:var(--muted);padding:32px;font-family:var(-
 @keyframes modal-in{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
 
 /* TAB HALAMAN PENGELOLA — Kelola Alat / Kelola Akun */
-.admin-tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-top:16px;overflow-x:auto}
+.admin-tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-top:16px}
 .admin-tabs a{padding:9px 14px;margin-bottom:-2px;border-bottom:3px solid transparent;font-size:14px;font-weight:800;color:var(--muted);text-decoration:none;white-space:nowrap}
 .admin-tabs a:hover{color:var(--text-strong)}
 .admin-tabs a[aria-current="page"]{color:var(--text-strong);border-bottom-color:var(--accent)}

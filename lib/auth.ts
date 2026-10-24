@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from './prisma'
 
 // Sesi berupa cookie yang ditandatangani HMAC-SHA256 dengan SESSION_SECRET (tanpa tabel sesi).
-// Isi cookie: base64url(JSON { uid, exp }) + "." + tanda tangan.
-// Setiap aksi yang dilindungi tetap mengecek user di database, jadi akun yang dihapus langsung kehilangan akses.
+// Isi cookie: base64url(JSON { uid, v, exp }) + "." + tanda tangan.
+// Setiap aksi yang dilindungi tetap mengecek user di database: akun nonaktif, atau cookie yang
+// versinya (v) sudah tertinggal dari users.session_version (setelah ganti/reset password), langsung ditolak.
 
 export const SESSION_COOKIE = 'epen_session'
 export const SESSION_TTL_SEC = 7 * 24 * 3600
@@ -26,14 +27,14 @@ function secret(): string {
 
 const sign = (payload: string) => createHmac('sha256', secret()).update(payload).digest('base64url')
 
-export function createSessionToken(userId: string): string {
-  const payload = Buffer.from(JSON.stringify({ uid: userId, exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SEC }))
+export function createSessionToken(userId: string, version: number): string {
+  const payload = Buffer.from(JSON.stringify({ uid: userId, v: version, exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SEC }))
     .toString('base64url')
   return `${payload}.${sign(payload)}`
 }
 
-/** User id dari token yang valid dan belum kedaluwarsa; null kalau tidak valid. */
-function readSessionToken(token: string | undefined): string | null {
+/** User id + versi sesi dari token yang valid dan belum kedaluwarsa; null kalau tidak valid. */
+function readSessionToken(token: string | undefined): { uid: string; v: number } | null {
   if (!token) return null
   const [payload, signature] = token.split('.')
   if (!payload || !signature) return null
@@ -43,21 +44,24 @@ function readSessionToken(token: string | undefined): string | null {
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null
 
   try {
-    const { uid, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString())
-    if (typeof uid !== 'string' || typeof exp !== 'number' || exp * 1000 < Date.now()) return null
-    return uid
+    const { uid, v = 0, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString())
+    if (typeof uid !== 'string' || typeof v !== 'number' || typeof exp !== 'number' || exp * 1000 < Date.now()) return null
+    // Cookie lama tanpa v dianggap versi 0, jadi deploy ini tidak mengeluarkan semua orang
+    return { uid, v }
   } catch {
     return null
   }
 }
 
 export async function getSessionUser(req: NextRequest): Promise<SessionUser | null> {
-  const uid = readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)
-  if (!uid) return null
-  return prisma.users.findUnique({
-    where: { id: uid },
-    select: { id: true, email: true, full_name: true, role: true },
+  const token = readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)
+  if (!token) return null
+  const user = await prisma.users.findUnique({
+    where: { id: token.uid },
+    select: { id: true, email: true, full_name: true, role: true, is_active: true, session_version: true },
   })
+  if (!user || !user.is_active || user.session_version !== token.v) return null
+  return { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
 }
 
 /**
@@ -81,8 +85,8 @@ export async function requireUser(req: NextRequest, roles?: Role[]): Promise<Ses
   return user
 }
 
-export function setSessionCookie(res: NextResponse, userId: string) {
-  res.cookies.set(SESSION_COOKIE, createSessionToken(userId), {
+export function setSessionCookie(res: NextResponse, userId: string, version: number) {
+  res.cookies.set(SESSION_COOKIE, createSessionToken(userId, version), {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
     sameSite: 'lax',

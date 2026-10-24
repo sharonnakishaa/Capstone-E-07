@@ -209,7 +209,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | M-06 | Sesi bertahan | Pindah ke Ringkasan Lab dan dashboard detail, lalu tutup dan buka lagi browser. | Tetap dalam keadaan masuk di semua halaman. Tombol "Filter diganti…" tersedia. | | |
 | M-07 | Logout | Klik **Keluar**. | Halaman dimuat ulang dalam keadaan belum masuk, dan aksi kembali terkunci seperti M-02. | | |
 | M-08 | API terlindungi | Tanpa login, jalankan `curl "http://localhost:3000/api/sensor?format=xlsx&device_id=<uuid>"`. | `401 {"error":"Silakan masuk terlebih dahulu"}`. Hal yang sama berlaku untuk `POST /api/devices/<uuid>/filter`. | | |
-| M-09 | Cabut akses | Masuk dengan akun A, lalu hapus akun A di Prisma Studio, lalu coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
+| M-09 | Cabut akses | Masuk dengan akun A di browser 1. Di browser 2, masuk dengan akun B dan nonaktifkan akun A di Kelola Akun. Di browser 1, coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
 | M-10 | Peringatan sisa percobaan | Dari satu browser, masukkan password salah 7 kali berturut-turut untuk email yang sama. | Mulai percobaan ke-7, pesan error menyebut "Sisa N percobaan sebelum dikunci 15 menit". | | |
 | M-11 | Terkunci | Lanjutkan sampai percobaan gagal ke-10, lalu coba sekali lagi (bahkan dengan password **benar**). | Respons `429`: "Terlalu banyak percobaan masuk yang gagal. Coba lagi dalam … menit". Tombol Masuk nonaktif dengan hitung mundur, dan password benar pun ditolak selama terkunci. Setelah hitung mundur habis, login dengan password benar berhasil. | | |
 | M-12 | Reset setelah berhasil | Salah 3 kali, lalu masuk dengan password benar. Keluar, lalu salah 1 kali lagi. | Login berhasil. Setelah itu, pesan salah tidak menyebut sisa percobaan, karena catatan gagal untuk email itu sudah direset. | | |
@@ -245,6 +245,28 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 
 ---
 
+## P. Kelola Akun
+
+Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + satu jendela penyamaran. Masuk sebagai A.
+
+| ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
+|---|---|---|---|---|---|
+| P-01 | Akses | Tanpa login, buka `/accounts.html`. Lalu masuk, buka Kelola Alat, dan klik tab **Kelola Akun**. Klik juga nama di topbar dari halaman lain. | Tanpa login tampil "Khusus Pengelola Lab". Setelah login, tab Kelola Alat/Kelola Akun berpindah dengan garis terakota di tab aktif. Klik nama membuka Kelola Akun dan langsung fokus ke "Ganti password Anda". | | |
+| P-02 | Daftar akun | Lihat tabel Daftar akun. | Semua akun tampil dengan status, login terakhir, dan tanggal dibuat. Baris A bertanda **ANDA** dan hanya punya aksi Ubah nama dan Ganti password. Tidak ada hash password di respons `GET /api/admin/users` (cek di DevTools → Network). | | |
+| P-03 | Buat akun | Isi email `uji@ugm.ac.id` (coba dulu huruf besar `Uji@UGM.ac.id`) dan nama, lalu klik **Buat akun**. Klik **Salin**. | Modal menampilkan password acak 14 karakter dengan tombol Salin ("Tersalin ✓"). Akun muncul di tabel dengan email huruf kecil. Membuat akun dengan email yang sama lagi → pesan merah "sudah punya akun". | | |
+| P-04 | Login akun baru | Di browser 2, masuk dengan akun baru dan password dari P-03. | Login berhasil. | | |
+| P-05 | Reset password | Di browser 1, klik **Reset password** pada akun baru dan konfirmasi. Di browser 2, muat ulang halaman. | Modal menampilkan password baru. Browser 2 langsung keluar (topbar menampilkan **Masuk**). Password lama ditolak, password baru diterima. | | |
+| P-06 | Nonaktifkan | Klik **Nonaktifkan** pada akun baru (coba dulu Batal/Esc). Lalu coba masuk dengan akun itu di browser 2. | Status NONAKTIF dan tombol Reset password hilang. Sesi akun itu berakhir. Login dengan password benar → pesan "Akun ini dinonaktifkan…"; dengan password salah → "Email atau password salah" (status akun tidak terbuka). | | |
+| P-07 | Aktifkan lagi | Klik **Aktifkan** pada akun tadi. | Status AKTIF, dan akun bisa masuk lagi dengan password terakhirnya. | | |
+| P-08 | Pengaman akun sendiri | Lewat DevTools/curl: `PATCH /api/admin/users/<id A>` dengan `{"is_active":false}` lalu `{"reset_password":true}` sambil masuk sebagai A. | Keduanya `400` ("Tidak bisa menonaktifkan akun sendiri", "Untuk akun sendiri, pakai Ganti password"). `{"email":"x@y.z"}` juga `400`. | | |
+| P-09 | Ubah nama | Klik **Ubah nama** pada akun A, ganti nama, tekan **Enter**. | Nama di tabel dan di topbar langsung berubah. Batal/Esc tidak mengubah apa pun. | | |
+| P-10 | Ganti password — validasi | Di "Ganti password Anda": isi password saat ini salah; lalu password baru 9 karakter; lalu ulangan yang tidak sama; lalu password baru = password lama. | Pesan merah sesuai tiap kasus. Password saat ini salah dijeda ±0,6 detik dan ikut dihitung rate limit login (lihat M-10). | | |
+| P-11 | Ganti password — berhasil | Masuk sebagai A juga di browser 2. Di browser 1, ganti password dengan benar. Muat ulang kedua browser. | Pesan hijau. Browser 1 tetap masuk, browser 2 keluar. Login berikutnya hanya menerima password baru. Password manager browser menawarkan menyimpan password baru untuk email A. | | |
+| P-12 | Script darurat | Nonaktifkan akun baru, lalu jalankan `npm run user:add -- --email=uji@ugm.ac.id`. | Terminal mencetak "Password akun … direset dan akun diaktifkan lagi". Akun aktif kembali dengan password baru dari terminal. | | |
+| P-13 | Tampilan 375 px | DevTools → iPhone SE, tema gelap. Buka Kelola Akun dan modal password. | Tab tidak terpotong, kartu bertumpuk satu kolom, tombol form selebar penuh, tabel bisa digeser di dalam kartunya, dan modal password muat di layar. | | |
+
+---
+
 ## Ringkasan hasil
 
 | Bagian | Jumlah uji | Lulus | Gagal | Tidak diuji |
@@ -264,4 +286,5 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | M. Login Pengelola Lab | 12 | | | |
 | N. Kelola Alat | 8 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| **Total** | **122** | | | |
+| P. Kelola Akun | 13 | | | |
+| **Total** | **135** | | | |

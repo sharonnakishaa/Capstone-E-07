@@ -194,3 +194,73 @@ export function parseDeviceInput(body: unknown, partial: boolean):
   }
   return { ok: true, data }
 }
+
+// ─── Input kelola akun (halaman Kelola Akun) ────────────────────────────────
+
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const PASSWORD_MIN = 10
+export const PASSWORD_MAX = 128
+
+export interface UserInput {
+  email?: string
+  full_name?: string
+  is_active?: boolean
+  reset_password?: true
+}
+
+/**
+ * Validasi input tambah/edit akun. `partial = true` untuk edit (full_name, is_active, reset_password);
+ * saat tambah, email dan full_name wajib. Email tidak bisa diubah setelah akun dibuat.
+ */
+export function parseUserInput(body: unknown, partial: boolean):
+  | { ok: true; data: UserInput }
+  | { ok: false; details: FieldError[] } {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return { ok: false, details: [{ field: '(body)', message: 'harus objek JSON' }] }
+  }
+  const b = body as Record<string, unknown>
+  const details: FieldError[] = []
+  const data: UserInput = {}
+  const given = (f: string) => b[f] !== undefined
+
+  if (!partial) {
+    const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : ''
+    if (!email) details.push({ field: 'email', message: 'wajib diisi' })
+    else if (!EMAIL_RE.test(email) || email.length > 120) details.push({ field: 'email', message: 'harus alamat email yang valid' })
+    else data.email = email
+  } else if (given('email')) {
+    details.push({ field: 'email', message: 'tidak bisa diubah; buat akun baru lalu nonaktifkan yang lama' })
+  }
+
+  if (given('full_name') || !partial) {
+    const v = typeof b.full_name === 'string' ? b.full_name.trim() : ''
+    if (!v) details.push({ field: 'full_name', message: 'wajib diisi' })
+    else if (v.length > TEXT_MAX) details.push({ field: 'full_name', message: `maksimal ${TEXT_MAX} karakter` })
+    else data.full_name = v
+  }
+
+  if (partial && given('is_active')) {
+    if (typeof b.is_active === 'boolean') data.is_active = b.is_active
+    else details.push({ field: 'is_active', message: 'harus true atau false' })
+  }
+
+  if (partial && given('reset_password')) {
+    if (b.reset_password === true) data.reset_password = true
+    else details.push({ field: 'reset_password', message: 'harus true' })
+  }
+
+  if (details.length) return { ok: false, details }
+  if (partial && Object.keys(data).length === 0) {
+    return { ok: false, details: [{ field: '(body)', message: 'tidak ada field yang diubah' }] }
+  }
+  return { ok: true, data }
+}
+
+/** Pesan error untuk password baru, atau null kalau memenuhi aturan. */
+export function checkNewPassword(pw: unknown): string | null {
+  if (typeof pw !== 'string' || !pw) return 'Password baru wajib diisi'
+  if (pw.length < PASSWORD_MIN) return `Password baru minimal ${PASSWORD_MIN} karakter`
+  if (pw.length > PASSWORD_MAX) return `Password baru maksimal ${PASSWORD_MAX} karakter`
+  if (!pw.trim()) return 'Password baru tidak boleh hanya spasi'
+  return null
+}

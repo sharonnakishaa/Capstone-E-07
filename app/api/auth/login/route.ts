@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Email atau password salah.${warn}` }, { status: 401 })
     }
 
+    // Disebut hanya setelah password benar, supaya status akun tidak bisa ditebak orang lain
+    if (!user.is_active) {
+      return NextResponse.json(
+        { error: 'Akun ini dinonaktifkan. Minta Pengelola Lab lain mengaktifkannya di halaman Kelola Akun.' },
+        { status: 403 }
+      )
+    }
+
     await Promise.all([
       prisma.users.update({ where: { id: user.id }, data: { last_login: new Date() } }),
       clearLoginFailures(email),
@@ -63,7 +71,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role },
     })
-    setSessionCookie(res, user.id)
+    setSessionCookie(res, user.id, user.session_version)
     return res
   } catch (err) {
     console.error('[auth/login]', err)

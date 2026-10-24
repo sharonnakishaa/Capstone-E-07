@@ -1,5 +1,6 @@
-// Buat akun pengelola, atau reset password akun yang sudah ada.
+// Buat akun pengelola, atau reset password akun yang sudah ada (sekaligus mengaktifkannya lagi).
 // Password dibuat acak dan hanya dicetak sekali, supaya tidak tersimpan di riwayat terminal.
+// Sehari-hari pakai halaman Kelola Akun; script ini untuk akun pertama atau kalau semua akun terkunci.
 //
 //   npm run user:add -- --email=aslab@ugm.ac.id --name="Nama Aslab"
 //   npm run user:add -- --email=aslab@ugm.ac.id            # reset password akun yang sudah ada
@@ -38,9 +39,13 @@ async function main() {
   if (existing) {
     await prisma.users.update({
       where: { id: existing.id },
-      data:  { password_hash: hashPassword(password), role, ...(name && { full_name: name }) },
+      data:  {
+        password_hash: hashPassword(password), role, is_active: true,
+        session_version: { increment: 1 }, // sesi lama akun ini berakhir
+        ...(name && { full_name: name }),
+      },
     })
-    console.log(`Password akun ${email} direset.`)
+    console.log(`Password akun ${email} direset${existing.is_active ? '' : ' dan akun diaktifkan lagi'}.`)
   } else {
     if (!name) throw new Error('--name wajib diisi untuk akun baru')
     await prisma.users.create({ data: { email, full_name: name, role, password_hash: hashPassword(password) } })

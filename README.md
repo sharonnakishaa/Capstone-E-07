@@ -47,7 +47,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
-- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter**, **ekspor Excel**, dan **Kelola Alat**. Lihat [Login dan akun](#login-dan-akun).
+- Login hanya dibutuhkan untuk aksi yang mengubah atau mengunduh data: **mencatat penggantian filter**, **ekspor Excel**, **Kelola Alat**, dan **Kelola Akun**. Lihat [Login dan akun](#login-dan-akun).
 
 **Kelola Alat (`/devices.html`, khusus Pengelola Lab)**
 - Daftarkan alat dari panel **Alat baru terdeteksi** (MAC yang mengirim data tapi belum terdaftar) tanpa mengetik MAC.
@@ -197,19 +197,28 @@ Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjun
 | Ringkasan Lab, dashboard detail, halaman log | ✅ | ✅ |
 | Catat penggantian filter | ❌ | ✅ |
 | Kelola Alat (daftarkan, ubah, nonaktifkan) | ❌ | ✅ |
+| Kelola Akun (buat akun, reset password, nonaktifkan, ganti password sendiri) | ❌ | ✅ |
 | Ekspor Excel | ❌ | ✅ |
 
-Belum ada halaman pendaftaran atau manajemen akun. Akun dibuat lewat script:
+**Kelola Akun (`/accounts.html`)**, bisa dibuka dari tab di halaman Kelola Alat atau dengan mengklik nama di topbar:
+- Semua Pengelola Lab boleh membuat akun, mereset password, mengubah nama, dan menonaktifkan/mengaktifkan akun pengelola lain.
+- Password akun baru dan hasil reset **dibuat acak oleh server dan hanya ditampilkan sekali** (dengan tombol Salin). Kirim ke pemilik akun lewat jalur pribadi, lalu minta ia menggantinya.
+- **Ganti password sendiri** butuh password saat ini (minimal 10 karakter untuk password baru). Password saat ini yang salah dihitung sebagai login gagal di rate limit yang sama.
+- Akun **tidak bisa dihapus**, hanya dinonaktifkan. Menghapus user ikut menghapus alat yang ia daftarkan beserta semua lognya (`onDelete: Cascade`). Akun nonaktif tidak bisa masuk; setelah password benar, login membalas `403` "Akun ini dinonaktifkan".
+- Pengaman: tidak bisa menonaktifkan atau mereset akun sendiri dari daftar, dan perubahan berjalan dalam transaksi *serializable*, jadi dua pengelola yang saling menonaktifkan bersamaan tidak bisa menyisakan nol akun aktif.
+
+Script tetap ada untuk akun pertama, atau kalau semua akun terkunci/lupa password:
 
 ```bash
 npm run user:add -- --email=aslab@ugm.ac.id --name="Nama Aslab"   # akun baru
-npm run user:add -- --email=aslab@ugm.ac.id                       # reset password akun yang ada
+npm run user:add -- --email=aslab@ugm.ac.id                       # reset password (dan aktifkan lagi) akun yang ada
 ```
 
-Password dibuat acak, **hanya ditampilkan sekali**, dan tidak perlu diketik di terminal, jadi tidak tersimpan di riwayat shell. Kirim ke pemilik akun lewat jalur pribadi. Untuk mencabut akses, hapus user-nya di Prisma Studio. Sesi yang sudah ada langsung tidak berlaku, karena setiap aksi yang dilindungi mengecek user di database.
+Password dibuat acak, **hanya ditampilkan sekali**, dan tidak perlu diketik di terminal, jadi tidak tersimpan di riwayat shell.
 
 Cara kerja sesi:
 - Setelah login, browser menyimpan cookie `epen_session` (`HttpOnly`, `SameSite=Lax`, `Secure` di Production) yang berlaku **7 hari**.
+- Cookie membawa versi sesi (`users.session_version`). Versi itu naik saat password diganti/direset atau akun dinonaktifkan, sehingga **semua sesi lama akun itu langsung berakhir**. Saat ganti password sendiri, perangkat yang dipakai langsung diberi cookie baru dan tetap masuk. Cookie lama tanpa versi dianggap versi 0.
 - Isi cookie ditandatangani HMAC-SHA256 dengan `SESSION_SECRET`, jadi tidak bisa dipalsukan. Mengganti `SESSION_SECRET` membuat semua sesi yang ada tidak berlaku.
 - Password disimpan sebagai hash scrypt (modul `crypto` bawaan Node, tanpa dependency tambahan).
 - Login yang gagal dijeda ±0,6 detik untuk memperlambat tebakan password.
@@ -267,12 +276,15 @@ app/
     admin/devices/...   GET/POST/PATCH — Kelola Alat (khusus pengelola)
     admin/unregistered-macs/[mac]
                         DELETE — abaikan MAC dari "alat baru terdeteksi"
+    admin/users/...     GET/POST/PATCH — Kelola Akun (khusus pengelola)
+    auth/...            login, logout, me, password (ganti password sendiri)
     cron/retention/route.ts
                         GET — retensi data harian (Vercel Cron, dilindungi CRON_SECRET)
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
-  validation.ts         Validasi payload POST dari ESP32
+  validation.ts         Validasi payload POST dari ESP32, input alat, dan input akun
+  users.ts              Kolom akun yang aman dikirim ke frontend
   devices.ts            Perhitungan jam operasi filter
   retention.ts          Retensi data (dipakai cron dan script db:retention)
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
@@ -289,6 +301,7 @@ public/
   logs.html             Halaman log + ekspor Excel
   trends.html           Tren jangka panjang (7/30/90 hari) per alat
   devices.html          Kelola Alat — daftarkan, ubah, nonaktifkan alat (khusus pengelola)
+  accounts.html         Kelola Akun — akun pengelola dan ganti password sendiri (khusus pengelola)
   auth.js               Widget Masuk/Keluar + tautan Kelola Alat untuk semua halaman
 scripts/
   lib/simulation.ts     Port logika firmware (Kalman, fuzzy, fase) + model lingkungan
@@ -553,9 +566,22 @@ Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu t
 
 | Endpoint | Body | Respons |
 |---|---|---|
-| `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role } }` dan cookie `epen_session`. `401` kalau email/password salah (pesannya sama untuk keduanya), `400` kalau body tidak lengkap. |
+| `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role } }` dan cookie `epen_session`. `401` kalau email/password salah (pesannya sama untuk keduanya), `403` kalau password benar tapi akun nonaktif, `400` kalau body tidak lengkap, `429` saat rate limit. |
 | `POST /api/auth/logout` | — | `200 { success: true }`, cookie dihapus. |
-| `GET /api/auth/me` | — | `200 { user: {...} }` kalau login, atau `200 { user: null }`. |
+| `GET /api/auth/me` | — | `200 { user: {...} }` kalau login, atau `200 { user: null }` (termasuk akun nonaktif atau sesi yang sudah dicabut). |
+| `POST /api/auth/password` | `{ "current_password": "...", "new_password": "..." }` | Wajib login. `200 { success: true }` dan cookie baru; sesi di perangkat lain berakhir. `400` kalau password saat ini salah, password baru < 10 atau > 128 karakter, atau sama dengan yang lama. `429` kalau terlalu banyak salah (dihitung bersama login gagal). |
+
+---
+
+### Kelola Akun — `/api/admin/users*` (khusus pengelola)
+
+| Endpoint | Body | Respons |
+|---|---|---|
+| `GET /api/admin/users` | — | `200 { users: [...], me, server_time }`. Setiap user: `id, email, full_name, role, is_active, last_login, created_at` (tanpa hash password). `me` adalah id akun yang sedang login. |
+| `POST /api/admin/users` | `{ email, full_name }` | `201 { user, password }`. `password` acak dan hanya muncul di respons ini. `409` kalau email sudah punya akun. |
+| `PATCH /api/admin/users/:id` | Sebagian dari `{ full_name, is_active, reset_password: true }` | `200 { user }`, ditambah `password` kalau `reset_password`. Nonaktif dan reset mengakhiri semua sesi akun itu. `400` untuk menonaktifkan/mereset akun sendiri atau mengubah `email`, `404` kalau akun tidak ada, `409` kalau bentrok dengan perubahan bersamaan (coba lagi). |
+
+Email dinormalisasi ke huruf kecil dan tidak bisa diubah setelah akun dibuat. Nama 1–60 karakter. Tidak ada endpoint hapus akun.
 
 ---
 

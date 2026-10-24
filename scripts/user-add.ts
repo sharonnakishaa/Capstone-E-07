@@ -24,6 +24,17 @@ function parseArgs(): Record<string, string> {
 
 const prisma = new PrismaClient()
 
+/** Catat ke riwayat aktivitas (Kelola Akun) dengan pelaku "terminal", supaya aksi darurat tetap terlihat. */
+async function logFromTerminal(action: string, target: string, detail?: Record<string, unknown>) {
+  try {
+    await prisma.activity_logs.create({
+      data: { actor_id: null, actor_email: '(terminal)', actor_name: 'Script user:add', action, target, detail: detail as object | undefined },
+    })
+  } catch (err) {
+    console.warn('Gagal mencatat riwayat aktivitas:', err instanceof Error ? err.message : err)
+  }
+}
+
 async function main() {
   const args  = parseArgs()
   const email = (args.email ?? '').trim().toLowerCase()
@@ -46,10 +57,12 @@ async function main() {
       },
     })
     console.log(`Password akun ${email} direset${existing.is_active ? '' : ' dan akun diaktifkan lagi'}.`)
+    await logFromTerminal('user.reset_password', email, existing.is_active ? undefined : { reactivated: true })
   } else {
     if (!name) throw new Error('--name wajib diisi untuk akun baru')
     await prisma.users.create({ data: { email, full_name: name, role, password_hash: hashPassword(password) } })
     console.log(`Akun ${email} (${name}) dibuat dengan role ${role}.`)
+    await logFromTerminal('user.create', email, { full_name: name })
   }
 
   console.log(`\nPassword: ${password}`)

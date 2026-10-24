@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { parseRange } from '@/lib/range'
 import { isUuid } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 // Menghapus ratusan ribu baris bisa butuh beberapa detik
 export const maxDuration = 60
@@ -88,12 +89,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       prisma.sensor_hourly.deleteMany({ where: ctx.hourlyWhere }),
     ])
 
-    // Jejak audit di log server (Vercel → Logs): siapa menghapus apa
-    const iso = (d: Date | null) => (d ? d.toISOString() : '-')
-    console.info(
-      `[admin/devices/logs DELETE] ${ctx.user.email} menghapus ${logs.count} log + ${hourly.count} ringkasan jam ` +
-      `"${ctx.device.device_name}" (${ctx.device.id}) rentang ${iso(ctx.range.from)} s/d ${iso(ctx.range.to)}`
-    )
+    await logActivity(ctx.user, 'logs.delete', ctx.device.device_name, {
+      from: ctx.range.from?.toISOString() ?? null,
+      to:   ctx.range.to?.toISOString() ?? null,
+      deleted_logs: logs.count,
+      deleted_hourly: hourly.count,
+    })
     return NextResponse.json({ deleted_logs: logs.count, deleted_hourly: hourly.count })
   } catch (err) {
     console.error('[admin/devices/logs DELETE]', err)

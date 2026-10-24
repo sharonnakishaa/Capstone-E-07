@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { isUuid, parseDeviceInput } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 // Menghapus alat ikut menghapus semua lognya (cascade), bisa ratusan ribu baris
 export const maxDuration = 60
@@ -44,6 +45,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // MAC yang kini terdaftar tidak perlu muncul lagi di "alat baru terdeteksi"
       ...(input.mac_address ? [prisma.unregistered_macs.deleteMany({ where: { mac_address: input.mac_address } })] : []),
     ])
+
+    const { is_active, ...changes } = input
+    if (Object.keys(changes).length) await logActivity(user, 'device.update', device.device_name, { ...changes })
+    if (is_active !== undefined) await logActivity(user, is_active ? 'device.activate' : 'device.deactivate', device.device_name)
     return NextResponse.json({ device })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -102,10 +107,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'Alat baru saja diaktifkan atau dihapus pengelola lain. Muat ulang halaman.' }, { status: 409 })
     }
 
-    console.info(
-      `[admin/devices DELETE] ${user.email} menghapus alat "${device.device_name}" (${device.id}, ${device.mac_address}) ` +
-      `beserta ±${logs} log + ${hourly} ringkasan jam`
-    )
+    await logActivity(user, 'device.delete', device.device_name, {
+      mac_address: device.mac_address, deleted_logs: logs, deleted_hourly: hourly,
+    })
     return NextResponse.json({ deleted: true, deleted_logs: logs, deleted_hourly: hourly })
   } catch (err) {
     console.error('[admin/devices DELETE]', err)

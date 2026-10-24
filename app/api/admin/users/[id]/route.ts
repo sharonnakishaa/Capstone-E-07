@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth'
 import { generatePassword, hashPassword } from '@/lib/password'
 import { isUuid, parseUserInput } from '@/lib/validation'
 import { USER_SELECT } from '@/lib/users'
+import { logActivity } from '@/lib/activity'
 
 /**
  * Ubah akun lain: nama, aktif/nonaktif, atau reset password (password acak baru, dikembalikan sekali).
@@ -59,6 +60,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         select: USER_SELECT,
       })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+    if (full_name !== undefined) await logActivity(actor, 'user.rename', user.email, { full_name })
+    if (is_active !== undefined) await logActivity(actor, is_active ? 'user.activate' : 'user.deactivate', user.email)
+    if (reset_password) await logActivity(actor, 'user.reset_password', user.email)
 
     return NextResponse.json({ user, ...(password && { password }) })
   } catch (err) {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { filterRuntimeHours } from '@/lib/devices'
 import { isUuid } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 // Toleransi selisih jam antara browser dan server
 const FUTURE_TOLERANCE_MS = 60_000
@@ -49,6 +50,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (count === 0) {
       return NextResponse.json({ error: 'Device tidak ditemukan atau tidak aktif', device_id: id }, { status: 404 })
     }
+
+    const device = await prisma.devices.findUnique({ where: { id }, select: { device_name: true } })
+    await logActivity(user, 'device.filter_replaced', device?.device_name ?? id, { installed_at: installedAt.toISOString() })
 
     return NextResponse.json({
       success: true,

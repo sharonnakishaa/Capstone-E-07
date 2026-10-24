@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { parseDeviceInput } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 const DEFAULT_LOCATION = 'Lab DTETI'
 const DEFAULT_INLET_CM = 5
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
       }),
       prisma.unregistered_macs.deleteMany({ where: { mac_address: mac } }),
     ])
+    await logActivity(user, 'device.create', device.device_name, { mac_address: mac, location: device.location })
     return NextResponse.json({ device }, { status: 201 })
   } catch (err) {
     // Dua pengelola mendaftarkan MAC yang sama bersamaan

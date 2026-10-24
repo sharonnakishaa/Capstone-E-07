@@ -58,6 +58,18 @@
   .empty-box{padding:16px;border:2px dashed var(--border-soft);border-radius:10px;color:var(--muted);font-size:13.5px;line-height:1.5}
   #failMsg{margin-bottom:14px}
 
+  /* RIWAYAT AKTIVITAS */
+  .act-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+  .act-item{display:grid;grid-template-columns:150px 1fr;gap:4px 16px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
+  .act-item:last-child{border-bottom:0}
+  .act-time{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+  .act-text{font-size:14px;line-height:1.5;color:var(--text)}
+  .act-text strong{color:var(--text-strong)}
+  .act-text .who{font-weight:800;color:var(--text-strong)}
+  .act-item.danger .act-text .verb{color:var(--ink-bahaya);font-weight:700}
+  .act-sub{font-size:12px;color:var(--muted-2);font-family:var(--mono)}
+  .act-more{display:flex;justify-content:center;margin-top:14px}
+
   /* MODAL PASSWORD */
   .pw-box{display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--line);border-radius:8px;background:var(--surface-2)}
   .pw-value{flex:1;font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:.04em;word-break:break-all;user-select:all}
@@ -75,6 +87,7 @@
     .page-head .h-title{font-size:24px}
     .form-actions{width:100%}
     .form-actions button{flex:1}
+    .act-item{grid-template-columns:1fr}
   }
 </style>
 <script src="/auth.js"></script>
@@ -213,6 +226,18 @@
         <div class="fail-list" id="failIps"><div class="empty-box">Memuat...</div></div>
       </div>
     </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head fail-head">
+      <div>
+        <div class="h-title">Riwayat aktivitas</div>
+        <div class="chart-sub">Siapa melakukan apa: akun, alat, penggantian filter, hapus data, dan buka blokir. Terbaru di atas.</div>
+      </div>
+      <button type="button" class="btn-ghost btn-sm" id="actRefresh">Muat ulang</button>
+    </div>
+    <ol class="act-list" id="actList"><li class="empty-box">Memuat...</li></ol>
+    <div class="act-more"><button type="button" class="btn-ghost btn-sm" id="actMore" hidden>Muat lebih banyak</button></div>
   </section>
 </main>
 
@@ -390,6 +415,7 @@ async function loadUsers(){
     const json=await api('/api/admin/users');
     users=json.users; meId=json.me;
     renderUsers();
+    loadActivity(); // aksi akun barusan langsung terlihat di riwayat
   }catch(e){
     console.error('[admin/users]',e);
     if(!$('lockedView').hidden) return;
@@ -439,6 +465,7 @@ $('pwForm').addEventListener('submit',async e=>{
     $('pwForm').reset();
     for(const id of ['pwCurrent','pwNew','pwConfirm']) $(id).type='password';
     showMsg('pwMsg','Password diganti. Sesi di perangkat lain sudah dikeluarkan; perangkat ini tetap masuk.','ok');
+    loadActivity();
   }catch(err){
     showMsg('pwMsg',err.message,'err');
   }finally{
@@ -481,6 +508,7 @@ document.addEventListener('click',async e=>{
     try{
       const json=await api(`/api/admin/users/${encodeURIComponent(u.id)}`,{method:'PATCH',body:JSON.stringify({reset_password:true})});
       showPassword('Password direset',`Password baru untuk <strong>${esc(u.full_name)}</strong> (${esc(u.email)}):`,json.password);
+      loadActivity();
     }catch(err){showMsg('pageMsg',err.message,'err');}
     finally{t.disabled=false;}
     return;
@@ -568,8 +596,71 @@ document.addEventListener('click',async e=>{
     await api(`/api/admin/login-failures?${new URLSearchParams({[kind]:key})}`,{method:'DELETE'});
     showMsg('failMsg',`${kind==='ip'?'IP':'Email'} ${key} dibuka. Percobaan masuk dari sana bisa langsung dicoba lagi.`,'ok');
     await loadFailures();
+    loadActivity();
   }catch(err){showMsg('failMsg',err.message,'err');t.disabled=false;}
 });
+
+/* RIWAYAT AKTIVITAS */
+const fmtDay=iso=>new Date(iso).toLocaleDateString('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',year:'numeric'});
+const num=v=>Number(v??0).toLocaleString('id-ID');
+const DEVICE_FIELDS={device_name:'nama',location:'lokasi',mac_address:'MAC',inlet_distance_cm:'jarak inlet'};
+
+/** Kalimat untuk satu aktivitas → { verb, rest, sub, danger }. Target ditulis tebal. */
+function describe(a){
+  const t=`<strong>${esc(a.target??'—')}</strong>`, d=a.detail||{};
+  switch(a.action){
+    case 'user.create':          return {verb:'membuat akun',rest:`${t}${d.full_name?` (${esc(d.full_name)})`:''}`};
+    case 'user.rename':          return {verb:'mengubah nama akun',rest:`${t} menjadi “${esc(d.full_name)}”`};
+    case 'user.activate':        return {verb:'mengaktifkan akun',rest:t};
+    case 'user.deactivate':      return {verb:'menonaktifkan akun',rest:t,danger:true};
+    case 'user.reset_password':  return {verb:'mereset password',rest:`${t}${d.reactivated?' dan mengaktifkannya lagi':''}`};
+    case 'user.change_password': return {verb:'mengganti password sendiri',rest:''};
+    case 'device.create':        return {verb:'mendaftarkan alat',rest:t,sub:d.mac_address};
+    case 'device.update':        return {verb:'mengubah alat',rest:t,sub:Object.entries(d).map(([k,v])=>`${DEVICE_FIELDS[k]??k}: ${v}`).join(' · ')};
+    case 'device.activate':      return {verb:'mengaktifkan alat',rest:t};
+    case 'device.deactivate':    return {verb:'menonaktifkan alat',rest:t,danger:true};
+    case 'device.delete':        return {verb:'menghapus permanen alat',rest:`${t} beserta ${num(d.deleted_logs)} baris log`,sub:d.mac_address,danger:true};
+    case 'device.ignore_mac':    return {verb:'mengabaikan MAC',rest:t};
+    case 'device.filter_replaced': return {verb:'mencatat penggantian filter',rest:t,sub:d.installed_at?`dipasang ${fmtDate(d.installed_at)}`:''};
+    case 'logs.delete': {
+      const range=d.from&&d.to?`${fmtDay(d.from)} – ${fmtDay(d.to)}`:d.from?`sejak ${fmtDay(d.from)}`:d.to?`sampai ${fmtDay(d.to)}`:'seluruh data';
+      return {verb:'menghapus data',rest:`${num(d.deleted_logs)} baris log ${t}`,sub:`rentang: ${range}${d.deleted_hourly?` · ${num(d.deleted_hourly)} ringkasan per jam`:''}`,danger:true};
+    }
+    case 'login.unblock':        return {verb:'membuka blokir login',rest:`${d.kind==='ip'?'IP':'email'} ${t}`};
+    default:                     return {verb:esc(a.action),rest:t};
+  }
+}
+
+let actBefore=null;
+async function loadActivity(more=false){
+  const btn=$('actMore');
+  if(!more) actBefore=null;
+  btn.disabled=true;
+  try{
+    const json=await api('/api/admin/activity'+(more&&actBefore?`?before=${actBefore}`:''));
+    const html=json.data.map(a=>{
+      const x=describe(a);
+      return `<li class="act-item${x.danger?' danger':''}">
+        <div class="act-time">${esc(fmtDate(a.created_at))}</div>
+        <div>
+          <div class="act-text"><span class="who" title="${esc(a.actor_email)}">${esc(a.actor_name)}</span> <span class="verb">${x.verb}</span> ${x.rest}</div>
+          ${x.sub?`<div class="act-sub">${esc(x.sub)}</div>`:''}
+        </div>
+      </li>`;
+    }).join('');
+    if(more) $('actList').insertAdjacentHTML('beforeend',html);
+    else $('actList').innerHTML=html||'<li class="empty-box">Belum ada aktivitas tercatat. Aktivitas mulai dicatat sejak fitur ini dipasang.</li>';
+    actBefore=json.next_before;
+    btn.hidden=!actBefore;
+  }catch(e){
+    console.error('[admin/activity]',e);
+    if(!more) $('actList').innerHTML='<li class="empty-box">Gagal memuat riwayat aktivitas.</li>';
+  }finally{
+    btn.disabled=false;
+  }
+}
+$('actMore').addEventListener('click',()=>loadActivity(true));
+$('actRefresh').addEventListener('click',()=>loadActivity());
 
 function focusPasswordCard(){
   $('passwordCard').scrollIntoView({behavior:'smooth',block:'start'});

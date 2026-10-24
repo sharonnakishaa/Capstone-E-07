@@ -44,7 +44,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Semua data sensor dengan pagination 50 baris per halaman.
 - Filter rentang tanggal (WIB, salah satu sisi boleh kosong). Rentang tersimpan di URL (`?device=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`), jadi bisa dimuat ulang atau dibagikan. Default: semua data.
 - Ekspor Excel (`.xlsx`) persis untuk rentang yang sedang ditampilkan, maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
-- **Hapus data** untuk rentang yang sedang ditampilkan (misalnya data dummy dari seed atau sesi uji yang gagal). Khusus Pengelola Lab. Modal konfirmasi menampilkan jumlah baris yang akan hilang, menawarkan ekspor dulu, dan mewajibkan mengetik nama alat. Ringkasan per jam (`sensor_hourly`) di rentang itu ikut dihapus, jadi grafik tren dan jam operasi filter ikut berubah. Penghapusan dicatat di log server (siapa, alat, rentang, jumlah baris).
+- **Hapus data** untuk rentang yang sedang ditampilkan (misalnya data dummy dari seed atau sesi uji yang gagal). Khusus Pengelola Lab. Modal konfirmasi menampilkan jumlah baris yang akan hilang, menawarkan ekspor dulu, dan mewajibkan mengetik nama alat. Ringkasan per jam (`sensor_hourly`) di rentang itu ikut dihapus, jadi grafik tren dan jam operasi filter ikut berubah. Penghapusan dicatat di [riwayat aktivitas](#riwayat-aktivitas) (siapa, alat, rentang, jumlah baris).
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
@@ -230,7 +230,22 @@ Cara kerja sesi:
   Kalau salah satu batas terlewati, server membalas `429` dengan header `Retry-After` dan `retry_after_sec`, **tanpa memeriksa password**. Halaman login menonaktifkan tombol Masuk dengan hitung mundur. Saat tinggal 3 percobaan, pesan error menyebut sisa percobaan. Kunci terbuka sendiri begitu percobaan lama keluar dari jendela 15 menit. Login berhasil menghapus catatan gagal email itu.
 - Penghitung disimpan di tabel `login_failures` (bukan memori), karena di Vercel setiap request bisa ditangani instance serverless yang berbeda. Catatan lebih dari 1 hari dibersihkan oleh cron retensi harian.
 - Keterbatasan: karena dihitung per IP, pengguna di balik IP yang sama (misalnya Wi-Fi kampus) berbagi kuota 10 percobaan gagal. Angka batas bisa diubah di `LOGIN_LIMIT`.
-- **Buka blokir lewat UI**: kartu "Login gagal & blokir" di Kelola Akun menampilkan percobaan gagal 15 menit terakhir per email (dengan nama akunnya kalau terdaftar) dan per IP (ditandai kalau itu IP Anda), lengkap dengan jumlah/batas dan jam kunci terbuka. Tombol **Buka blokir** / **Reset hitungan** menghapus catatan gagal email atau IP itu, dan dicatat di log server. Berguna saat satu pengguna salah password berkali-kali dan ikut mengunci semua orang di Wi-Fi yang sama.
+- **Buka blokir lewat UI**: kartu "Login gagal & blokir" di Kelola Akun menampilkan percobaan gagal 15 menit terakhir per email (dengan nama akunnya kalau terdaftar) dan per IP (ditandai kalau itu IP Anda), lengkap dengan jumlah/batas dan jam kunci terbuka. Tombol **Buka blokir** / **Reset hitungan** menghapus catatan gagal email atau IP itu, dan dicatat di riwayat aktivitas. Berguna saat satu pengguna salah password berkali-kali dan ikut mengunci semua orang di Wi-Fi yang sama.
+
+### Riwayat aktivitas
+
+Aksi pengelola disimpan di tabel `activity_logs` dan ditampilkan di kartu **Riwayat aktivitas** di Kelola Akun (terbaru di atas, 30 per halaman, tombol "Muat lebih banyak"). Disimpan di database karena log runtime Vercel tidak bertahan lama.
+
+| Kelompok | Aksi yang dicatat |
+|---|---|
+| Akun | buat akun, ubah nama, aktifkan/nonaktifkan, reset password (termasuk lewat `npm run user:add`, pelaku "Script user:add"), ganti password sendiri |
+| Alat | daftarkan, ubah (field yang berubah), aktifkan/nonaktifkan, hapus permanen (jumlah log ikut terhapus), abaikan MAC, catat penggantian filter |
+| Data | hapus data per rentang (alat, rentang, jumlah baris) |
+| Login | buka blokir IP/email |
+
+- Nama dan email pelaku serta nama target disimpan sebagai teks, jadi riwayat tetap terbaca walau alat sudah dihapus atau akun dinonaktifkan.
+- Pencatatan tidak pernah membatalkan aksinya: kalau menulis riwayat gagal, aksinya tetap berhasil dan kegagalan ditulis ke log server.
+- Tidak ada password, hash, atau isi data sensor di riwayat. Riwayat tidak bisa diubah atau dihapus dari UI, dan tidak ikut dibersihkan cron retensi (volumenya sangat kecil).
 
 ## Retensi data
 
@@ -281,6 +296,8 @@ app/
     admin/users/...     GET/POST/PATCH — Kelola Akun (khusus pengelola)
     admin/login-failures/route.ts
                         GET/DELETE — lihat dan buka blokir login (khusus pengelola)
+    admin/activity/route.ts
+                        GET — riwayat aktivitas pengelola
     auth/...            login, logout, me, password (ganti password sendiri)
     cron/retention/route.ts
                         GET — retensi data harian (Vercel Cron, dilindungi CRON_SECRET)
@@ -290,6 +307,7 @@ lib/
   validation.ts         Validasi payload POST dari ESP32, input alat, dan input akun
   users.ts              Kolom akun yang aman dikirim ke frontend
   range.ts              Validasi rentang from/to (halaman log, ekspor, hapus data)
+  activity.ts           Catat riwayat aktivitas pengelola (logActivity)
   devices.ts            Perhitungan jam operasi filter
   retention.ts          Retensi data (dipakai cron dan script db:retention)
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
@@ -299,7 +317,7 @@ lib/
   email.ts              Template dan pengiriman email peringatan
   prisma.ts             Instance Prisma Client
 prisma/
-  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly, unregistered_macs, login_failures)
+  schema.prisma         Skema database (users, devices, sensor_logs, sensor_hourly, unregistered_macs, login_failures, activity_logs)
 public/
   lab.html              Ringkasan Lab — semua alat dalam satu layar (halaman utama)
   index.html            Dashboard detail satu alat (HTML/CSS/JS murni, grafik SVG)
@@ -588,6 +606,7 @@ Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu t
 
 | `GET /api/admin/login-failures` | — | `200 { window_min, my_ip, emails: [...], ips: [...], server_time }`. Setiap item: `key, count, limit, last_at, blocked, unlock_at`; item email juga `full_name` (atau `null` kalau bukan akun). Maksimal 50 per jenis. |
 | `DELETE /api/admin/login-failures?ip=…` atau `?email=…` | — | Hapus semua catatan gagal IP/email itu: `200 { cleared }`. `400` kalau keduanya atau tidak satu pun diisi. |
+| `GET /api/admin/activity?before=<id>` | — | Riwayat aktivitas terbaru dulu, 30 per halaman: `200 { data: [{ id, actor_id, actor_email, actor_name, action, target, detail, created_at }], next_before }`. `next_before` dipakai sebagai `before` untuk halaman berikutnya (`null` kalau sudah habis). |
 
 Email dinormalisasi ke huruf kecil dan tidak bisa diubah setelah akun dibuat. Nama 1–60 karakter. Tidak ada endpoint hapus akun.
 
@@ -602,7 +621,7 @@ Semua endpoint di bawah ini wajib login sebagai Pengelola Lab (`401` tanpa login
 | `GET /api/admin/devices` | — | `200 { devices: [...], unregistered: [...], server_time }`. `devices` berisi semua alat, aktif maupun nonaktif, beserta `mac_address` dan `last_seen_at`. `unregistered` berisi MAC yang mengirim data tapi belum terdaftar (`first_seen_at`, `last_seen_at`, `attempts`), maksimal 50, terbaru dulu. |
 | `POST /api/admin/devices` | `{ mac_address, device_name, location?, inlet_distance_cm? }` | `201 { device }`. MAC dihapus dari daftar `unregistered`. `409` kalau MAC sudah terdaftar, `400` kalau validasi gagal. |
 | `PATCH /api/admin/devices/:id` | Sebagian dari `{ mac_address, device_name, location, inlet_distance_cm, is_active }` | `200 { device }`. `409` kalau MAC dipakai alat lain, `404` kalau alat tidak ada. |
-| `DELETE /api/admin/devices/:id` | `{ confirm_name }` | Hapus alat permanen beserta semua log dan ringkasan per jamnya (cascade). Hanya alat **nonaktif** (`409` kalau masih aktif). `confirm_name` wajib sama persis dengan nama alat (`400`). `200 { deleted, deleted_logs, deleted_hourly }`. Dicatat di log server. |
+| `DELETE /api/admin/devices/:id` | `{ confirm_name }` | Hapus alat permanen beserta semua log dan ringkasan per jamnya (cascade). Hanya alat **nonaktif** (`409` kalau masih aktif). `confirm_name` wajib sama persis dengan nama alat (`400`). `200 { deleted, deleted_logs, deleted_hourly }`. Dicatat di riwayat aktivitas. |
 | `DELETE /api/admin/unregistered-macs/:mac` | — | `200 { success, deleted }`. MAC dihapus dari daftar "alat baru terdeteksi". |
 | `GET /api/admin/devices/:id/logs?from=&to=` | — | Pratinjau hapus data: `200 { device_name, logs, hourly, first_at, last_at }`. `from`/`to` sama seperti `GET /api/sensor` (opsional; kosong = seluruh data alat). |
 | `DELETE /api/admin/devices/:id/logs?from=&to=` | `{ confirm_name }` | Hapus permanen log mentah (`recorded_at` dalam rentang) dan ringkasan per jam (`hour_start` dalam rentang). `confirm_name` wajib sama persis dengan nama alat (`400` kalau tidak). `200 { deleted_logs, deleted_hourly }`. |

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { normalizeMac } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 /**
  * Abaikan MAC dari daftar "alat baru terdeteksi" (mis. alat uji milik orang lain).
@@ -16,6 +17,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ m
 
   try {
     const { count } = await prisma.unregistered_macs.deleteMany({ where: { mac_address: mac } })
+    if (count) await logActivity(user, 'device.ignore_mac', mac)
     return NextResponse.json({ success: true, deleted: count })
   } catch (err) {
     console.error('[admin/unregistered-macs DELETE]', err)

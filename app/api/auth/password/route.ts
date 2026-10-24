@@ -4,6 +4,7 @@ import { requireUser, setSessionCookie } from '@/lib/auth'
 import { hashPassword, verifyPassword } from '@/lib/password'
 import { checkLoginLimit, clearLoginFailures, clientIp, recordLoginFailure } from '@/lib/rate-limit'
 import { checkNewPassword } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 const FAIL_DELAY_MS = 600
 
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       clearLoginFailures(actor.email),
     ])
 
+    await logActivity(actor, 'user.change_password', actor.email)
     const res = NextResponse.json({ success: true })
     setSessionCookie(res, user.id, updated.session_version)
     return res

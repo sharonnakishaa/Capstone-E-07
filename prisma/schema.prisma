@@ -80,6 +80,21 @@ model login_failures {
   @@index([email, created_at])
 }
 
+// Riwayat aksi pengelola (akun, alat, hapus data, filter, buka blokir) — ditampilkan di Kelola Akun.
+// Nama/email pelaku dan target disimpan sebagai teks, jadi riwayat tetap terbaca walau alatnya sudah dihapus.
+model activity_logs {
+  id          BigInt   @id @default(autoincrement())
+  actor_id    String?  @db.Uuid    // null kalau dari script terminal
+  actor_email String   @db.VarChar
+  actor_name  String   @db.VarChar
+  action      String   @db.VarChar // mis. "user.create", "logs.delete" (daftar di lib/activity.ts)
+  target      String?  @db.VarChar // label yang dibaca manusia: email akun, nama alat, IP
+  detail      Json?                // angka/rentang pendukung, mis. { deleted_logs, from, to }
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+}
+
 // MAC yang mengirim data tapi belum terdaftar di devices — ditampilkan di halaman Kelola Alat
 // sebagai "Alat baru terdeteksi" supaya bisa didaftarkan tanpa mengetik MAC.
 model unregistered_macs {

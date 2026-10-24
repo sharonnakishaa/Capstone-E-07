@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth'
 import { generatePassword, hashPassword } from '@/lib/password'
 import { parseUserInput } from '@/lib/validation'
 import { USER_SELECT } from '@/lib/users'
+import { logActivity } from '@/lib/activity'
 
 /** Semua akun (aktif & nonaktif), tanpa hash password. Khusus pengelola. */
 export async function GET(req: NextRequest) {
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       data: { email, full_name: parsed.data.full_name!, role: 'pengelola', password_hash: hashPassword(password) },
       select: USER_SELECT,
     })
+    await logActivity(user, 'user.create', created.email, { full_name: created.full_name })
     return NextResponse.json({ user: created, password }, { status: 201 })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

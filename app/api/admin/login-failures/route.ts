@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { LOGIN_LIMIT, clearLoginFailuresFor, clientIp, listLoginFailures } from '@/lib/rate-limit'
+import { logActivity } from '@/lib/activity'
 
 /**
  * Percobaan login gagal dalam jendela rate limit, per IP dan per email, beserta status kuncinya.
@@ -45,7 +46,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const cleared = ip ? await clearLoginFailuresFor('ip', ip) : await clearLoginFailuresFor('email', email!)
-    console.info(`[admin/login-failures DELETE] ${user.email} membuka blokir ${ip ? `IP ${ip}` : `email ${email}`} (${cleared} catatan)`)
+    await logActivity(user, 'login.unblock', ip ?? email!, { kind: ip ? 'ip' : 'email', cleared })
     return NextResponse.json({ cleared })
   } catch (err) {
     console.error('[admin/login-failures DELETE]', err)

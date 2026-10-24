@@ -50,6 +50,22 @@ function wibDateCompact(d: Date): string {
   return new Date(d.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10).replace(/-/g, '')
 }
 
+/**
+ * Rentang waktu dari query `from`/`to` (ISO 8601, boleh salah satu kosong).
+ * Dipakai halaman log (pagination) dan ekspor Excel supaya keduanya membaca rentang yang sama.
+ */
+function parseRange(fromParam: string | null, toParam: string | null):
+  | { from: Date | null; to: Date | null; filter: Prisma.DateTimeFilter | undefined }
+  | NextResponse {
+  const from = fromParam ? new Date(fromParam) : null
+  const to   = toParam   ? new Date(toParam)   : null
+  if (from && isNaN(from.getTime())) return badRequest('from harus tanggal ISO 8601')
+  if (to   && isNaN(to.getTime()))   return badRequest('to harus tanggal ISO 8601')
+  if (from && to && from > to)       return badRequest('from tidak boleh setelah to')
+  const filter = from || to ? { ...(from && { gte: from }), ...(to && { lte: to }) } : undefined
+  return { from, to, filter }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const device_id = searchParams.get('device_id')
@@ -69,19 +85,25 @@ export async function GET(req: NextRequest) {
 
     const where = device_id ? { device_id } : undefined
 
-    // Mode pagination — dipakai halaman logs
+    // Mode pagination — dipakai halaman logs (opsional difilter rentang from/to)
     if (pageParam !== null) {
       const page = parsePositiveInt(pageParam)
       if (page === null) return badRequest('page harus bilangan bulat ≥ 1')
+      const range = parseRange(searchParams.get('from'), searchParams.get('to'))
+      if (range instanceof NextResponse) return range
 
+      const pageWhere: Prisma.sensor_logsWhereInput = {
+        ...(device_id && { device_id }),
+        ...(range.filter && { recorded_at: range.filter }),
+      }
       const [logs, total] = await Promise.all([
         prisma.sensor_logs.findMany({
-          where,
+          where: pageWhere,
           orderBy: { recorded_at: 'desc' },
           take: PAGE_SIZE,
           skip: (page - 1) * PAGE_SIZE,
         }),
-        prisma.sensor_logs.count({ where }),
+        prisma.sensor_logs.count({ where: pageWhere }),
       ])
 
       return NextResponse.json({
@@ -113,15 +135,13 @@ export async function GET(req: NextRequest) {
 async function exportXlsx(device_id: string | null, fromParam: string | null, toParam: string | null) {
   if (!device_id) return badRequest('device_id wajib diisi untuk ekspor Excel')
 
-  const from = fromParam ? new Date(fromParam) : null
-  const to   = toParam   ? new Date(toParam)   : null
-  if (from && isNaN(from.getTime())) return badRequest('from harus tanggal ISO 8601')
-  if (to   && isNaN(to.getTime()))   return badRequest('to harus tanggal ISO 8601')
-  if (from && to && from > to)       return badRequest('from tidak boleh setelah to')
+  const range = parseRange(fromParam, toParam)
+  if (range instanceof NextResponse) return range
+  const { from, to } = range
 
   const where: Prisma.sensor_logsWhereInput = {
     device_id,
-    ...(from || to ? { recorded_at: { ...(from && { gte: from }), ...(to && { lte: to }) } } : {}),
+    ...(range.filter && { recorded_at: range.filter }),
   }
 
   const [device, row_count] = await Promise.all([

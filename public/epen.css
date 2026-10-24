@@ -81,6 +81,12 @@ body{min-height:100vh;font-size:15px;line-height:1.45}
 .field label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .field input{background:var(--surface);border:2px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:13px;color:var(--text);outline:none;color-scheme:light dark;min-width:0;transition:box-shadow .12s ease}
 .field input:focus{box-shadow:3px 3px 0 var(--accent)}
+/* Kalender bawaan browser mengikuti tombol tema, bukan tema OS */
+[data-theme="light"] .field input{color-scheme:light}
+[data-theme="dark"] .field input{color-scheme:dark}
+.field input[type="date"],.field input[type="datetime-local"]{cursor:pointer}
+.field input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.75}
+.field input::-webkit-calendar-picker-indicator:hover{opacity:1}
 
 /* TABEL */
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--line);border-radius:10px}

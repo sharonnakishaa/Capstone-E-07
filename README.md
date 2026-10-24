@@ -42,7 +42,8 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 
 **Halaman log (`/logs.html`)**
 - Semua data sensor dengan pagination 50 baris per halaman.
-- Ekspor Excel (`.xlsx`) berdasarkan rentang tanggal (WIB), maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
+- Filter rentang tanggal (WIB, salah satu sisi boleh kosong). Rentang tersimpan di URL (`?device=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`), jadi bisa dimuat ulang atau dibagikan. Default: semua data.
+- Ekspor Excel (`.xlsx`) persis untuk rentang yang sedang ditampilkan, maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
@@ -452,10 +453,12 @@ Endpoint ini punya tiga mode, ditentukan oleh query parameter.
 | Query | Mode | Dipakai oleh |
 |---|---|---|
 | `device_id`, `limit` (default 30, maks 100) | Terbaru | Dashboard |
-| `device_id`, `page` (≥ 1, 50 baris per halaman) | Pagination | Halaman log |
-| `format=xlsx`, `device_id`, `from`, `to` | Ekspor Excel | Tombol Ekspor Excel |
+| `device_id`, `page` (≥ 1, 50 baris per halaman), `from`, `to` (opsional) | Pagination | Halaman log |
+| `format=xlsx`, `device_id`, `from`, `to` (opsional) | Ekspor Excel | Tombol Ekspor Excel |
 
 Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
+
+`from` dan `to` berupa ISO 8601 dan inklusif (`gte`/`lte` pada `recorded_at`). Keduanya boleh dikosongkan salah satu atau dua-duanya. Mode pagination dan ekspor memakai validasi yang sama, jadi `total` pada pagination selalu sama dengan jumlah baris ekspor untuk rentang yang sama. Halaman log mengirim `YYYY-MM-DDT00:00:00+07:00` dan `YYYY-MM-DDT23:59:59.999+07:00`.
 
 **Objek log**
 

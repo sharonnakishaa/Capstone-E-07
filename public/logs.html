@@ -30,6 +30,8 @@
   .btn:disabled{cursor:progress}
   .export-note{font-size:12.5px;color:var(--muted);flex:1;min-width:200px;align-self:center}
   .export[hidden]{display:none}
+  #exportBox .export-note{flex:1 1 260px}
+  .range-active{color:var(--accent);font-weight:800}
   .export-locked .export-note{flex:1 1 100%}
   .export-locked a{color:var(--accent);font-weight:800;text-decoration:none}
   .export-locked a:hover{text-decoration:underline;text-underline-offset:3px}
@@ -57,7 +59,7 @@
     .toolbar-info{margin-left:0;width:100%}
     .export .field{flex:1 1 130px}
     .export .field input{width:100%}
-    .export .btn{width:100%}
+    .export .btn,.export .btn-ghost{width:100%}
     .pg-btn{min-width:36px;height:36px;padding:0 8px}
   }
 </style>
@@ -99,26 +101,34 @@
       <a href="/trends.html" class="btn-ghost" id="trendsLink">Lihat tren jangka panjang →</a>
     </div>
 
-    <form class="export" id="exportForm" novalidate>
-      <div class="export-title">Ekspor Excel</div>
+    <form class="export" id="rangeForm" novalidate>
+      <div class="export-title">Rentang tanggal</div>
       <div class="field">
         <label for="fromDate">Dari tanggal</label>
-        <input type="date" id="fromDate" required>
+        <input type="date" id="fromDate">
       </div>
       <div class="field">
         <label for="toDate">Sampai tanggal</label>
-        <input type="date" id="toDate" required>
+        <input type="date" id="toDate">
       </div>
-      <button type="submit" class="btn" id="exportBtn">
+      <button type="submit" class="btn" id="applyRange">Tampilkan</button>
+      <button type="button" class="btn-ghost" id="clearRange">Semua data</button>
+      <span class="export-note">Waktu dalam WIB, mencakup seluruh hari. Salah satu tanggal boleh dikosongkan (mis. hanya "Dari" = sejak tanggal itu).</span>
+      <div class="export-msg" id="rangeMsg" role="status"></div>
+    </form>
+
+    <div class="export" id="exportBox" hidden>
+      <div class="export-title">Ekspor Excel</div>
+      <span class="export-note" id="exportNote">Mengunduh data yang sedang ditampilkan. Maksimal 50.000 baris per ekspor.</span>
+      <button type="button" class="btn" id="exportBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span id="exportLabel">Ekspor Excel (.xlsx)</span>
       </button>
-      <span class="export-note">Waktu dalam WIB, mencakup seluruh hari pada kedua tanggal. Maksimal 50.000 baris per ekspor.</span>
       <div class="export-msg" id="exportMsg" role="status"></div>
-    </form>
+    </div>
     <div class="export export-locked" id="exportLocked" hidden>
       <div class="export-title">Ekspor Excel</div>
-      <span class="export-note">Ekspor Excel hanya untuk Pengelola Lab. <a id="exportLoginLink" href="/login.html">Masuk</a> untuk mengunduh data.</span>
+      <span class="export-note">Ekspor Excel hanya untuk Pengelola Lab. <a id="exportLoginLink" href="/login.html">Masuk</a> untuk mengunduh data yang sedang ditampilkan.</span>
     </div>
 
     <div class="table-scroll">
@@ -166,6 +176,10 @@ let currentDeviceId = null;
 let currentPage     = 1;
 let totalPages      = 1;
 let totalRecords    = 0;
+const EXPORT_MAX_ROWS = 50000;
+// Rentang tanggal aktif (YYYY-MM-DD, WIB); string kosong = tanpa batas di sisi itu
+let rangeFrom = '';
+let rangeTo   = '';
 
 /* HELPERS */
 const $   = id => document.getElementById(id);
@@ -180,6 +194,23 @@ function fmtTime(iso){
 /** Tanggal hari ini di WIB, format YYYY-MM-DD (untuk nilai default input date). */
 function todayWib(){
   return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+const isYmd   = s => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '') && !isNaN(new Date(s + 'T00:00:00+07:00'));
+const fmtYmd  = s => s.split('-').reverse().join('/');
+
+/** Query from/to untuk API: seluruh hari dalam WIB (UTC+7). */
+function rangeParams() {
+  const p = {};
+  if (rangeFrom) p.from = `${rangeFrom}T00:00:00+07:00`;
+  if (rangeTo)   p.to   = `${rangeTo}T23:59:59.999+07:00`;
+  return p;
+}
+/** "16/10/2026 – 21/10/2026", "sejak 16/10/2026", "sampai 21/10/2026", atau "" (semua data). */
+function rangeLabel() {
+  if (rangeFrom && rangeTo) return rangeFrom === rangeTo ? fmtYmd(rangeFrom) : `${fmtYmd(rangeFrom)} – ${fmtYmd(rangeTo)}`;
+  if (rangeFrom) return `sejak ${fmtYmd(rangeFrom)}`;
+  if (rangeTo)   return `sampai ${fmtYmd(rangeTo)}`;
+  return '';
 }
 
 /* RENDER TABLE */
@@ -202,7 +233,7 @@ function renderTable(data, page) {
           <td class="num">${fmtNum(d.fan_duty_percent)}</td>
           <td class="last">${fmtNum(d.fan_rpm)}</td>
         </tr>`).join('')
-    : '<tr><td colspan="11" class="empty-row">Tidak ada data</td></tr>';
+    : `<tr><td colspan="11" class="empty-row">${rangeLabel() ? 'Tidak ada data pada rentang ini' : 'Tidak ada data'}</td></tr>`;
 }
 
 /* RENDER PAGINATION */
@@ -244,22 +275,27 @@ async function loadPage(page) {
     '<tr><td colspan="11" class="empty-row">Memuat...</td></tr>';
 
   try {
-    const res = await fetch(`/api/sensor?device_id=${encodeURIComponent(deviceId)}&page=${page}`);
+    const pageQuery = () => new URLSearchParams({ device_id: currentDeviceId, page: currentPage, ...rangeParams() }).toString();
+    const query = pageQuery();
+    const res = await fetch(`/api/sensor?${query}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
-    if (deviceId !== currentDeviceId || page !== currentPage) return; // sudah pindah device/halaman
+    if (query !== pageQuery()) return; // sudah pindah device/halaman/rentang selama request berjalan
 
     totalRecords = json.total;
     totalPages   = json.totalPages;
 
-    const from = totalRecords ? (page - 1) * PAGE_SIZE + 1 : 0;
-    const to   = Math.min(page * PAGE_SIZE, totalRecords);
+    const first = totalRecords ? (page - 1) * PAGE_SIZE + 1 : 0;
+    const last  = Math.min(page * PAGE_SIZE, totalRecords);
+    const label = rangeLabel();
 
-    $('toolbarSub').textContent  = `Total ${totalRecords.toLocaleString('id-ID')} record`;
-    $('toolbarInfo').textContent = `Menampilkan ${from.toLocaleString('id-ID')}–${to.toLocaleString('id-ID')} dari ${totalRecords.toLocaleString('id-ID')}`;
+    $('toolbarSub').innerHTML = `Total ${totalRecords.toLocaleString('id-ID')} record` +
+      (label ? ` · <span class="range-active">${esc(label)}</span>` : ' · semua data');
+    $('toolbarInfo').textContent = `Menampilkan ${first.toLocaleString('id-ID')}–${last.toLocaleString('id-ID')} dari ${totalRecords.toLocaleString('id-ID')}`;
 
     renderTable(json.data, page);
     renderPagination();
+    updateExportNote();
   } catch (e) {
     console.error('[logs]', e);
     $('logTableBody').innerHTML =
@@ -281,21 +317,21 @@ function showExportMsg(text, kind) {
   el.className = 'export-msg' + (kind ? ' ' + kind : '');
 }
 
-async function exportExcel(e) {
-  e.preventDefault();
+/** Keterangan ekspor mengikuti rentang & jumlah baris yang sedang ditampilkan. */
+function updateExportNote() {
+  const label = rangeLabel() || 'semua data';
+  const n     = totalRecords.toLocaleString('id-ID');
+  const tooBig = totalRecords > EXPORT_MAX_ROWS;
+  $('exportNote').innerHTML = tooBig
+    ? `Rentang <span class="range-active">${esc(label)}</span> berisi ${n} baris, melebihi batas ${EXPORT_MAX_ROWS.toLocaleString('id-ID')} baris per ekspor. Persempit rentang tanggal di atas.`
+    : `Mengunduh <span class="range-active">${esc(label)}</span> (${n} baris) persis seperti tabel di bawah. Maksimal ${EXPORT_MAX_ROWS.toLocaleString('id-ID')} baris per ekspor.`;
+  $('exportBtn').disabled = tooBig || !totalRecords;
+}
+
+async function exportExcel() {
   if (!currentDeviceId) return;
 
-  const fromDate = $('fromDate').value, toDate = $('toDate').value;
-  if (!fromDate || !toDate) return showExportMsg('Isi kedua tanggal terlebih dahulu.', 'err');
-  if (fromDate > toDate)    return showExportMsg('Tanggal "Dari" tidak boleh setelah tanggal "Sampai".', 'err');
-
-  // Rentang satu hari penuh dalam WIB (UTC+7)
-  const params = new URLSearchParams({
-    format:    'xlsx',
-    device_id: currentDeviceId,
-    from:      `${fromDate}T00:00:00+07:00`,
-    to:        `${toDate}T23:59:59.999+07:00`,
-  });
+  const params = new URLSearchParams({ format: 'xlsx', device_id: currentDeviceId, ...rangeParams() });
 
   const btn = $('exportBtn');
   btn.disabled = true;
@@ -327,17 +363,48 @@ async function exportExcel(e) {
   } catch (err) {
     showExportMsg(err.message, 'err');
   } finally {
-    btn.disabled = false;
     $('exportLabel').textContent = 'Ekspor Excel (.xlsx)';
+    updateExportNote();
   }
 }
 
-/** Simpan device terpilih di URL dan bawa kembali ke dashboard detail. */
+/* RENTANG TANGGAL */
+function showRangeMsg(text, kind) {
+  const el = $('rangeMsg');
+  el.textContent = text;
+  el.className = 'export-msg' + (kind ? ' ' + kind : '');
+}
+
+function applyRange(e) {
+  e.preventDefault();
+  const from = $('fromDate').value, to = $('toDate').value;
+  if (from && to && from > to) return showRangeMsg('Tanggal "Dari" tidak boleh setelah tanggal "Sampai".', 'err');
+  showRangeMsg('', null);
+  showExportMsg('', null);
+  rangeFrom = from;
+  rangeTo   = to;
+  if (!currentDeviceId) return;
+  syncDeviceUrl();
+  loadPage(1);
+}
+
+function clearRange() {
+  $('fromDate').value = $('toDate').value = '';
+  syncDateLimits();
+  applyRange(new Event('submit'));
+}
+
+/** Simpan device & rentang terpilih di URL; dashboard/tren cukup dibawa device-nya. */
 function syncDeviceUrl() {
-  const q = `?device=${encodeURIComponent(currentDeviceId)}`;
-  history.replaceState(null, '', location.pathname + q);
-  $('backLink').href = '/index.html' + q;
-  $('trendsLink').href = '/trends.html' + q;
+  const dev = `?device=${encodeURIComponent(currentDeviceId)}`;
+  const q = new URLSearchParams({ device: currentDeviceId });
+  if (rangeFrom) q.set('from', rangeFrom);
+  if (rangeTo)   q.set('to', rangeTo);
+  history.replaceState(null, '', `${location.pathname}?${q}`);
+  $('backLink').href = '/index.html' + dev;
+  $('trendsLink').href = '/trends.html' + dev;
+  // Tautan Masuk ikut membawa rentang terbaru supaya kembali ke tampilan yang sama
+  document.querySelectorAll('#exportLoginLink, #authWidget a.auth-btn').forEach(a => a.href = EpenAuth.loginUrl());
 }
 
 /* LOAD DEVICES */
@@ -380,13 +447,37 @@ async function loadDevices() {
   }
 }
 
-$('fromDate').value = $('toDate').value = todayWib();
-$('exportForm').addEventListener('submit', exportExcel);
+// Rentang bisa dibawa lewat URL (?from=YYYY-MM-DD&to=YYYY-MM-DD); default semua data
+{
+  const q = new URLSearchParams(location.search);
+  rangeFrom = isYmd(q.get('from')) ? q.get('from') : '';
+  rangeTo   = isYmd(q.get('to'))   ? q.get('to')   : '';
+  if (rangeFrom && rangeTo && rangeFrom > rangeTo) rangeFrom = rangeTo = '';
+  $('fromDate').value = rangeFrom;
+  $('toDate').value   = rangeTo;
+  syncDateLimits();
+}
+
+/** Kalender "Sampai" tidak bisa memilih sebelum "Dari", dan keduanya maksimal hari ini. */
+function syncDateLimits() {
+  const today = todayWib(), from = $('fromDate').value, to = $('toDate').value;
+  $('fromDate').max = to && to < today ? to : today;
+  $('toDate').max   = today;
+  $('toDate').min   = from;
+}
+
+// Klik di mana saja pada kotak tanggal langsung membuka kalender (bukan hanya ikonnya)
+for (const input of [$('fromDate'), $('toDate')]) {
+  input.addEventListener('click', () => { try { input.showPicker(); } catch (e) {} });
+  input.addEventListener('change', () => { syncDateLimits(); showRangeMsg('', null); });
+}
+$('rangeForm').addEventListener('submit', applyRange);
+$('clearRange').addEventListener('click', clearRange);
+$('exportBtn').addEventListener('click', exportExcel);
 EpenAuth.renderWidget($('authWidget'));
 // Ekspor Excel hanya untuk Pengelola Lab (server juga menolak tanpa login)
 EpenAuth.ready.then(u => {
-  if (u) return;
-  $('exportForm').hidden = true;
+  if (u) { $('exportBox').hidden = false; return; }
   $('exportLoginLink').href = EpenAuth.loginUrl();
   $('exportLocked').hidden = false;
 });

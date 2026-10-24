@@ -104,11 +104,19 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 |---|---|---|---|---|---|
 | G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, baseline, suhu, RH, debu outlet, status fuzzy (badge), duty %, RPM. Tidak ada kolom level. | | |
 | G-02 | Pagination | Klik halaman 2, halaman terakhir, lalu tombol ‹ dan ›. | 50 baris per halaman. Info "Menampilkan X–Y dari Z" sesuai, dan tombol nonaktif di halaman pertama dan terakhir. | | |
-| G-03 | Ekspor hari ini | Masuk sebagai Pengelola Lab. Biarkan tanggal default (hari ini), lalu klik **Ekspor Excel (.xlsx)**. | File `epen-meja-1-<tanggal>-<tanggal>.xlsx` terunduh, dan muncul pesan "N baris diekspor". | | |
-| G-04 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. | | |
-| G-05 | Rentang terbalik | Isi "Dari" = besok dan "Sampai" = hari ini, lalu klik Ekspor. | Muncul pesan merah "Tanggal "Dari" tidak boleh setelah tanggal "Sampai"", dan tidak ada file yang terunduh. | | |
-| G-06 | Rentang tanpa data | Pilih tanggal sebelum data seed ada. | Muncul pesan "Tidak ada data pada rentang ini", dan file hanya berisi header. | | |
-| G-07 | Batas 50.000 baris | Pilih rentang yang berisi > 50.000 data (± 69 jam data terus-menerus). | Muncul pesan merah dari server "Rentang terlalu besar: … baris (maks 50.000)", dan tidak ada file yang terunduh. | | |
+| G-03 | Default semua data | Buka `/logs.html?device=<id>` tanpa `from`/`to`. | Kedua input tanggal kosong, subjudul "Total N record · semua data", dan total sama dengan jumlah semua log alat itu. | | |
+| G-04 | Filter rentang | Isi "Dari" = kemarin dan "Sampai" = hari ini, lalu klik **Tampilkan**. | Tabel kembali ke halaman 1 dan hanya berisi data dua hari itu (cek baris pertama dan terakhir di halaman terakhir). Subjudul memuat rentang berwarna terakota, dan URL berubah menjadi `…&from=YYYY-MM-DD&to=YYYY-MM-DD`. | | |
+| G-05 | Salah satu tanggal kosong | Isi hanya "Dari" = hari ini, klik Tampilkan. Lalu kosongkan "Dari", isi hanya "Sampai" = kemarin, klik Tampilkan. | Pertama: "sejak <tanggal>", hanya data hari ini. Kedua: "sampai <tanggal>", tidak ada data hari ini. | | |
+| G-06 | Rentang terbalik | Isi "Dari" = hari ini dan "Sampai" = kemarin, lalu klik Tampilkan. | Muncul pesan merah "Tanggal "Dari" tidak boleh setelah tanggal "Sampai"", dan tabel tidak berubah. Input tanggal tidak bisa memilih hari setelah hari ini. | | |
+| G-07 | Rentang tanpa data | Pilih rentang sebelum data seed ada. | Tabel menampilkan "Tidak ada data pada rentang ini", pagination hilang, dan tombol Ekspor nonaktif. | | |
+| G-08 | Rentang tersimpan di URL | Dengan filter aktif: muat ulang halaman, lalu ganti perangkat di dropdown. | Setelah muat ulang, input dan tabel tetap pada rentang yang sama. Setelah ganti perangkat, rentang tetap dipakai untuk alat baru. URL `?from=abc` atau `from` > `to` diabaikan (kembali ke semua data). | | |
+| G-09 | Tombol Semua data | Dengan filter aktif, klik **Semua data**. | Input dikosongkan, URL tanpa `from`/`to`, dan total kembali seperti G-03. | | |
+| G-10 | Ekspor mengikuti filter | Masuk sebagai Pengelola Lab. Pasang rentang seperti G-04, lalu klik **Ekspor Excel (.xlsx)**. | Keterangan ekspor menyebut rentang dan jumlah baris yang sama dengan subjudul tabel. File `epen-meja-1-<dari>-<sampai>.xlsx` terunduh, dan pesan "N baris diekspor" dengan N = total di tabel. Tanpa filter, nama file berakhiran `-all-all.xlsx`. | | |
+| G-11 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. | | |
+| G-12 | Batas 50.000 baris | Pilih rentang (atau semua data) yang berisi > 50.000 data (± 69 jam data terus-menerus). | Keterangan ekspor memberi tahu rentang melebihi 50.000 baris dan meminta mempersempit, tombol Ekspor nonaktif. Tabel tetap bisa dibuka per halaman. | | |
+| G-13 | Tanpa login | Keluar, lalu buka halaman log. | Filter rentang tetap bisa dipakai. Kotak ekspor diganti keterangan "hanya untuk Pengelola Lab" dengan tautan Masuk yang kembali ke halaman ini (termasuk rentangnya). | | |
+| G-14 | Kalender pemilih tanggal | Klik bagian tengah kotak "Dari" (bukan ikonnya), pilih tanggal. Lalu buka kalender "Sampai". Ulangi di tema gelap. | Kalender langsung muncul saat kotak diklik. Di kalender "Sampai", tanggal sebelum "Dari" dan setelah hari ini tidak bisa dipilih. Di tema gelap, ikon dan kalendernya ikut gelap dan tetap terbaca. Mengetik tanggal dengan keyboard tetap bisa. | | |
+| G-15 | Tampilan 375 px | DevTools → iPhone SE, tema gelap, filter aktif. | Kedua input tanggal berdampingan, tombol Tampilkan dan Semua data selebar penuh, dan tidak ada scroll horizontal di luar tabel. | | |
 
 ## H. Notifikasi email
 
@@ -233,7 +241,9 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | O-05 | Tooltip | Arahkan kursor (atau sentuh) ke beberapa hari di ketiga grafik. | Kolom hari tersorot, dan tooltip menampilkan tanggal lengkap serta nilai hari itu (jam per status, rata-rata/puncak TVOC, rata-rata/puncak debu). | | |
 | O-06 | Debu outlet | Lihat grafik debu outlet. | Garis putus-putus batas filter (25 µg/m³) tampil. Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
 | O-07 | Melewati retensi | Setelah ada data > 60 hari (atau setelah uji K-02), pilih **90 hari**. | Hari-hari yang data mentahnya sudah diringkas tetap muncul dengan nilai yang wajar (tidak kosong). | | |
-| O-08 | Tampilan 375 px | DevTools → iPhone SE, pilih 90 hari, tema gelap. | Kotak ringkasan dua kolom, grafik satu kolom, label tanggal terakhir tidak terpotong, dan tidak ada scroll horizontal. | | |---
+| O-08 | Tampilan 375 px | DevTools → iPhone SE, pilih 90 hari, tema gelap. | Kotak ringkasan dua kolom, grafik satu kolom, label tanggal terakhir tidak terpotong, dan tidak ada scroll horizontal. | | |
+
+---
 
 ## Ringkasan hasil
 
@@ -245,7 +255,7 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | D. Statistik sesi | 4 | | | |
 | E. Info perangkat | 9 | | | |
 | F. Tabel log di dashboard | 4 | | | |
-| G. Halaman log dan ekspor Excel | 7 | | | |
+| G. Halaman log dan ekspor Excel | 15 | | | |
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 9 | | | |
 | J. Tampilan | 5 | | | |
@@ -254,4 +264,4 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | M. Login Pengelola Lab | 12 | | | |
 | N. Kelola Alat | 8 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| **Total** | **114** | | | |
+| **Total** | **122** | | | |

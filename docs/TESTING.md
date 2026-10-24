@@ -232,7 +232,10 @@ Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari 
 | N-05 | Tambah manual & validasi | Tambah alat dengan MAC `246F28ABCDEF`, lalu dengan MAC alat yang sudah terdaftar. | Pesan merah: format MAC salah, lalu "MAC … sudah terdaftar sebagai …". Tidak ada alat ganda. | | |
 | N-06 | Nonaktifkan | Klik **Nonaktifkan** pada alat seed. Di modal konfirmasi, coba dulu **Batal**, tombol Esc, dan klik di luar kotak (ketiganya tidak mengubah apa pun), lalu ulangi dan klik **Nonaktifkan**. | Status jadi NONAKTIF, alat hilang dari Ringkasan Lab, dan data yang dikirim ke MAC itu ditolak `404`. Klik **Aktifkan** pada alat yang sama: muncul modal "Aktifkan alat?" (tombol terakota biasa, bukan merah). Setelah dikonfirmasi, alat tampil lagi di Ringkasan Lab, dan data lamanya tetap ada di halaman log. | | |
 | N-07 | Ubah | Klik **Ubah**, ganti nama dan jarak inlet, lalu simpan. | Form berpindah ke mode "Ubah alat" dengan tombol Batal. Setelah simpan, nama baru tampil di daftar dan di Ringkasan Lab, dan jarak inlet baru tampil di Info Perangkat. | | |
-| N-08 | Tampilan 375 px | DevTools → iPhone SE, buka Kelola Alat dan Ringkasan Lab dalam keadaan login. | Topbar tetap satu baris (tombol Kelola Alat dan Keluar berupa ikon). Panel, form, dan tabel tersusun satu kolom, dan tabel bisa digeser di dalam kartunya. | | |
+| N-08 | Hapus — syarat | Lihat baris alat aktif dan nonaktif. Lewat curl/DevTools, kirim `DELETE /api/admin/devices/<id alat aktif>` dengan `confirm_name` benar. | Tombol **Hapus** (merah) hanya ada di baris alat NONAKTIF. Request untuk alat aktif → `409` "Nonaktifkan alat terlebih dahulu". | | |
+| N-09 | Hapus — pratinjau & konfirmasi | Klik **Hapus** pada alat dummy yang nonaktif. Ketik nama yang salah, lalu coba Batal, Esc, dan klik di luar modal. | Modal menampilkan nama, MAC, jumlah baris log beserta rentang waktunya, dan tautan ke halaman log untuk ekspor. Tombol Hapus permanen baru aktif saat nama persis sama. Batal/Esc/klik di luar tidak menghapus apa pun. | | |
+| N-10 | Hapus — berhasil | Ketik nama yang benar, lalu klik **Hapus permanen** (atau Enter). | Pesan hijau "… dihapus permanen beserta N baris log". Alat hilang dari daftar, dari dropdown dashboard/log/tren, dan dari Ringkasan Lab. Log server mencatat email, nama, MAC, dan jumlah baris. Kalau MAC itu masih mengirim data, MAC-nya muncul di **Alat baru terdeteksi**. | | |
+| N-11 | Tampilan 375 px | DevTools → iPhone SE, buka Kelola Alat dan Ringkasan Lab dalam keadaan login. | Topbar tetap satu baris (tombol Kelola Alat dan Keluar berupa ikon). Panel, form, dan tabel tersusun satu kolom, dan tabel bisa digeser di dalam kartunya. | | |
 
 ## O. Tren jangka panjang
 
@@ -290,7 +293,7 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | K. Retensi data | 7 | | | |
 | L. Ringkasan Lab | 12 | | | |
 | M. Login Pengelola Lab | 12 | | | |
-| N. Kelola Alat | 8 | | | |
+| N. Kelola Alat | 11 | | | |
 | O. Tren jangka panjang | 8 | | | |
 | P. Kelola Akun | 13 | | | |
-| **Total** | **141** | | | |
+| **Total** | **144** | | | |

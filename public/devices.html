@@ -49,7 +49,11 @@
   tr.inactive td{color:var(--muted-2)}
   tr.inactive td.name{color:var(--muted)}
   td.actions{text-align:right}
+  td.actions{white-space:nowrap}
   td.actions .btn-ghost{margin-left:6px}
+  .btn-danger-ghost,.btn-danger-ghost:hover{color:var(--ink-bahaya)}
+  .btn-danger:disabled{opacity:.45;cursor:not-allowed}
+  .modal .msg{margin:0}
 
   /* TERKUNCI */
   .locked{display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:560px}
@@ -187,6 +191,24 @@
   </form>
 </dialog>
 
+<dialog class="modal" id="deleteModal" aria-labelledby="deleteTitle" aria-describedby="deleteText">
+  <form method="dialog">
+    <div class="modal-body">
+      <h2 class="modal-title" id="deleteTitle">Hapus alat permanen?</h2>
+      <p class="modal-text" id="deleteText">Menghitung data...</p>
+      <div class="field" id="deleteConfirmField" hidden>
+        <label for="deleteConfirm" id="deleteConfirmLabel">Ketik nama alat untuk konfirmasi</label>
+        <input id="deleteConfirm" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="msg" id="deleteMsg" role="status"></div>
+    </div>
+    <div class="modal-actions">
+      <button value="cancel" class="btn-ghost" id="deleteCancel" formnovalidate>Batal</button>
+      <button type="button" class="btn btn-danger" id="deleteOk" disabled>Hapus permanen</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 /* THEME */
 (function(){
@@ -280,7 +302,7 @@ function renderUnregistered(){
 /* RENDER — DAFTAR ALAT */
 function renderDevices(){
   const active=devices.filter(d=>d.is_active).length;
-  $('tableSub').textContent=`${devices.length} alat terdaftar · ${active} aktif, ${devices.length-active} nonaktif. Alat nonaktif tidak tampil di Ringkasan Lab dan datanya ditolak server; data lamanya tetap tersimpan.`;
+  $('tableSub').textContent=`${devices.length} alat terdaftar · ${active} aktif, ${devices.length-active} nonaktif. Alat nonaktif tidak tampil di Ringkasan Lab dan datanya ditolak server; data lamanya tetap tersimpan sampai alatnya dihapus.`;
   $('devBody').innerHTML=devices.length?devices.map(d=>{
     const last=d.last_seen_at?fmtAge(new Date(serverTime)-new Date(d.last_seen_at)):'Belum pernah';
     return `<tr class="${d.is_active?'':'inactive'}">
@@ -293,6 +315,7 @@ function renderDevices(){
       <td class="actions">
         <button type="button" class="btn-ghost btn-sm" data-edit="${esc(d.id)}">Ubah</button>
         <button type="button" class="btn-ghost btn-sm" data-toggle="${esc(d.id)}">${d.is_active?'Nonaktifkan':'Aktifkan'}</button>
+        ${d.is_active?'':`<button type="button" class="btn-ghost btn-sm btn-danger-ghost" data-delete="${esc(d.id)}">Hapus</button>`}
       </td>
     </tr>`;
   }).join(''):'<tr><td colspan="7" class="empty-row">Belum ada alat terdaftar</td></tr>';
@@ -390,6 +413,10 @@ document.addEventListener('click',async e=>{
 
   if(t.dataset.register) return startRegister(t.dataset.register);
   if(t.dataset.edit) return startEdit(t.dataset.edit);
+  if(t.dataset.delete){
+    const d=devices.find(x=>x.id===t.dataset.delete);
+    return d&&openDelete(d);
+  }
 
   if(t.dataset.ignore){
     const mac=t.dataset.ignore;
@@ -426,6 +453,67 @@ document.addEventListener('click',async e=>{
     }catch(err){showMsg('pageMsg',err.message,'err');t.disabled=false;}
   }
 });
+
+/* HAPUS ALAT PERMANEN (hanya alat nonaktif) */
+let pendingDelete=null; // { id, name }
+
+async function openDelete(d){
+  pendingDelete=null;
+  $('deleteText').textContent='Menghitung data...';
+  $('deleteConfirm').value='';
+  $('deleteConfirmField').hidden=true;
+  $('deleteOk').disabled=true;
+  showMsg('deleteMsg','',null);
+  $('deleteModal').showModal();
+  $('deleteCancel').focus();
+  try{
+    // Pratinjau jumlah data dari endpoint hapus-data (tanpa rentang = seluruh data alat)
+    const json=await api(`/api/admin/devices/${encodeURIComponent(d.id)}/logs`);
+    const logs=json.logs?`<strong>${fmtNum(json.logs)} baris log</strong>${json.first_at?` (${esc(fmtTime(json.first_at))} – ${esc(fmtTime(json.last_at))})`:''}`:'tidak ada log';
+    const hourly=json.hourly?` dan <strong>${fmtNum(json.hourly)} ringkasan per jam</strong>`:'';
+    $('deleteText').innerHTML=
+      `<strong>${esc(d.device_name)}</strong> (${esc(d.mac_address)}) dihapus dari daftar alat, bersama ${logs}${hourly}. Tindakan ini tidak bisa dibatalkan.<br><br>`+
+      (json.logs?`Kalau datanya masih dibutuhkan, <a href="/logs.html?device=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">ekspor dari halaman log</a> dulu. `:'')+
+      `Kalau alatnya masih menyala, MAC-nya akan muncul lagi di <strong>Alat baru terdeteksi</strong>.`;
+    $('deleteConfirmLabel').innerHTML=`Ketik <strong>${esc(d.device_name)}</strong> untuk konfirmasi`;
+    $('deleteConfirmField').hidden=false;
+    pendingDelete={id:d.id,name:d.device_name};
+    $('deleteConfirm').focus();
+  }catch(err){showMsg('deleteMsg',err.message,'err');}
+}
+
+async function confirmDelete(){
+  const p=pendingDelete;
+  if(!p||$('deleteConfirm').value.trim()!==p.name) return;
+  const btn=$('deleteOk');
+  btn.disabled=true; btn.textContent='Menghapus...';
+  showMsg('deleteMsg','',null);
+  try{
+    const json=await api(`/api/admin/devices/${encodeURIComponent(p.id)}`,{method:'DELETE',body:JSON.stringify({confirm_name:$('deleteConfirm').value.trim()})});
+    $('deleteModal').close('done');
+    if(editingId===p.id) resetForm();
+    flash(`"${p.name}" dihapus permanen beserta ${fmtNum(json.deleted_logs)} baris log.`);
+    await loadData();
+  }catch(err){
+    showMsg('deleteMsg',err.message,'err');
+    btn.disabled=false;
+  }finally{
+    btn.textContent='Hapus permanen';
+  }
+}
+
+$('deleteOk').addEventListener('click',confirmDelete);
+$('deleteConfirm').addEventListener('input',()=>{
+  $('deleteOk').disabled=!pendingDelete||$('deleteConfirm').value.trim()!==pendingDelete.name;
+});
+// Enter = Hapus kalau konfirmasi cocok (submit implisit form dialog akan memakai tombol pertama, Batal)
+$('deleteConfirm').addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  if(!$('deleteOk').disabled) confirmDelete();
+});
+$('deleteModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) e.currentTarget.close('cancel'); });
+$('deleteModal').addEventListener('close',()=>{ pendingDelete=null; });
 
 /* AKSES */
 function showLocked(){

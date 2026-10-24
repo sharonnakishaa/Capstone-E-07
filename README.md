@@ -197,7 +197,7 @@ Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjun
 |---|---|---|
 | Ringkasan Lab, dashboard detail, halaman log | ✅ | ✅ |
 | Catat penggantian filter | ❌ | ✅ |
-| Kelola Alat (daftarkan, ubah, nonaktifkan) | ❌ | ✅ |
+| Kelola Alat (daftarkan, ubah, nonaktifkan, hapus alat nonaktif) | ❌ | ✅ |
 | Kelola Akun (buat akun, reset password, nonaktifkan, ganti password sendiri) | ❌ | ✅ |
 | Ekspor Excel | ❌ | ✅ |
 
@@ -596,11 +596,12 @@ Semua endpoint di bawah ini wajib login sebagai Pengelola Lab (`401` tanpa login
 | `GET /api/admin/devices` | — | `200 { devices: [...], unregistered: [...], server_time }`. `devices` berisi semua alat, aktif maupun nonaktif, beserta `mac_address` dan `last_seen_at`. `unregistered` berisi MAC yang mengirim data tapi belum terdaftar (`first_seen_at`, `last_seen_at`, `attempts`), maksimal 50, terbaru dulu. |
 | `POST /api/admin/devices` | `{ mac_address, device_name, location?, inlet_distance_cm? }` | `201 { device }`. MAC dihapus dari daftar `unregistered`. `409` kalau MAC sudah terdaftar, `400` kalau validasi gagal. |
 | `PATCH /api/admin/devices/:id` | Sebagian dari `{ mac_address, device_name, location, inlet_distance_cm, is_active }` | `200 { device }`. `409` kalau MAC dipakai alat lain, `404` kalau alat tidak ada. |
+| `DELETE /api/admin/devices/:id` | `{ confirm_name }` | Hapus alat permanen beserta semua log dan ringkasan per jamnya (cascade). Hanya alat **nonaktif** (`409` kalau masih aktif). `confirm_name` wajib sama persis dengan nama alat (`400`). `200 { deleted, deleted_logs, deleted_hourly }`. Dicatat di log server. |
 | `DELETE /api/admin/unregistered-macs/:mac` | — | `200 { success, deleted }`. MAC dihapus dari daftar "alat baru terdeteksi". |
 | `GET /api/admin/devices/:id/logs?from=&to=` | — | Pratinjau hapus data: `200 { device_name, logs, hourly, first_at, last_at }`. `from`/`to` sama seperti `GET /api/sensor` (opsional; kosong = seluruh data alat). |
 | `DELETE /api/admin/devices/:id/logs?from=&to=` | `{ confirm_name }` | Hapus permanen log mentah (`recorded_at` dalam rentang) dan ringkasan per jam (`hour_start` dalam rentang). `confirm_name` wajib sama persis dengan nama alat (`400` kalau tidak). `200 { deleted_logs, deleted_hourly }`. |
 
-Aturan validasi: MAC berformat `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi), nama dan lokasi 1–60 karakter, jarak inlet > 0 dan ≤ 100 cm. Tidak ada endpoint hapus alat; nonaktifkan dengan `PATCH { "is_active": false }`.
+Aturan validasi: MAC berformat `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi), nama dan lokasi 1–60 karakter, jarak inlet > 0 dan ≤ 100 cm. Untuk menghapus alat: nonaktifkan dulu dengan `PATCH { "is_active": false }`, lalu `DELETE`. Kalau alat yang dihapus masih menyala, MAC-nya tercatat lagi sebagai alat baru terdeteksi.
 
 MAC dicatat ke `unregistered_macs` oleh `POST /api/sensor` setiap kali alat yang belum terdaftar mengirim data (`404`). Alat yang terdaftar tapi nonaktif **tidak** dicatat di sini.
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Sama dengan .brand-mark di topbar: kotak terakota, bingkai tinta, ikon solder + asap -->
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="#C8461A" stroke="#2B1D16" stroke-width="2"/>
+  <g transform="translate(4 4)" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(45 12 12)">
+      <rect x="9.5" y="0.5" width="5" height="9" rx="2"/>
+      <path d="M12 9.5v5.5"/>
+      <path d="M10.6 15h2.8L12 20.5z"/>
+    </g>
+    <path d="M2.5 21.5h6"/>
+    <path d="M3.5 12.5c-1.2-1.4 1.2-2.6 0-4M7 9c-1.2-1.4 1.2-2.6 0-4"/>
+  </g>
+</svg>

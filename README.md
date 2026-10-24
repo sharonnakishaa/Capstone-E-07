@@ -44,6 +44,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Semua data sensor dengan pagination 50 baris per halaman.
 - Filter rentang tanggal (WIB, salah satu sisi boleh kosong). Rentang tersimpan di URL (`?device=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`), jadi bisa dimuat ulang atau dibagikan. Default: semua data.
 - Ekspor Excel (`.xlsx`) persis untuk rentang yang sedang ditampilkan, maksimal 50.000 baris, dengan baris judul berwarna dan dibekukan. Khusus Pengelola Lab.
+- **Hapus data** untuk rentang yang sedang ditampilkan (misalnya data dummy dari seed atau sesi uji yang gagal). Khusus Pengelola Lab. Modal konfirmasi menampilkan jumlah baris yang akan hilang, menawarkan ekspor dulu, dan mewajibkan mengetik nama alat. Ringkasan per jam (`sensor_hourly`) di rentang itu ikut dihapus, jadi grafik tren dan jam operasi filter ikut berubah. Penghapusan dicatat di log server (siapa, alat, rentang, jumlah baris).
 
 **Login Pengelola Lab (`/login.html`)**
 - Semua halaman pemantauan bisa dibuka **tanpa login**.
@@ -285,6 +286,7 @@ lib/
   sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
   validation.ts         Validasi payload POST dari ESP32, input alat, dan input akun
   users.ts              Kolom akun yang aman dikirim ke frontend
+  range.ts              Validasi rentang from/to (halaman log, ekspor, hapus data)
   devices.ts            Perhitungan jam operasi filter
   retention.ts          Retensi data (dipakai cron dan script db:retention)
   auth.ts               Sesi login (cookie bertanda tangan) dan pengecekan role
@@ -595,6 +597,8 @@ Semua endpoint di bawah ini wajib login sebagai Pengelola Lab (`401` tanpa login
 | `POST /api/admin/devices` | `{ mac_address, device_name, location?, inlet_distance_cm? }` | `201 { device }`. MAC dihapus dari daftar `unregistered`. `409` kalau MAC sudah terdaftar, `400` kalau validasi gagal. |
 | `PATCH /api/admin/devices/:id` | Sebagian dari `{ mac_address, device_name, location, inlet_distance_cm, is_active }` | `200 { device }`. `409` kalau MAC dipakai alat lain, `404` kalau alat tidak ada. |
 | `DELETE /api/admin/unregistered-macs/:mac` | — | `200 { success, deleted }`. MAC dihapus dari daftar "alat baru terdeteksi". |
+| `GET /api/admin/devices/:id/logs?from=&to=` | — | Pratinjau hapus data: `200 { device_name, logs, hourly, first_at, last_at }`. `from`/`to` sama seperti `GET /api/sensor` (opsional; kosong = seluruh data alat). |
+| `DELETE /api/admin/devices/:id/logs?from=&to=` | `{ confirm_name }` | Hapus permanen log mentah (`recorded_at` dalam rentang) dan ringkasan per jam (`hour_start` dalam rentang). `confirm_name` wajib sama persis dengan nama alat (`400` kalau tidak). `200 { deleted_logs, deleted_hourly }`. |
 
 Aturan validasi: MAC berformat `24:6F:28:AB:CD:EF` (huruf kecil dinormalisasi), nama dan lokasi 1–60 karakter, jarak inlet > 0 dan ≤ 100 cm. Tidak ada endpoint hapus alat; nonaktifkan dengan `PATCH { "is_active": false }`.
 

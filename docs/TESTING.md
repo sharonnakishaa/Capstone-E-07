@@ -116,7 +116,13 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | G-12 | Batas 50.000 baris | Pilih rentang (atau semua data) yang berisi > 50.000 data (± 69 jam data terus-menerus). | Keterangan ekspor memberi tahu rentang melebihi 50.000 baris dan meminta mempersempit, tombol Ekspor nonaktif. Tabel tetap bisa dibuka per halaman. | | |
 | G-13 | Tanpa login | Keluar, lalu buka halaman log. | Filter rentang tetap bisa dipakai. Kotak ekspor diganti keterangan "hanya untuk Pengelola Lab" dengan tautan Masuk yang kembali ke halaman ini (termasuk rentangnya). | | |
 | G-14 | Kalender pemilih tanggal | Klik bagian tengah kotak "Dari" (bukan ikonnya), pilih tanggal. Lalu buka kalender "Sampai". Ulangi di tema gelap. | Kalender langsung muncul saat kotak diklik. Di kalender "Sampai", tanggal sebelum "Dari" dan setelah hari ini tidak bisa dipilih. Di tema gelap, ikon dan kalendernya ikut gelap dan tetap terbaca. Mengetik tanggal dengan keyboard tetap bisa. | | |
-| G-15 | Tampilan 375 px | DevTools → iPhone SE, tema gelap, filter aktif. | Kedua input tanggal berdampingan, tombol Tampilkan dan Semua data selebar penuh, dan tidak ada scroll horizontal di luar tabel. | | |
+| G-15 | Hapus data — akses | Tanpa login, lihat halaman log. Lalu masuk sebagai Pengelola Lab. | Tanpa login tidak ada tombol **Hapus data…**. Setelah masuk, tombol merah muda "Hapus data…" ada di kotak "Ekspor atau hapus data". `DELETE /api/admin/devices/<id>/logs` tanpa login → `401`. | | |
+| G-16 | Pratinjau | Pakai alat seed. Pasang rentang satu hari yang berisi data, lalu klik **Hapus data…**. | Modal menampilkan jumlah baris log (sama dengan total di tabel), waktu data pertama–terakhir, nama alat, dan rentang. Tombol **Hapus permanen** nonaktif. Rentang tanpa data → "Tidak ada yang perlu dihapus" tanpa kolom konfirmasi. | | |
+| G-17 | Ekspor dulu | Di modal, klik **Ekspor Excel dulu**. | File Excel rentang itu terunduh, dan pesan "N baris diekspor" tampil di dalam modal. Modal tetap terbuka. | | |
+| G-18 | Konfirmasi nama | Ketik nama alat yang salah (atau beda huruf besar/kecil), lalu yang benar. Coba juga Batal, Esc, dan klik di luar modal. | Tombol Hapus permanen baru aktif saat nama persis sama. Batal/Esc/klik di luar tidak menghapus apa pun. `DELETE` dengan `confirm_name` salah lewat curl → `400`. | | |
+| G-19 | Hapus berhasil | Dengan nama benar, klik **Hapus permanen** (atau tekan Enter). | Modal tertutup, pesan hijau "N baris log … dihapus", tabel menampilkan "Tidak ada data pada rentang ini". Data di luar rentang tetap ada (klik **Semua data**). Grafik tren untuk hari itu kosong. Log server (terminal dev / Vercel Logs) mencatat email, alat, rentang, dan jumlah baris. | | |
+| G-20 | Hapus semua data alat | Klik **Semua data**, lalu **Hapus data…** pada alat dummy. | Modal menyebut "SELURUH data alat ini", termasuk ringkasan per jam kalau ada. Setelah dihapus, alat tetap ada di Kelola Alat dan Ringkasan Lab menampilkannya tanpa data. | | |
+| G-21 | Tampilan 375 px | DevTools → iPhone SE, tema gelap, filter aktif. | Kedua input tanggal berdampingan, tombol Tampilkan dan Semua data selebar penuh, dan tidak ada scroll horizontal di luar tabel. | | |
 
 ## H. Notifikasi email
 
@@ -277,7 +283,7 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | D. Statistik sesi | 4 | | | |
 | E. Info perangkat | 9 | | | |
 | F. Tabel log di dashboard | 4 | | | |
-| G. Halaman log dan ekspor Excel | 15 | | | |
+| G. Halaman log, ekspor, dan hapus data | 21 | | | |
 | H. Notifikasi email | 5 | | | |
 | I. Validasi API | 9 | | | |
 | J. Tampilan | 5 | | | |
@@ -287,4 +293,4 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | N. Kelola Alat | 8 | | | |
 | O. Tren jangka panjang | 8 | | | |
 | P. Kelola Akun | 13 | | | |
-| **Total** | **135** | | | |
+| **Total** | **141** | | | |

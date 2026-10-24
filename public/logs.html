@@ -31,6 +31,13 @@
   .export-note{font-size:12.5px;color:var(--muted);flex:1;min-width:200px;align-self:center}
   .export[hidden]{display:none}
   #exportBox .export-note{flex:1 1 260px}
+  .btn-danger-ghost{color:var(--ink-bahaya)}
+  .btn-danger-ghost:hover{color:var(--ink-bahaya)}
+  .btn-sm{height:34px;padding:0 12px;font-size:13px}
+  .btn-danger:disabled{opacity:.45;cursor:not-allowed}
+  .delete-export{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:var(--surface-2);font-size:13.5px;color:var(--muted)}
+  .modal .field input{width:100%}
+  .modal .export-msg{width:auto}
   .range-active{color:var(--accent);font-weight:800}
   .export-locked .export-note{flex:1 1 100%}
   .export-locked a{color:var(--accent);font-weight:800;text-decoration:none}
@@ -118,11 +125,15 @@
     </form>
 
     <div class="export" id="exportBox" hidden>
-      <div class="export-title">Ekspor Excel</div>
+      <div class="export-title">Ekspor atau hapus data</div>
       <span class="export-note" id="exportNote">Mengunduh data yang sedang ditampilkan. Maksimal 50.000 baris per ekspor.</span>
       <button type="button" class="btn" id="exportBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span id="exportLabel">Ekspor Excel (.xlsx)</span>
+      </button>
+      <button type="button" class="btn-ghost btn-danger-ghost" id="deleteBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Hapus data…
       </button>
       <div class="export-msg" id="exportMsg" role="status"></div>
     </div>
@@ -157,6 +168,28 @@
     <div class="pagination" id="pagination"></div>
   </div>
 </main>
+
+<dialog class="modal" id="deleteModal" aria-labelledby="deleteTitle" aria-describedby="deleteText">
+  <form method="dialog">
+    <div class="modal-body">
+      <h2 class="modal-title" id="deleteTitle">Hapus data permanen?</h2>
+      <p class="modal-text" id="deleteText">Menghitung data...</p>
+      <div class="delete-export" id="deleteExportRow">
+        <span>Belum punya salinannya?</span>
+        <button type="button" class="btn-ghost btn-sm" id="deleteExportBtn">Ekspor Excel dulu</button>
+      </div>
+      <div class="field" id="deleteConfirmField">
+        <label for="deleteConfirm" id="deleteConfirmLabel">Ketik nama alat untuk konfirmasi</label>
+        <input id="deleteConfirm" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="export-msg" id="deleteMsg" role="status"></div>
+    </div>
+    <div class="modal-actions">
+      <button value="cancel" class="btn-ghost" id="deleteCancel" formnovalidate>Batal</button>
+      <button type="button" class="btn btn-danger" id="deleteOk" disabled>Hapus permanen</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 /* THEME */
@@ -315,6 +348,8 @@ function showExportMsg(text, kind) {
   const el = $('exportMsg');
   el.textContent = text;
   el.className = 'export-msg' + (kind ? ' ' + kind : '');
+  // Ekspor bisa dijalankan dari modal hapus data; pesannya juga perlu terlihat di sana
+  if ($('deleteModal').open) showDeleteMsg(text, kind);
 }
 
 /** Keterangan ekspor mengikuti rentang & jumlah baris yang sedang ditampilkan. */
@@ -367,6 +402,103 @@ async function exportExcel() {
     updateExportNote();
   }
 }
+
+/* HAPUS DATA (khusus pengelola) */
+let pendingDelete = null; // { deviceId, params, name } — dikunci saat modal dibuka
+
+function showDeleteMsg(text, kind) {
+  const el = $('deleteMsg');
+  el.textContent = text;
+  el.className = 'export-msg' + (kind ? ' ' + kind : '');
+}
+
+async function openDelete() {
+  if (!currentDeviceId) return;
+  // Rentang & alat dikunci sekarang, supaya yang dihapus persis yang dilihat di pratinjau
+  const deviceId = currentDeviceId, range = rangeParams(), label = rangeLabel();
+  const params = new URLSearchParams(range);
+  pendingDelete = null;
+
+  $('deleteText').textContent = 'Menghitung data...';
+  $('deleteConfirm').value = '';
+  $('deleteConfirmField').hidden = $('deleteExportRow').hidden = true;
+  $('deleteOk').disabled = true;
+  showDeleteMsg('', null);
+  $('deleteModal').showModal();
+  $('deleteCancel').focus();
+
+  try {
+    const res  = await fetch(`/api/admin/devices/${encodeURIComponent(deviceId)}/logs?${params}`);
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error ?? `Gagal menghitung data (HTTP ${res.status}).`);
+
+    const n = json.logs.toLocaleString('id-ID');
+    if (!json.logs && !json.hourly) {
+      $('deleteText').innerHTML = `Tidak ada data <strong>${esc(json.device_name)}</strong> pada ${label ? `rentang <strong>${esc(label)}</strong>` : 'alat ini'}. Tidak ada yang perlu dihapus.`;
+      return;
+    }
+    const span = json.first_at ? ` (${esc(fmtTime(json.first_at))} – ${esc(fmtTime(json.last_at))} WIB)` : '';
+    const hourly = json.hourly ? ` dan <strong>${json.hourly.toLocaleString('id-ID')} ringkasan per jam</strong> (data lama hasil retensi)` : '';
+    $('deleteText').innerHTML =
+      `<strong>${n} baris log</strong>${span}${hourly} milik <strong>${esc(json.device_name)}</strong> ` +
+      (label ? `pada rentang <strong>${esc(label)}</strong>` : `— <strong>SELURUH data alat ini</strong> —`) +
+      ` akan dihapus permanen dan tidak bisa dikembalikan.<br><br>Grafik tren dan jam operasi filter akan dihitung tanpa data ini. Alatnya sendiri tetap terdaftar.`;
+    $('deleteConfirmLabel').innerHTML = `Ketik <strong>${esc(json.device_name)}</strong> untuk konfirmasi`;
+    $('deleteConfirmField').hidden = false;
+    $('deleteExportRow').hidden = !json.logs;
+    $('deleteExportBtn').disabled = json.logs > EXPORT_MAX_ROWS;
+    $('deleteExportBtn').title = json.logs > EXPORT_MAX_ROWS ? `Lebih dari ${EXPORT_MAX_ROWS.toLocaleString('id-ID')} baris; persempit rentang untuk ekspor` : '';
+    pendingDelete = { deviceId, params, name: json.device_name };
+    $('deleteConfirm').focus();
+  } catch (err) {
+    showDeleteMsg(err.message, 'err');
+  }
+}
+
+async function confirmDelete() {
+  const p = pendingDelete;
+  if (!p || $('deleteConfirm').value.trim() !== p.name) return;
+
+  const btn = $('deleteOk');
+  btn.disabled = true;
+  btn.textContent = 'Menghapus...';
+  showDeleteMsg('', null);
+  try {
+    const res = await fetch(`/api/admin/devices/${encodeURIComponent(p.deviceId)}/logs?${p.params}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm_name: $('deleteConfirm').value.trim() }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error ?? `Gagal menghapus (HTTP ${res.status}).`);
+
+    pendingDelete = null;
+    $('deleteModal').close('done');
+    const hourly = json.deleted_hourly ? ` dan ${json.deleted_hourly.toLocaleString('id-ID')} ringkasan per jam` : '';
+    showExportMsg(`${json.deleted_logs.toLocaleString('id-ID')} baris log${hourly} milik ${p.name} dihapus.`, 'ok');
+    loadPage(1);
+  } catch (err) {
+    showDeleteMsg(err.message, 'err');
+    btn.disabled = false;
+  } finally {
+    btn.textContent = 'Hapus permanen';
+  }
+}
+
+$('deleteBtn').addEventListener('click', openDelete);
+$('deleteOk').addEventListener('click', confirmDelete);
+$('deleteExportBtn').addEventListener('click', exportExcel);
+$('deleteConfirm').addEventListener('input', () => {
+  $('deleteOk').disabled = !pendingDelete || $('deleteConfirm').value.trim() !== pendingDelete.name;
+});
+// Enter = Hapus kalau konfirmasi cocok (submit implisit form dialog akan memakai tombol pertama, Batal)
+$('deleteConfirm').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  if (!$('deleteOk').disabled) confirmDelete();
+});
+$('deleteModal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close('cancel'); });
+$('deleteModal').addEventListener('close', () => { pendingDelete = null; });
 
 /* RENTANG TANGGAL */
 function showRangeMsg(text, kind) {

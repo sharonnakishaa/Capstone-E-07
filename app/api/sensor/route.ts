@@ -7,6 +7,7 @@ import { isUuid, parseSensorPayload } from '@/lib/validation'
 import { sendWarningEmail } from '@/lib/email'
 import { buildSensorLogXlsx } from '@/lib/export-xlsx'
 import { safeEqual } from '@/lib/secure-compare'
+import { parseRange } from '@/lib/range'
 
 const PAGE_SIZE      = 50
 const DEFAULT_LIMIT  = 30
@@ -50,20 +51,10 @@ function wibDateCompact(d: Date): string {
   return new Date(d.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10).replace(/-/g, '')
 }
 
-/**
- * Rentang waktu dari query `from`/`to` (ISO 8601, boleh salah satu kosong).
- * Dipakai halaman log (pagination) dan ekspor Excel supaya keduanya membaca rentang yang sama.
- */
-function parseRange(fromParam: string | null, toParam: string | null):
-  | { from: Date | null; to: Date | null; filter: Prisma.DateTimeFilter | undefined }
-  | NextResponse {
-  const from = fromParam ? new Date(fromParam) : null
-  const to   = toParam   ? new Date(toParam)   : null
-  if (from && isNaN(from.getTime())) return badRequest('from harus tanggal ISO 8601')
-  if (to   && isNaN(to.getTime()))   return badRequest('to harus tanggal ISO 8601')
-  if (from && to && from > to)       return badRequest('from tidak boleh setelah to')
-  const filter = from || to ? { ...(from && { gte: from }), ...(to && { lte: to }) } : undefined
-  return { from, to, filter }
+/** Rentang from/to (lib/range.ts), atau respons 400 yang langsung bisa dikembalikan. */
+function rangeOrError(fromParam: string | null, toParam: string | null) {
+  const range = parseRange(fromParam, toParam)
+  return range.ok ? range : badRequest(range.error)
 }
 
 export async function GET(req: NextRequest) {
@@ -89,7 +80,7 @@ export async function GET(req: NextRequest) {
     if (pageParam !== null) {
       const page = parsePositiveInt(pageParam)
       if (page === null) return badRequest('page harus bilangan bulat ≥ 1')
-      const range = parseRange(searchParams.get('from'), searchParams.get('to'))
+      const range = rangeOrError(searchParams.get('from'), searchParams.get('to'))
       if (range instanceof NextResponse) return range
 
       const pageWhere: Prisma.sensor_logsWhereInput = {
@@ -135,7 +126,7 @@ export async function GET(req: NextRequest) {
 async function exportXlsx(device_id: string | null, fromParam: string | null, toParam: string | null) {
   if (!device_id) return badRequest('device_id wajib diisi untuk ekspor Excel')
 
-  const range = parseRange(fromParam, toParam)
+  const range = rangeOrError(fromParam, toParam)
   if (range instanceof NextResponse) return range
   const { from, to } = range
 

@@ -652,7 +652,7 @@ async function loadActivity(more=false){
       </li>`;
     }).join('');
     if(more) $('actList').insertAdjacentHTML('beforeend',html);
-    else $('actList').innerHTML=html||'<li class="empty-box">Belum ada aktivitas tercatat. Aktivitas mulai dicatat sejak fitur ini dipasang.</li>';
+    else $('actList').innerHTML=html||'<li class="empty-box">Belum ada aktivitas tercatat. </li>';
     actBefore=json.next_before;
     btn.hidden=!actBefore;
   }catch(e){

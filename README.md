@@ -203,7 +203,8 @@ Hanya ada satu role, **`pengelola`** (aslab, PIC alat, atau tim Epen). Pengunjun
 
 **Kelola Akun (`/accounts.html`)**, bisa dibuka dari tab di halaman Kelola Alat atau dengan mengklik nama di topbar:
 - Semua Pengelola Lab boleh membuat akun, mereset password, mengubah nama, dan menonaktifkan/mengaktifkan akun pengelola lain.
-- Password akun baru dan hasil reset **dibuat acak oleh server dan hanya ditampilkan sekali** (dengan tombol Salin). Kirim ke pemilik akun lewat jalur pribadi, lalu minta ia menggantinya.
+- Password akun baru dan hasil reset **dibuat acak oleh server dan hanya ditampilkan sekali** (dengan tombol Salin). Kirim ke pemilik akun lewat jalur pribadi.
+- **Password acak itu sementara** (`users.must_change_password`). Saat pemilik akun masuk, halaman login langsung menampilkan langkah "Buat password baru" (password sementara yang baru diketik dipakai ulang, tidak perlu diketik dua kali). Sampai password diganti, **server menolak semua aksi pengelola** dengan `403` (`code: "must_change_password"`), dan setiap halaman yang dibuka mengarahkan kembali ke langkah itu. Halaman pemantauan tetap bisa dibuka setelah memilih "Keluar, ganti nanti". Di daftar akun, akun seperti ini ditandai "Password sementara". Berlaku juga untuk akun dari `npm run user:add` dan akun admin seed.
 - **Ganti password sendiri** butuh password saat ini (minimal 10 karakter untuk password baru). Password saat ini yang salah dihitung sebagai login gagal di rate limit yang sama.
 - Akun **tidak bisa dihapus**, hanya dinonaktifkan. Menghapus user ikut menghapus alat yang ia daftarkan beserta semua lognya (`onDelete: Cascade`). Akun nonaktif tidak bisa masuk; setelah password benar, login membalas `403` "Akun ini dinonaktifkan".
 - Pengaman: tidak bisa menonaktifkan atau mereset akun sendiri dari daftar, dan perubahan berjalan dalam transaksi *serializable*, jadi dua pengelola yang saling menonaktifkan bersamaan tidak bisa menyisakan nol akun aktif.
@@ -218,7 +219,12 @@ npm run user:add -- --email=aslab@ugm.ac.id                       # reset passwo
 Password dibuat acak, **hanya ditampilkan sekali**, dan tidak perlu diketik di terminal, jadi tidak tersimpan di riwayat shell.
 
 Cara kerja sesi:
-- Setelah login, browser menyimpan cookie `epen_session` (`HttpOnly`, `SameSite=Lax`, `Secure` di Production) yang berlaku **7 hari**.
+- Setelah login, browser menyimpan cookie `epen_session` (`HttpOnly`, `SameSite=Lax`, `Secure` di Production) yang berlaku **maksimal 7 hari** sejak login (tidak diperpanjang).
+- **Keluar otomatis setelah 30 menit tidak aktif** (`SESSION_IDLE_SEC` di `lib/auth.ts`), karena dashboard dipakai di komputer lab bersama:
+  - Cookie menyimpan waktu aktivitas terakhir. Server menolak sesi yang tidak aktif lebih dari 30 menit (+2 menit kelonggaran), walau cookie-nya masih ada.
+  - Klik, ketik, scroll, atau sentuh di halaman mana pun dihitung sebagai aktivitas. `auth.js` mengirim ping ke `GET /api/auth/me` paling sering sekali per menit, dan hanya route itu yang memperbarui waktu aktivitas di cookie. Aktivitas di satu tab berlaku untuk semua tab (lewat `localStorage`).
+  - Satu menit sebelum habis muncul peringatan dengan hitung mundur dan tombol **Tetap masuk**. Kalau tidak ada respons, browser keluar sendiri, halaman dimuat ulang dalam tampilan publik, dan muncul keterangan "Sesi pengelola berakhir otomatis setelah 30 menit tidak aktif".
+  - Sekadar membiarkan dashboard terbuka (polling data otomatis) **tidak** dihitung sebagai aktivitas.
 - Cookie membawa versi sesi (`users.session_version`). Versi itu naik saat password diganti/direset atau akun dinonaktifkan, sehingga **semua sesi lama akun itu langsung berakhir**. Saat ganti password sendiri, perangkat yang dipakai langsung diberi cookie baru dan tetap masuk. Cookie lama tanpa versi dianggap versi 0.
 - Isi cookie ditandatangani HMAC-SHA256 dengan `SESSION_SECRET`, jadi tidak bisa dipalsukan. Mengganti `SESSION_SECRET` membuat semua sesi yang ada tidak berlaku.
 - Password disimpan sebagai hash scrypt (modul `crypto` bawaan Node, tanpa dependency tambahan).
@@ -589,10 +595,10 @@ Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu t
 
 | Endpoint | Body | Respons |
 |---|---|---|
-| `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role } }` dan cookie `epen_session`. `401` kalau email/password salah (pesannya sama untuk keduanya), `403` kalau password benar tapi akun nonaktif, `400` kalau body tidak lengkap, `429` saat rate limit. |
+| `POST /api/auth/login` | `{ "email": "...", "password": "..." }` | `200 { user: { id, email, full_name, role, must_change_password } }` dan cookie `epen_session`. Kalau `must_change_password` bernilai `true`, semua endpoint pengelola selain `POST /api/auth/password` membalas `403 { code: "must_change_password" }` sampai password diganti. `401` kalau email/password salah (pesannya sama untuk keduanya), `403` kalau password benar tapi akun nonaktif, `400` kalau body tidak lengkap, `429` saat rate limit. |
 | `POST /api/auth/logout` | — | `200 { success: true }`, cookie dihapus. |
-| `GET /api/auth/me` | — | `200 { user: {...} }` kalau login, atau `200 { user: null }` (termasuk akun nonaktif atau sesi yang sudah dicabut). |
-| `POST /api/auth/password` | `{ "current_password": "...", "new_password": "..." }` | Wajib login. `200 { success: true }` dan cookie baru; sesi di perangkat lain berakhir. `400` kalau password saat ini salah, password baru < 10 atau > 128 karakter, atau sama dengan yang lama. `429` kalau terlalu banyak salah (dihitung bersama login gagal). |
+| `GET /api/auth/me` | — | `200 { user: {...}, idle_timeout_sec }` kalau login, atau `200 { user: null, idle_timeout_sec }` (termasuk akun nonaktif, sesi yang dicabut, atau sudah tidak aktif > 30 menit). Sekaligus ping aktivitas: memperbarui waktu aktivitas terakhir di cookie (paling sering sekali per menit). |
+| `POST /api/auth/password` | `{ "current_password": "...", "new_password": "..." }` | Wajib login; satu-satunya aksi yang boleh dengan password sementara. `200 { success: true }` dan cookie baru; sesi di perangkat lain berakhir dan tanda password sementara dihapus. `400` kalau password saat ini salah, password baru < 10 atau > 128 karakter, atau sama dengan yang lama. `429` kalau terlalu banyak salah (dihitung bersama login gagal). |
 
 ---
 

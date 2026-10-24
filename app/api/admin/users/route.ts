@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
   try {
     const password = generatePassword()
     const created = await prisma.users.create({
-      data: { email, full_name: parsed.data.full_name!, role: 'pengelola', password_hash: hashPassword(password) },
+      data: {
+        email, full_name: parsed.data.full_name!, role: 'pengelola',
+        password_hash: hashPassword(password), must_change_password: true,
+      },
       select: USER_SELECT,
     })
     await logActivity(user, 'user.create', created.email, { full_name: created.full_name })

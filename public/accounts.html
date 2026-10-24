@@ -46,6 +46,7 @@
   td.actions .btn-ghost{margin-left:6px}
   .me-tag{display:inline-block;margin-left:8px;padding:1px 7px;border:2px solid var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);vertical-align:2px}
   .me-note{font-size:12.5px;color:var(--muted)}
+  .pw-pending{margin-top:4px;font-size:11.5px;font-weight:700;color:var(--ink-waspada)}
 
   /* LOGIN GAGAL */
   .fail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -282,7 +283,7 @@
         <span class="pw-value" id="pwModalValue"></span>
         <button type="button" class="btn-ghost btn-sm" id="pwCopy">Salin</button>
       </div>
-      <p class="modal-text"><strong>Hanya ditampilkan sekali.</strong> Kirim ke pemilik akun lewat jalur pribadi (bukan grup), lalu minta ia menggantinya lewat nama di pojok kanan atas → <strong>Ganti password</strong>.</p>
+      <p class="modal-text"><strong>Hanya ditampilkan sekali.</strong> Kirim ke pemilik akun lewat jalur pribadi (bukan grup). Ini password sementara: saat pertama masuk, pemilik akun langsung diminta membuat password baru.</p>
     </div>
     <div class="modal-actions">
       <button value="ok" class="btn" id="pwModalClose">Sudah saya catat</button>
@@ -403,7 +404,7 @@ function renderUsers(){
     return `<tr class="${u.is_active?'':'inactive'}">
       <td class="name">${esc(u.full_name)}${me?'<span class="me-tag">Anda</span>':''}</td>
       <td class="email">${esc(u.email)}</td>
-      <td>${u.is_active?'<span class="badge aman"><span class="dot-s"></span>Aktif</span>':'<span class="badge off"><span class="dot-s"></span>Nonaktif</span>'}</td>
+      <td>${u.is_active?'<span class="badge aman"><span class="dot-s"></span>Aktif</span>':'<span class="badge off"><span class="dot-s"></span>Nonaktif</span>'}${u.is_active&&u.must_change_password?'<div class="pw-pending" title="Belum mengganti password acak dari Pengelola Lab">Password sementara</div>':''}</td>
       <td>${esc(fmtDate(u.last_login))}</td>
       <td>${esc(fmtDate(u.created_at))}</td>
       <td class="actions">${actions}</td>

@@ -14,7 +14,8 @@ const FAIL_DELAY_MS = 600
  * Berhasil → session_version naik: sesi di perangkat lain berakhir, sesi ini diberi cookie baru.
  */
 export async function POST(req: NextRequest) {
-  const actor = await requireUser(req, ['pengelola'])
+  // Satu-satunya aksi yang boleh dengan password sementara
+  const actor = await requireUser(req, ['pengelola'], { allowPendingPassword: true })
   if (actor instanceof NextResponse) return actor
 
   let body: unknown
@@ -53,7 +54,11 @@ export async function POST(req: NextRequest) {
     const [updated] = await Promise.all([
       prisma.users.update({
         where: { id: user.id },
-        data: { password_hash: hashPassword(new_password as string), session_version: { increment: 1 } },
+        data: {
+          password_hash: hashPassword(new_password as string),
+          session_version: { increment: 1 },
+          must_change_password: false,
+        },
         select: { session_version: true },
       }),
       clearLoginFailures(actor.email),

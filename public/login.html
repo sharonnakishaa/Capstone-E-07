@@ -28,6 +28,8 @@
   .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
   .foot a{color:var(--accent);font-weight:800;text-decoration:none}
   .foot a:hover{text-decoration:underline;text-underline-offset:3px}
+  [hidden]{display:none!important}
+  .field .hint{font-size:12px;color:var(--muted-2)}
 </style>
 </head>
 <body>
@@ -37,7 +39,7 @@
       <span class="brand-text"><span class="brand-title">EPEN</span><span class="brand-sub">Pemantau Asap Solder</span></span>
     </a>
 
-    <section class="card login-card">
+    <section class="card login-card" id="loginCard">
       <span class="tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Akses terbatas</span>
       <h1>Masuk <em>Pengelola Lab</em></h1>
       <p class="sub">Dibutuhkan untuk mencatat penggantian filter dan mengekspor data ke Excel. Halaman pemantauan tetap bisa dibuka tanpa masuk.</p>
@@ -56,9 +58,39 @@
       </form>
     </section>
 
-    <div class="foot">
+    <!-- Langkah 2: akun baru/direset wajib mengganti password acak sebelum bisa melakukan aksi apa pun -->
+    <section class="card login-card" id="changeCard" hidden>
+      <span class="tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>Langkah terakhir</span>
+      <h1>Buat <em>password baru</em></h1>
+      <p class="sub" id="changeSub">Akun ini masih memakai password sementara dari Pengelola Lab. Ganti dengan password pilihan Anda sendiri untuk melanjutkan.</p>
+
+      <form id="changeForm" novalidate>
+        <input type="email" id="changeUser" autocomplete="username" hidden>
+        <div class="field" id="changeCurrentField" hidden>
+          <label for="changeCurrent">Password sementara</label>
+          <input type="password" id="changeCurrent" autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="changeNew">Password baru</label>
+          <input type="password" id="changeNew" autocomplete="new-password" minlength="10" maxlength="128" required>
+          <span class="hint">Minimal 10 karakter.</span>
+        </div>
+        <div class="field">
+          <label for="changeConfirm">Ulangi password baru</label>
+          <input type="password" id="changeConfirm" autocomplete="new-password" maxlength="128" required>
+        </div>
+        <div class="msg" id="changeMsg" role="alert"></div>
+        <button type="submit" class="btn-primary" id="changeBtn">Simpan &amp; lanjutkan</button>
+      </form>
+    </section>
+
+    <div class="foot" id="loginFoot">
       <a href="/lab.html">‹ Kembali ke Ringkasan Lab</a>
       <span>Belum punya akun? Hubungi tim Epen.</span>
+    </div>
+    <div class="foot" id="changeFoot" hidden>
+      <a href="#" id="changeLogout">‹ Keluar, ganti nanti</a>
+      <span>Halaman pemantauan tetap bisa dibuka tanpa masuk.</span>
     </div>
   </main>
 
@@ -74,10 +106,60 @@ function nextUrl(){
 }
 
 const $=id=>document.getElementById(id);
-function showMsg(t){$('msg').textContent=t;$('msg').classList.toggle('show',!!t);}
+const PASSWORD_MIN=10;
+function showMsg(t,id='msg'){$(id).textContent=t;$(id).classList.toggle('show',!!t);}
 
-// Kalau sudah masuk, langsung lanjut
-fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.user)location.replace(nextUrl());}).catch(()=>{});
+/* LANGKAH 2 — GANTI PASSWORD SEMENTARA */
+let tempPassword=null; // password yang barusan diketik di langkah 1, supaya tidak perlu diketik ulang
+
+/** Tampilkan langkah ganti password. `current` = password sementara kalau sudah diketik, null kalau belum. */
+function showChange(user,current){
+  tempPassword=current;
+  $('loginCard').hidden=$('loginFoot').hidden=true;
+  $('changeCard').hidden=$('changeFoot').hidden=false;
+  $('changeUser').value=user.email;
+  $('changeSub').textContent=`${user.full_name} (${user.email}) masih memakai password sementara dari Pengelola Lab. Ganti dengan password pilihan Anda sendiri untuk melanjutkan.`;
+  // Datang dari halaman lain dengan sesi yang sudah ada: password sementara harus diketik
+  $('changeCurrentField').hidden=current!==null;
+  (current===null?$('changeCurrent'):$('changeNew')).focus();
+}
+
+$('changeForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const current=tempPassword??$('changeCurrent').value, next=$('changeNew').value;
+  if(!current) return showMsg('Isi password sementara.','changeMsg');
+  if(next.length<PASSWORD_MIN) return showMsg(`Password baru minimal ${PASSWORD_MIN} karakter.`,'changeMsg');
+  if(next!==$('changeConfirm').value) return showMsg('Ulangan password baru tidak sama.','changeMsg');
+  if(next===current) return showMsg('Password baru harus berbeda dari password sementara.','changeMsg');
+
+  const btn=$('changeBtn');
+  btn.disabled=true; btn.textContent='Menyimpan...'; showMsg('','changeMsg');
+  try{
+    const res=await fetch('/api/auth/password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:current,new_password:next})});
+    const json=await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(json?.error??`Gagal menyimpan (HTTP ${res.status}).`);
+    tempPassword=null;
+    location.replace(nextUrl());
+  }catch(err){
+    showMsg(err.message,'changeMsg');
+    // Password sementara salah (diketik di langkah ini) → minta diketik ulang
+    if(/saat ini salah/.test(err.message)){ tempPassword=null; $('changeCurrentField').hidden=false; $('changeCurrent').value=''; $('changeCurrent').focus(); }
+    btn.disabled=false; btn.textContent='Simpan & lanjutkan';
+  }
+});
+
+$('changeLogout').addEventListener('click',async e=>{
+  e.preventDefault();
+  await fetch('/api/auth/logout',{method:'POST'}).catch(()=>{});
+  location.replace('/lab.html');
+});
+
+// Kalau sudah masuk, langsung lanjut — kecuali masih memakai password sementara
+fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+  if(!j||!j.user) return;
+  if(j.user.must_change_password) showChange(j.user,null);
+  else location.replace(nextUrl());
+}).catch(()=>{});
 
 /** Terlalu banyak percobaan gagal (429): kunci tombol dengan hitung mundur sampai boleh mencoba lagi. */
 let lockTimer;
@@ -105,6 +187,7 @@ $('loginForm').addEventListener('submit',async e=>{
     const json=await res.json().catch(()=>null);
     if(res.status===429) retryAfter=Number(json?.retry_after_sec)||Number(res.headers.get('Retry-After'))||60;
     if(!res.ok) throw new Error(json?.error??`Gagal masuk (HTTP ${res.status}).`);
+    if(json?.user?.must_change_password) return showChange(json.user,password);
     location.replace(nextUrl());
   }catch(err){
     showMsg(err.message);

@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         data: {
           ...(full_name !== undefined && { full_name }),
           ...(is_active !== undefined && { is_active }),
-          ...(password && { password_hash: hashPassword(password) }),
+          ...(password && { password_hash: hashPassword(password), must_change_password: true }),
           ...(endSessions && { session_version: { increment: 1 } }),
         },
         select: USER_SELECT,

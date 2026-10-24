@@ -45,7 +45,7 @@ async function main() {
   if (!user) {
     newPassword = generatePassword()
     user = await prisma.users.create({
-      data: { email: USER.email, full_name: USER.full_name, password_hash: hashPassword(newPassword) },
+      data: { email: USER.email, full_name: USER.full_name, password_hash: hashPassword(newPassword), must_change_password: true },
     })
   }
 

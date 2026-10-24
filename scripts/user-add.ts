@@ -51,7 +51,7 @@ async function main() {
     await prisma.users.update({
       where: { id: existing.id },
       data:  {
-        password_hash: hashPassword(password), role, is_active: true,
+        password_hash: hashPassword(password), role, is_active: true, must_change_password: true,
         session_version: { increment: 1 }, // sesi lama akun ini berakhir
         ...(name && { full_name: name }),
       },
@@ -60,7 +60,9 @@ async function main() {
     await logFromTerminal('user.reset_password', email, existing.is_active ? undefined : { reactivated: true })
   } else {
     if (!name) throw new Error('--name wajib diisi untuk akun baru')
-    await prisma.users.create({ data: { email, full_name: name, role, password_hash: hashPassword(password) } })
+    await prisma.users.create({
+      data: { email, full_name: name, role, password_hash: hashPassword(password), must_change_password: true },
+    })
     console.log(`Akun ${email} (${name}) dibuat dengan role ${role}.`)
     await logFromTerminal('user.create', email, { full_name: name })
   }

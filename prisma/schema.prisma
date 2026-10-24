@@ -19,6 +19,8 @@ model users {
   is_active     Boolean   @default(true)
   // Dinaikkan saat ganti/reset password atau nonaktif: cookie dengan versi lama langsung tidak berlaku
   session_version Int     @default(0)
+  // true setelah akun dibuat/direset dengan password acak: semua aksi pengelola diblokir sampai pemiliknya mengganti password
+  must_change_password Boolean @default(false)
   last_login    DateTime? @db.Timestamp
   created_at    DateTime  @default(now()) @db.Timestamp
 

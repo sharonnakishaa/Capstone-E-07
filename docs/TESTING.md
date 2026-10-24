@@ -218,7 +218,10 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | M-09 | Cabut akses | Masuk dengan akun A di browser 1. Di browser 2, masuk dengan akun B dan nonaktifkan akun A di Kelola Akun. Di browser 1, coba catat penggantian filter. | Ditolak dengan pesan "Silakan masuk terlebih dahulu". Widget kembali menampilkan **Masuk** setelah halaman dimuat ulang. | | |
 | M-10 | Peringatan sisa percobaan | Dari satu browser, masukkan password salah 7 kali berturut-turut untuk email yang sama. | Mulai percobaan ke-7, pesan error menyebut "Sisa N percobaan sebelum dikunci 15 menit". | | |
 | M-11 | Terkunci | Lanjutkan sampai percobaan gagal ke-10, lalu coba sekali lagi (bahkan dengan password **benar**). | Respons `429`: "Terlalu banyak percobaan masuk yang gagal. Coba lagi dalam … menit". Tombol Masuk nonaktif dengan hitung mundur, dan password benar pun ditolak selama terkunci. Setelah hitung mundur habis, login dengan password benar berhasil. | | |
-| M-12 | Reset setelah berhasil | Salah 3 kali, lalu masuk dengan password benar. Keluar, lalu salah 1 kali lagi. | Login berhasil. Setelah itu, pesan salah tidak menyebut sisa percobaan, karena catatan gagal untuk email itu sudah direset. | | |
+| M-12 | Peringatan tidak aktif | Untuk uji cepat, ubah sementara `SESSION_IDLE_SEC` di `lib/auth.ts` menjadi `3 * 60`, jalankan ulang dev server, lalu masuk dan buka dashboard tanpa menyentuh mouse/keyboard. | Setelah ±2 menit muncul kotak di bawah layar: "Tidak ada aktivitas. Sesi pengelola … berakhir dalam 60 detik" dengan hitung mundur. Klik **Tetap masuk** → kotak hilang dan sesi berlanjut. (Kembalikan nilai `30 * 60` setelah uji M-12 s/d M-14.) | | |
+| M-13 | Keluar otomatis | Ulangi M-12, kali ini biarkan hitung mundur habis. | Halaman dimuat ulang dalam keadaan belum masuk (tombol **Masuk**), dan muncul keterangan "Sesi pengelola berakhir otomatis setelah 3 menit tidak aktif" selama ±8 detik. Halaman publik tetap tampil normal. | | |
+| M-14 | Aktivitas di tab lain | Masuk, buka dashboard di tab 1 dan Kelola Alat di tab 2. Biarkan tab 1 diam, tapi klik/scroll di tab 2 setiap menit selama 4 menit. | Tab 1 tidak menampilkan peringatan dan tidak keluar, karena aktivitas di tab 2 ikut dihitung. Di DevTools → Network, `/api/auth/me` terkirim paling sering sekali per menit. | | |
+| M-15 | Reset setelah berhasil | Salah 3 kali, lalu masuk dengan password benar. Keluar, lalu salah 1 kali lagi. | Login berhasil. Setelah itu, pesan salah tidak menyebut sisa percobaan, karena catatan gagal untuk email itu sudah direset. | | |
 ## N. Kelola Alat
 
 Prasyarat: masuk sebagai Pengelola Lab. Untuk N-02 sampai N-04, kirim data dari MAC yang belum terdaftar, misalnya simulator `npm run simulate` setelah alat seed dinonaktifkan (N-06), atau POST `mac_address: "24:6F:28:FF:FF:01"`.
@@ -262,9 +265,9 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 |---|---|---|---|---|---|
 | P-01 | Akses | Tanpa login, buka `/accounts.html`. Lalu masuk, buka Kelola Alat, dan klik tab **Kelola Akun**. Klik juga nama di topbar dari halaman lain. | Tanpa login tampil "Khusus Pengelola Lab". Setelah login, tab Kelola Alat/Kelola Akun berpindah dengan garis terakota di tab aktif. Klik nama membuka Kelola Akun dan langsung fokus ke "Ganti password Anda". | | |
 | P-02 | Daftar akun | Lihat tabel Daftar akun. | Semua akun tampil dengan status, login terakhir, dan tanggal dibuat. Baris A bertanda **ANDA** dan hanya punya aksi Ubah nama dan Ganti password. Tidak ada hash password di respons `GET /api/admin/users` (cek di DevTools → Network). | | |
-| P-03 | Buat akun | Isi email `uji@ugm.ac.id` (coba dulu huruf besar `Uji@UGM.ac.id`) dan nama, lalu klik **Buat akun**. Klik **Salin**. | Modal menampilkan password acak 14 karakter dengan tombol Salin ("Tersalin ✓"). Akun muncul di tabel dengan email huruf kecil. Membuat akun dengan email yang sama lagi → pesan merah "sudah punya akun". | | |
-| P-04 | Login akun baru | Di browser 2, masuk dengan akun baru dan password dari P-03. | Login berhasil. | | |
-| P-05 | Reset password | Di browser 1, klik **Reset password** pada akun baru dan konfirmasi. Di browser 2, muat ulang halaman. | Modal menampilkan password baru. Browser 2 langsung keluar (topbar menampilkan **Masuk**). Password lama ditolak, password baru diterima. | | |
+| P-03 | Buat akun | Isi email `uji@ugm.ac.id` (coba dulu huruf besar `Uji@UGM.ac.id`) dan nama, lalu klik **Buat akun**. Klik **Salin**. | Modal menampilkan password acak 14 karakter dengan tombol Salin ("Tersalin ✓"). Akun muncul di tabel dengan email huruf kecil dan keterangan kuning "Password sementara". Membuat akun dengan email yang sama lagi → pesan merah "sudah punya akun". | | |
+| P-04 | Login akun baru | Di browser 2, masuk dengan akun baru dan password dari P-03. | Login diterima, lalu kartu berganti ke **"Buat password baru"** (tanpa kolom password sementara). Coba password baru 9 karakter, ulangan berbeda, dan sama dengan password sementara → pesan merah. Isi password baru yang valid → diarahkan ke halaman tujuan dalam keadaan masuk. Di browser 1 (muat ulang), keterangan "Password sementara" hilang. | | |
+| P-05 | Reset password | Di browser 1, klik **Reset password** pada akun baru dan konfirmasi. Di browser 2, muat ulang halaman. | Modal menampilkan password baru. Browser 2 langsung keluar (topbar menampilkan **Masuk**). Password lama ditolak. Masuk dengan password baru → kembali diminta membuat password baru seperti P-04. | | |
 | P-06 | Nonaktifkan | Klik **Nonaktifkan** pada akun baru (coba dulu Batal/Esc). Lalu coba masuk dengan akun itu di browser 2. | Status NONAKTIF dan tombol Reset password hilang. Sesi akun itu berakhir. Login dengan password benar → pesan "Akun ini dinonaktifkan…"; dengan password salah → "Email atau password salah" (status akun tidak terbuka). | | |
 | P-07 | Aktifkan lagi | Klik **Aktifkan** pada akun tadi. | Status AKTIF, dan akun bisa masuk lagi dengan password terakhirnya. | | |
 | P-08 | Pengaman akun sendiri | Lewat DevTools/curl: `PATCH /api/admin/users/<id A>` dengan `{"is_active":false}` lalu `{"reset_password":true}` sambil masuk sebagai A. | Keduanya `400` ("Tidak bisa menonaktifkan akun sendiri", "Untuk akun sendiri, pakai Ganti password"). `{"email":"x@y.z"}` juga `400`. | | |
@@ -278,7 +281,9 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | P-16 | Riwayat — aksi akun | Lakukan P-03 (buat akun), P-05 (reset), P-06 (nonaktifkan), P-09 (ubah nama), P-11 (ganti password), dan P-14 (buka blokir). Lihat kartu **Riwayat aktivitas** tanpa memuat ulang halaman. | Setiap aksi muncul paling atas dengan waktu WIB, nama pelaku (email saat kursor diarahkan), dan kalimat yang benar, misalnya "Nama A **menonaktifkan akun** uji@ugm.ac.id" dengan kata kerja merah untuk nonaktif. Tidak ada password di riwayat. | | |
 | P-17 | Riwayat — aksi alat & data | Daftarkan alat, ubah lokasinya, nonaktifkan, catat penggantian filter (di alat aktif), hapus data satu hari (G-19), hapus alat (N-10), dan abaikan satu MAC. Lalu klik **Muat ulang** di kartu riwayat. | Semua aksi tercatat dengan target nama alat atau MAC. "Mengubah alat" menyebut field yang berubah. Hapus data menyebut jumlah baris dan rentang tanggal. Hapus alat menyebut jumlah log ikut terhapus dan tetap terbaca walau alatnya sudah tidak ada. | | |
 | P-18 | Riwayat — script & paginasi | Jalankan `npm run user:add -- --email=<akun uji>`. Kalau riwayat > 30 baris, klik **Muat lebih banyak**. | Muncul "Script user:add **mereset password** …". Muat lebih banyak menambah 30 baris berikutnya tanpa duplikat, dan tombolnya hilang saat riwayat habis. | | |
-| P-19 | Tampilan 375 px | DevTools → iPhone SE, tema gelap. Buka Kelola Akun dan modal password. | Tab tidak terpotong, kartu bertumpuk satu kolom, tombol form selebar penuh, tabel bisa digeser di dalam kartunya, dan modal password muat di layar. | | |
+| P-19 | Password sementara — tidak bisa dilewati | Reset akun uji, lalu masuk di browser 2 tapi di langkah "Buat password baru" langsung buka `/devices.html`, `/logs.html`, dan `/accounts.html` lewat bilah alamat. Lewat DevTools di browser yang sama, kirim `GET /api/admin/users`. | Setiap halaman langsung kembali ke langkah "Buat password baru", kali ini **dengan** kolom "Password sementara" yang wajib diisi. API membalas `403` dengan `code: "must_change_password"`. Mengisi password sementara yang salah → pesan merah, dan dihitung sebagai login gagal (P-13). | | |
+| P-20 | Password sementara — keluar dulu | Di langkah "Buat password baru", klik **Keluar, ganti nanti**. | Kembali ke Ringkasan Lab dalam keadaan belum masuk. Halaman pemantauan bisa dibuka normal. Login berikutnya dengan password sementara kembali ke langkah ganti password. | | |
+| P-21 | Tampilan 375 px | DevTools → iPhone SE, tema gelap. Buka Kelola Akun dan modal password. | Tab tidak terpotong, kartu bertumpuk satu kolom, tombol form selebar penuh, tabel bisa digeser di dalam kartunya, dan modal password muat di layar. | | |
 
 ---
 
@@ -298,8 +303,8 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | J. Tampilan | 5 | | | |
 | K. Retensi data | 7 | | | |
 | L. Ringkasan Lab | 12 | | | |
-| M. Login Pengelola Lab | 12 | | | |
+| M. Login Pengelola Lab | 15 | | | |
 | N. Kelola Alat | 11 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| P. Kelola Akun | 19 | | | |
-| **Total** | **150** | | | |
+| P. Kelola Akun | 21 | | | |
+| **Total** | **155** | | | |

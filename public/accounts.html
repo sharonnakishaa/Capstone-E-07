@@ -45,6 +45,19 @@
   .me-tag{display:inline-block;margin-left:8px;padding:1px 7px;border:2px solid var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);vertical-align:2px}
   .me-note{font-size:12.5px;color:var(--muted)}
 
+  /* LOGIN GAGAL */
+  .fail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .fail-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .fail-col-title{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .fail-list{display:flex;flex-direction:column;gap:10px}
+  .fail-item{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:var(--surface-2)}
+  .fail-item.blocked{border-color:var(--ink-bahaya)}
+  .fail-key{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text-strong);word-break:break-all}
+  .fail-note{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .fail-note .lock{color:var(--ink-bahaya);font-weight:800}
+  .empty-box{padding:16px;border:2px dashed var(--border-soft);border-radius:10px;color:var(--muted);font-size:13.5px;line-height:1.5}
+  #failMsg{margin-bottom:14px}
+
   /* MODAL PASSWORD */
   .pw-box{display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--line);border-radius:8px;background:var(--surface-2)}
   .pw-value{flex:1;font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text-strong);letter-spacing:.04em;word-break:break-all;user-select:all}
@@ -55,7 +68,7 @@
   .locked p{margin:0;color:var(--muted)}
 
   @media (max-width:900px){
-    .top-grid{grid-template-columns:1fr}
+    .top-grid,.fail-grid{grid-template-columns:1fr}
   }
   @media (max-width:720px){
     main{padding:20px 16px 40px;gap:16px}
@@ -178,6 +191,27 @@
           <tr><td colspan="6" class="empty-row">Memuat...</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head fail-head">
+      <div>
+        <div class="h-title">Login gagal &amp; blokir</div>
+        <div class="chart-sub" id="failSub">Percobaan masuk yang gagal dalam 15 menit terakhir. Diperbarui otomatis.</div>
+      </div>
+      <button type="button" class="btn-ghost btn-sm" id="failRefresh">Muat ulang</button>
+    </div>
+    <div class="msg" id="failMsg" role="status"></div>
+    <div class="fail-grid">
+      <div>
+        <div class="fail-col-title">Per email</div>
+        <div class="fail-list" id="failEmails"><div class="empty-box">Memuat...</div></div>
+      </div>
+      <div>
+        <div class="fail-col-title">Per IP</div>
+        <div class="fail-list" id="failIps"><div class="empty-box">Memuat...</div></div>
+      </div>
     </div>
   </section>
 </main>
@@ -474,6 +508,69 @@ document.addEventListener('click',async e=>{
   }
 });
 
+/* LOGIN GAGAL & BLOKIR */
+const FAIL_REFRESH_MS=15000;
+function fmtAge(ms){
+  const s=Math.max(0,Math.round(ms/1000));
+  if(s<60) return `${s} detik lalu`;
+  return `${Math.floor(s/60)} menit lalu`;
+}
+function fmtClock(iso){return new Date(iso).toLocaleTimeString('id-ID',{timeZone:'Asia/Jakarta',hour12:false,hour:'2-digit',minute:'2-digit'})+' WIB';}
+
+function renderFailList(id,items,kind,ctx){
+  const box=$(id);
+  if(!items.length){
+    box.innerHTML=`<div class="empty-box">Tidak ada percobaan gagal dari ${kind==='ip'?'IP':'email'} mana pun dalam ${ctx.window_min} menit terakhir.</div>`;
+    return;
+  }
+  box.innerHTML=items.map(f=>{
+    const who=kind==='email'
+      ?(f.full_name?`Akun ${esc(f.full_name)}`:'Bukan akun terdaftar')
+      :(f.key===ctx.my_ip?'<strong>IP Anda saat ini</strong>':'Satu komputer/jaringan (mis. Wi-Fi kampus)');
+    const age=fmtAge(new Date(ctx.server_time)-new Date(f.last_at));
+    const lock=f.blocked?` · <span class="lock">Terkunci sampai ${esc(fmtClock(f.unlock_at))}</span>`:'';
+    return `<div class="fail-item${f.blocked?' blocked':''}">
+      <div>
+        <div class="fail-key">${esc(f.key)}</div>
+        <div class="fail-note">${who} · ${f.count}/${f.limit} gagal · terakhir ${age}${lock}</div>
+      </div>
+      <button type="button" class="${f.blocked?'btn':'btn-ghost'} btn-sm" data-unblock-${kind}="${esc(f.key)}">${f.blocked?'Buka blokir':'Reset hitungan'}</button>
+    </div>`;
+  }).join('');
+}
+
+let failLoading=false;
+async function loadFailures(){
+  if(failLoading) return;
+  failLoading=true;
+  try{
+    const json=await api('/api/admin/login-failures');
+    const blocked=[...json.emails,...json.ips].filter(f=>f.blocked).length;
+    $('failSub').textContent=`Percobaan masuk yang gagal dalam ${json.window_min} menit terakhir. `+
+      (blocked?`${blocked} sedang terkunci. `:'')+'Diperbarui otomatis; kunci juga terbuka sendiri setelah 15 menit.';
+    renderFailList('failEmails',json.emails,'email',json);
+    renderFailList('failIps',json.ips,'ip',json);
+  }catch(e){
+    console.error('[admin/login-failures]',e);
+    if($('lockedView').hidden) showMsg('failMsg','Gagal memuat percobaan login. Coba muat ulang.','err');
+  }finally{
+    failLoading=false;
+  }
+}
+
+$('failRefresh').addEventListener('click',()=>{showMsg('failMsg','',null);loadFailures();});
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('button[data-unblock-ip],button[data-unblock-email]');
+  if(!t) return;
+  const [kind,key]=t.dataset.unblockIp!==undefined?['ip',t.dataset.unblockIp]:['email',t.dataset.unblockEmail];
+  t.disabled=true;
+  try{
+    await api(`/api/admin/login-failures?${new URLSearchParams({[kind]:key})}`,{method:'DELETE'});
+    showMsg('failMsg',`${kind==='ip'?'IP':'Email'} ${key} dibuka. Percobaan masuk dari sana bisa langsung dicoba lagi.`,'ok');
+    await loadFailures();
+  }catch(err){showMsg('failMsg',err.message,'err');t.disabled=false;}
+});
+
 function focusPasswordCard(){
   $('passwordCard').scrollIntoView({behavior:'smooth',block:'start'});
   $('pwCurrent').focus({preventScroll:true});
@@ -493,6 +590,8 @@ EpenAuth.ready.then(u=>{
   $('pwUser').value=u.email;
   $('pwSub').textContent=`Akun ${u.email}. Setelah diganti, sesi di perangkat lain otomatis keluar.`;
   loadUsers();
+  loadFailures();
+  setInterval(()=>{ if(!document.hidden&&$('lockedView').hidden) loadFailures(); },FAIL_REFRESH_MS);
   // Dibuka dari nama di topbar (/accounts.html#password), juga saat sudah di halaman ini
   if(location.hash==='#password') requestAnimationFrame(focusPasswordCard);
   addEventListener('hashchange',()=>{ if(location.hash==='#password') focusPasswordCard(); });

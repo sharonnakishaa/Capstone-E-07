@@ -272,7 +272,10 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | P-10 | Ganti password — validasi | Di "Ganti password Anda": isi password saat ini salah; lalu password baru 9 karakter; lalu ulangan yang tidak sama; lalu password baru = password lama. | Pesan merah sesuai tiap kasus. Password saat ini salah dijeda ±0,6 detik dan ikut dihitung rate limit login (lihat M-10). | | |
 | P-11 | Ganti password — berhasil | Masuk sebagai A juga di browser 2. Di browser 1, ganti password dengan benar. Muat ulang kedua browser. | Pesan hijau. Browser 1 tetap masuk, browser 2 keluar. Login berikutnya hanya menerima password baru. Password manager browser menawarkan menyimpan password baru untuk email A. | | |
 | P-12 | Script darurat | Nonaktifkan akun baru, lalu jalankan `npm run user:add -- --email=uji@ugm.ac.id`. | Terminal mencetak "Password akun … direset dan akun diaktifkan lagi". Akun aktif kembali dengan password baru dari terminal. | | |
-| P-13 | Tampilan 375 px | DevTools → iPhone SE, tema gelap. Buka Kelola Akun dan modal password. | Tab tidak terpotong, kartu bertumpuk satu kolom, tombol form selebar penuh, tabel bisa digeser di dalam kartunya, dan modal password muat di layar. | | |
+| P-13 | Login gagal — daftar | Di jendela penyamaran, salah password 3× untuk email A dan 2× untuk email yang tidak terdaftar. Tunggu ≤ 15 detik di Kelola Akun (browser 1). | Kartu "Login gagal & blokir" menampilkan email A ("Akun <nama>", 3/20) dan email asing ("Bukan akun terdaftar", 2/20). Di Per IP ada IP itu dengan 5/10; kalau sama dengan IP browser 1, bertanda "IP Anda saat ini". | | |
+| P-14 | Buka blokir IP | Lanjutkan salah password di jendela penyamaran sampai terkunci (M-11). Di browser 1, klik **Buka blokir** pada IP itu. | Sebelum dibuka: item IP berbingkai merah dengan "Terkunci sampai HH:MM WIB" dan tombol Buka blokir terakota. Setelah diklik: pesan hijau, item hilang, dan jendela penyamaran bisa langsung mencoba masuk lagi (hitung mundurnya tidak perlu ditunggu — muat ulang halaman login). Log server mencatat siapa yang membuka. | | |
+| P-15 | Reset hitungan email | Klik **Reset hitungan** pada email asing dari P-13. | Item hilang dari Per email. Item IP tidak terpengaruh. `DELETE /api/admin/login-failures` tanpa parameter → `400`. | | |
+| P-16 | Tampilan 375 px | DevTools → iPhone SE, tema gelap. Buka Kelola Akun dan modal password. | Tab tidak terpotong, kartu bertumpuk satu kolom, tombol form selebar penuh, tabel bisa digeser di dalam kartunya, dan modal password muat di layar. | | |
 
 ---
 
@@ -295,5 +298,5 @@ Prasyarat: dua akun pengelola (A dan B), dua browser atau satu jendela biasa + s
 | M. Login Pengelola Lab | 12 | | | |
 | N. Kelola Alat | 11 | | | |
 | O. Tren jangka panjang | 8 | | | |
-| P. Kelola Akun | 13 | | | |
-| **Total** | **144** | | | |
+| P. Kelola Akun | 16 | | | |
+| **Total** | **147** | | | |

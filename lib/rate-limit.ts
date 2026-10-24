@@ -65,6 +65,56 @@ export async function clearLoginFailures(email: string) {
   await prisma.login_failures.deleteMany({ where: { email } })
 }
 
+export interface FailureGroup {
+  key: string           // email atau IP
+  count: number         // percobaan gagal dalam jendela
+  limit: number         // batas untuk jenis ini
+  last_at: Date
+  blocked: boolean
+  unlock_at: Date | null
+}
+
+const LIST_LIMIT = 50
+
+/** Kelompokkan percobaan gagal dalam jendela per IP dan per email (halaman Kelola Akun). */
+export async function listLoginFailures(): Promise<{ ips: FailureGroup[]; emails: FailureGroup[] }> {
+  const since = new Date(Date.now() - LOGIN_LIMIT.windowMs)
+  const where = { created_at: { gte: since } }
+  const [byIp, byEmail] = await Promise.all([
+    prisma.login_failures.groupBy({ by: ['ip'], where, _count: { _all: true }, _max: { created_at: true },
+      orderBy: { _count: { ip: 'desc' } }, take: LIST_LIMIT }),
+    prisma.login_failures.groupBy({ by: ['email'], where, _count: { _all: true }, _max: { created_at: true },
+      orderBy: { _count: { email: 'desc' } }, take: LIST_LIMIT }),
+  ])
+
+  // Waktu buka kunci sama dengan checkLoginLimit: percobaan ke-N terbaru + panjang jendela
+  async function group(field: 'ip' | 'email', key: string, count: number, last: Date, limit: number): Promise<FailureGroup> {
+    let unlock_at: Date | null = null
+    if (count >= limit) {
+      const nth = await prisma.login_failures.findFirst({
+        where: { [field]: key, ...where },
+        orderBy: { created_at: 'desc' },
+        skip: limit - 1,
+        select: { created_at: true },
+      })
+      if (nth) unlock_at = new Date(nth.created_at.getTime() + LOGIN_LIMIT.windowMs)
+    }
+    return { key, count, limit, last_at: last, blocked: unlock_at !== null && unlock_at > new Date(), unlock_at }
+  }
+
+  const [ips, emails] = await Promise.all([
+    Promise.all(byIp.map(g => group('ip', g.ip, g._count._all, g._max.created_at!, LOGIN_LIMIT.maxPerIp))),
+    Promise.all(byEmail.map(g => group('email', g.email, g._count._all, g._max.created_at!, LOGIN_LIMIT.maxPerEmail))),
+  ])
+  return { ips, emails }
+}
+
+/** Buka blokir: hapus semua catatan gagal untuk satu IP atau satu email. */
+export async function clearLoginFailuresFor(field: 'ip' | 'email', key: string): Promise<number> {
+  const { count } = await prisma.login_failures.deleteMany({ where: field === 'ip' ? { ip: key } : { email: key } })
+  return count
+}
+
 /** Dipanggil cron harian: buang catatan yang sudah tidak relevan. */
 export async function purgeOldLoginFailures(): Promise<number> {
   const { count } = await prisma.login_failures.deleteMany({

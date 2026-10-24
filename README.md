@@ -230,6 +230,7 @@ Cara kerja sesi:
   Kalau salah satu batas terlewati, server membalas `429` dengan header `Retry-After` dan `retry_after_sec`, **tanpa memeriksa password**. Halaman login menonaktifkan tombol Masuk dengan hitung mundur. Saat tinggal 3 percobaan, pesan error menyebut sisa percobaan. Kunci terbuka sendiri begitu percobaan lama keluar dari jendela 15 menit. Login berhasil menghapus catatan gagal email itu.
 - Penghitung disimpan di tabel `login_failures` (bukan memori), karena di Vercel setiap request bisa ditangani instance serverless yang berbeda. Catatan lebih dari 1 hari dibersihkan oleh cron retensi harian.
 - Keterbatasan: karena dihitung per IP, pengguna di balik IP yang sama (misalnya Wi-Fi kampus) berbagi kuota 10 percobaan gagal. Angka batas bisa diubah di `LOGIN_LIMIT`.
+- **Buka blokir lewat UI**: kartu "Login gagal & blokir" di Kelola Akun menampilkan percobaan gagal 15 menit terakhir per email (dengan nama akunnya kalau terdaftar) dan per IP (ditandai kalau itu IP Anda), lengkap dengan jumlah/batas dan jam kunci terbuka. Tombol **Buka blokir** / **Reset hitungan** menghapus catatan gagal email atau IP itu, dan dicatat di log server. Berguna saat satu pengguna salah password berkali-kali dan ikut mengunci semua orang di Wi-Fi yang sama.
 
 ## Retensi data
 
@@ -278,6 +279,8 @@ app/
     admin/unregistered-macs/[mac]
                         DELETE — abaikan MAC dari "alat baru terdeteksi"
     admin/users/...     GET/POST/PATCH — Kelola Akun (khusus pengelola)
+    admin/login-failures/route.ts
+                        GET/DELETE — lihat dan buka blokir login (khusus pengelola)
     auth/...            login, logout, me, password (ganti password sendiri)
     cron/retention/route.ts
                         GET — retensi data harian (Vercel Cron, dilindungi CRON_SECRET)
@@ -582,6 +585,9 @@ Nilai `null` ditulis sebagai sel kosong. Karena berada di dalam tabel, sel itu t
 | `GET /api/admin/users` | — | `200 { users: [...], me, server_time }`. Setiap user: `id, email, full_name, role, is_active, last_login, created_at` (tanpa hash password). `me` adalah id akun yang sedang login. |
 | `POST /api/admin/users` | `{ email, full_name }` | `201 { user, password }`. `password` acak dan hanya muncul di respons ini. `409` kalau email sudah punya akun. |
 | `PATCH /api/admin/users/:id` | Sebagian dari `{ full_name, is_active, reset_password: true }` | `200 { user }`, ditambah `password` kalau `reset_password`. Nonaktif dan reset mengakhiri semua sesi akun itu. `400` untuk menonaktifkan/mereset akun sendiri atau mengubah `email`, `404` kalau akun tidak ada, `409` kalau bentrok dengan perubahan bersamaan (coba lagi). |
+
+| `GET /api/admin/login-failures` | — | `200 { window_min, my_ip, emails: [...], ips: [...], server_time }`. Setiap item: `key, count, limit, last_at, blocked, unlock_at`; item email juga `full_name` (atau `null` kalau bukan akun). Maksimal 50 per jenis. |
+| `DELETE /api/admin/login-failures?ip=…` atau `?email=…` | — | Hapus semua catatan gagal IP/email itu: `200 { cleared }`. `400` kalau keduanya atau tidak satu pun diisi. |
 
 Email dinormalisasi ke huruf kecil dan tidak bisa diubah setelah akun dibuat. Nama 1–60 karakter. Tidak ada endpoint hapus akun.
 

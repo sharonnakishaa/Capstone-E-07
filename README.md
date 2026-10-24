@@ -171,13 +171,21 @@ Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim 
 | `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu outlet ±33 µg/m³). | Banner merah, email alert dan eskalasi, peringatan filter |
 | `offline` | Seperti `normal`, tapi tiap 60 detik berhenti mengirim selama 30 detik. | Indikator TERHUBUNG/OFFLINE |
 
-Cara kerja model ada di `scripts/lib/simulation.ts`:
-- **TVOC mentah** naik saat menyolder, lalu turun saat jeda. Kecepatan turunnya bergantung pada duty kipas. Noise-nya Gaussian.
-- **TVOC Kalman** dihitung dengan Kalman 1D (`KALMAN_PARAMS`: Q = 25, R = 400).
-- **Fase pemanasan 45 detik** seperti firmware: TVOC mentah 0 selama 15 detik (SGP30), lalu baseline direkam 30 detik. Selama itu Kalman dan baseline `null`, status AMAN, kipas mati.
-- **Status dan duty** meniru firmware: status dari Kalman di atas baseline (≥ 207 ppb WASPADA, ≥ 359 ppb BERBAHAYA, dari `lib/sensor.ts`), dan duty kontinu 0–100 % hasil interpolasi tingkat 0/30/50/75/100 %.
+Simulator di `scripts/lib/simulation.ts` terdiri dari dua bagian.
+
+**1. Port firmware (sama persis dengan alat).** Logika firmware disalin langsung dari `epen_core.c`, `epen_kalman.c`, `epen_fuzzy.c`, `epen_config.h`, dan `send_to_dashboard()` di `Epen.ino`. Simulator berjalan **per 1 detik** seperti firmware dan mengirim payload tiap 5 detik. Untuk masukan sensor yang sama, hasilnya identik dengan alat sungguhan:
+- **Fase:** pemanasan 15 detik (SGP30 = 0), lalu rekam baseline TVOC dan suhu selama 30 detik. Rekaman diulang kalau suhu naik ≥ 0,5 °C di tengah perekaman.
+- **Pemicu menyolder:** `u = 1` kalau suhu ≥ baseline suhu + 0,5 °C.
+- **Kalman 1-state** dalam mg/m³ di atas baseline, dengan model proses menuju 1,54 mg/m³ (τ naik 73 s, τ turun 37 s), Q = 0,001, R = 0,0034, dan ramalan 5 detik (`x5`).
+- **Fuzzy Sugeno** 2 masukan (x̂ dan delta = x5 − x̂, 9 aturan, AND = MIN). Masukan x ditambah ramalan hanya saat menyolder (`LAMBDA_UP = 1`).
+- **Status** dari kelas keanggotaan x̂ (batas 0,475 dan 0,825 mg/m³ = baseline + 206,97 / 359,48 ppb). Payload: `tvoc_kalman_ppb = baseline + x̂ / 0,002295`, dan duty = PWM yang dibulatkan.
+- Kalau firmware berubah, samakan konstanta `FW` dan fungsi-fungsi di bagian ini.
+
+**2. Model lingkungan (perkiraan).** Ini "dunia" yang dibaca sensor:
+- Saat mulai menyolder, **suhu di sensor naik lebih dulu** (±1 °C), dan asap baru terbaca 8–20 detik kemudian. Karena itu kipas bisa naik ke ±50 % sebelum asap terdeteksi, sama seperti alat sungguhan.
+- Kipas menyedot sebagian asap (makin kencang, konsentrasi di sensor makin rendah) dan mempercepat hilangnya asap setelah selesai menyolder.
+- Suhu ruangan dianggap lab ber-AC (variasi harian ±0,3 °C). TVOC latar 40–110 ppb bergeser pelan, noise Gaussian. RPM mengikuti duty dengan inersia, dan debu outlet berasal dari partikel yang lolos HEPA.
 - **Identitas lewat `mac_address`**, sama seperti firmware.
-- **RPM** mengikuti duty dengan sedikit inersia. Suhu mengikuti siklus harian, dan debu outlet berasal dari partikel yang lolos HEPA.
 
 ## Login dan akun
 
@@ -282,7 +290,7 @@ public/
   devices.html          Kelola Alat — daftarkan, ubah, nonaktifkan alat (khusus pengelola)
   auth.js               Widget Masuk/Keluar + tautan Kelola Alat untuk semua halaman
 scripts/
-  lib/simulation.ts     Model fisik: siklus menyolder, Kalman 1D, pola fuzzy
+  lib/simulation.ts     Port logika firmware (Kalman, fuzzy, fase) + model lingkungan
   seed.ts               Seed user, device, dan data historis
   simulate.ts           Simulator ESP32
   retention.ts          Jalankan retensi data secara manual

@@ -57,7 +57,7 @@ model sensor_logs {
   tvoc_kalman_ppb     Float?                    // TVOC setelah Kalman filter di ESP32 (absolut = baseline + estimasi)
   tvoc_baseline_ppb   Float?                    // Baseline udara bersih yang direkam ESP32 saat menyala
   eco2_ppm            Float
-  dust_outlet_ugm3    Float?                    // Debu di outlet (GP2Y), indikator efektivitas filter
+  dust_outlet_ugm3    Float?                    // Debu dari alat di outlet (GP2Y, di atas acuan udara ruangan), indikator efektivitas filter
   temperature_celsius Float?                    // null kalau SHT31 gagal dibaca
   humidity_percent    Float?                    // null kalau SHT31 gagal dibaca
   air_status          String    @default("AMAN") // Keluaran fuzzy ESP32: AMAN | WASPADA | BERBAHAYA

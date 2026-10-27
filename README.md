@@ -169,8 +169,8 @@ Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim 
 
 | Skenario | Perilaku | Dipakai untuk menguji |
 |---|---|---|
-| `normal` | Siklus menyolder biasa, sesekali masuk WASPADA/BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
-| `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu outlet ±33 µg/m³). | Banner merah, email alert dan eskalasi, peringatan filter |
+| `normal` | Siklus menyolder biasa, sesekali masuk WASPADA/BERBAHAYA. Debu dari alat rendah (±3 µg/m³). | Tampilan normal, grafik, statistik |
+| `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu dari alat ±30 µg/m³). | Banner merah, email alert dan eskalasi, peringatan filter |
 | `offline` | Seperti `normal`, tapi tiap 60 detik berhenti mengirim selama 30 detik. | Indikator TERHUBUNG/OFFLINE |
 
 Simulator di `scripts/lib/simulation.ts` terdiri dari dua bagian.
@@ -186,7 +186,7 @@ Simulator di `scripts/lib/simulation.ts` terdiri dari dua bagian.
 **2. Model lingkungan (perkiraan).** Ini "dunia" yang dibaca sensor:
 - Saat mulai menyolder, **suhu di sensor naik lebih dulu** (±1 °C), dan asap baru terbaca 8–20 detik kemudian. Karena itu kipas bisa naik ke ±50 % sebelum asap terdeteksi, sama seperti alat sungguhan.
 - Kipas menyedot sebagian asap (makin kencang, konsentrasi di sensor makin rendah) dan mempercepat hilangnya asap setelah selesai menyolder.
-- Suhu ruangan dianggap lab ber-AC (variasi harian ±0,3 °C). TVOC latar 40–110 ppb bergeser pelan, noise Gaussian. RPM mengikuti duty dengan inersia, dan debu outlet berasal dari partikel yang lolos HEPA.
+- Suhu ruangan dianggap lab ber-AC (variasi harian ±0,3 °C). TVOC latar 40–110 ppb bergeser pelan, noise Gaussian. RPM mengikuti duty dengan inersia. Debu yang dikirim adalah debu dari alat (partikel yang lolos HEPA, di atas acuan udara ruangan), `null` selama pemanasan/baseline seperti firmware.
 - **Identitas lewat `mac_address`**, sama seperti firmware.
 
 ## Login dan akun
@@ -416,7 +416,7 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 | `eco2_ppm` | number | ✅ | Finite, ≥ 0 | eCO₂ dari SGP30, disimpan sebagai data pelengkap |
 | `temperature_celsius` | number \| null | | Finite | Suhu dari SHT31. Kirim `null` (bukan `NaN`) kalau SHT31 gagal dibaca. Data lain tetap disimpan. |
 | `humidity_percent` | number \| null | | Finite, 0–100 | Kelembapan relatif dari SHT31. `null` kalau SHT31 gagal dibaca. |
-| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y1014AU0F), satu desimal. Firmware mengirim `null` kalau `USE_DUST 0` di `epen_config.h`. |
+| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Debu dari alat di **outlet** (GP2Y1014AU0F) = debu outlet dikurangi acuan udara ruangan yang direkam saat pemanasan, satu desimal. `null` selama pemanasan/rekam acuan atau kalau `USE_DUST 0` di `epen_config.h`. |
 | `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya. `AMAN` selama pemanasan. |
 | `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty kipas hasil fuzzy Sugeno (rata-rata terbobot, kontinu). 0 selama pemanasan. |
 | `fan_rpm` | integer \| null | | Bilangan bulat ≥ 0 | Putaran kipas dari sinyal tacho |
@@ -802,7 +802,7 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
 
 `color` dipakai untuk aksen (ikon, garis, badge di tema gelap). `text_light` dipakai untuk teks di latar terang, termasuk email, supaya kontrasnya cukup.
 
-`outlet_dust`: dashboard menampilkan peringatan filter kalau rata-rata `dust_outlet_ugm3` pada `window` data terakhir melebihi `warn_ugm3`.
+`outlet_dust`: dashboard menampilkan peringatan filter kalau rata-rata `dust_outlet_ugm3` pada `window` data terakhir melebihi `warn_ugm3`. Karena nilainya sudah dikurangi acuan udara ruangan, ambang ini berarti "alat mengeluarkan debu", bukan ruangan yang berdebu.
 
 `tvoc_threshold_above_baseline_ppb` dipakai untuk garis referensi grafik: garis digambar di `tvoc_baseline_ppb` + nilai ini, per alat. Kalau baseline belum ada (pemanasan), garis tidak digambar. Nilainya harus sama dengan fungsi keanggotaan fuzzy di firmware. Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
 

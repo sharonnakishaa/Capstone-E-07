@@ -49,7 +49,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 |---|---|---|---|---|---|
 | B-01 | Kartu TVOC | Bandingkan kartu TVOC dengan baris terbaru di terminal simulator. | Angka besar = TVOC **Kalman** (dibulatkan). Teks kecil "Mentah: … ppb" = TVOC mentah. | | |
 | B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 207** dan **baseline + 359** ppb. Teks bawah: "Ambang: <baseline+207> / <baseline+359> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
-| B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai, dan "Rata-rata 30 data" tampil. Teks bawah: "Batas filter: 25 µg/m³". | | |
+| B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai (debu dari alat, "—" selama pemanasan), dan "Rata-rata 30 data" tampil. Teks bawah: "Batas filter: 25 µg/m³". | | |
 | B-04 | Kartu Suhu | Bandingkan dengan data terbaru di halaman log. | Nilai °C sesuai (1 desimal). | | |
 | B-05 | Kartu Kelembapan | Bandingkan dengan data terbaru di halaman log. | Nilai % sesuai (1 desimal). | | |
 | B-06 | Indikator tren | Amati badge persentase di tiap kartu selama beberapa pembaruan. | Badge menunjukkan perubahan terhadap data sebelumnya. Kenaikan TVOC dan debu ditandai merah. | | |

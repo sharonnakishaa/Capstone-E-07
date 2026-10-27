@@ -188,7 +188,7 @@ interface ScenarioProfile {
 
 const PROFILES: Record<Scenario, ScenarioProfile> = {
   normal:  { idleSec: [60, 180], solderSec: [40, 120], peakPpb: [200, 700],  filterLeak: 0.02 },
-  spike:   { idleSec: [20, 60],  solderSec: [60, 150], peakPpb: [700, 1300], filterLeak: 0.06 },
+  spike:   { idleSec: [20, 60],  solderSec: [60, 150], peakPpb: [700, 1300], filterLeak: 0.09 },
   offline: { idleSec: [60, 180], solderSec: [40, 120], peakPpb: [200, 700],  filterLeak: 0.02 },
 }
 
@@ -227,7 +227,7 @@ export interface Reading {
   eco2_ppm: number
   temperature_celsius: number
   humidity_percent: number
-  dust_outlet_ugm3: number
+  dust_outlet_ugm3: number | null  // null selama pemanasan/baseline
   air_status: AirStatus
   fan_duty_percent: number
   fan_rpm: number
@@ -305,7 +305,8 @@ export class DeviceSimulator {
     const run = out.phase === 'RUN'
     const humidity = 64 - (temp - ENV.ROOM_TEMP_C) * 2.5 + gauss(0.4)
     const eco2 = Math.max(400, 400 + tvoc * 0.9 + gauss(15))
-    const dust = Math.max(0, 6 + (15 + this.fume * 0.8) * this.profile.filterLeak + gauss(2.5))
+    // Debu dari alat = debu outlet dikurangi acuan udara ruangan (direkam bersama baseline), tidak pernah negatif
+    const dust = Math.max(0, (15 + this.fume * 0.8) * this.profile.filterLeak + gauss(2.5))
     void at
 
     return {
@@ -315,7 +316,7 @@ export class DeviceSimulator {
       eco2_ppm:            Math.round(eco2),
       temperature_celsius: round(temp, 1),
       humidity_percent:    round(clamp(humidity, 0, 100), 1),
-      dust_outlet_ugm3:    round(dust, 1),
+      dust_outlet_ugm3:    run ? round(dust, 1) : null,
       air_status:          run ? AIR_CLASS_STATUS[airClass(out.xHat)] : 'AMAN',
       fan_duty_percent:    Math.round(out.pwm),
       fan_rpm:             this.rpm < 50 ? 0 : Math.max(0, Math.round(this.rpm * (1 + gauss(0.01)))),

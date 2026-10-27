@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OUTLET_DUST } from '@/lib/sensor'
 
 interface OverviewRow {
   id: string
@@ -17,8 +16,6 @@ interface OverviewRow {
   fan_duty_percent: number | null
   fan_rpm: number | null
   recorded_at: Date | null
-  dust_outlet_avg_ugm3: number | null
-  dust_samples: number
 }
 
 /**
@@ -31,8 +28,7 @@ export async function GET() {
       SELECT d.id::text, d.device_name, d.location,
              l.id::text AS log_id, l.tvoc_raw_ppb, l.tvoc_kalman_ppb, l.tvoc_baseline_ppb,
              l.temperature_celsius, l.humidity_percent, l.dust_outlet_ugm3,
-             l.air_status, l.fan_duty_percent, l.fan_rpm, l.recorded_at,
-             dd.dust_outlet_avg_ugm3, dd.dust_samples
+             l.air_status, l.fan_duty_percent, l.fan_rpm, l.recorded_at
       FROM devices d
       LEFT JOIN LATERAL (
         SELECT * FROM sensor_logs s
@@ -40,16 +36,6 @@ export async function GET() {
         ORDER BY s.recorded_at DESC
         LIMIT 1
       ) l ON true
-      LEFT JOIN LATERAL (
-        SELECT AVG(t.dust_outlet_ugm3) AS dust_outlet_avg_ugm3,
-               COUNT(t.dust_outlet_ugm3)::int AS dust_samples
-        FROM (
-          SELECT dust_outlet_ugm3 FROM sensor_logs s
-          WHERE s.device_id = d.id
-          ORDER BY s.recorded_at DESC
-          LIMIT ${OUTLET_DUST.window}
-        ) t
-      ) dd ON true
       WHERE d.is_active
       ORDER BY d.created_at`
 
@@ -70,8 +56,6 @@ export async function GET() {
         fan_rpm: r.fan_rpm,
         recorded_at: r.recorded_at,
       },
-      dust_outlet_avg_ugm3: r.dust_outlet_avg_ugm3,
-      dust_samples: r.dust_samples,
     }))
 
     return NextResponse.json({ data, server_time: new Date() })

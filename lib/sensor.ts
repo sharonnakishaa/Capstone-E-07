@@ -43,11 +43,9 @@ export const FAN_DUTY_LEVELS_PERCENT = [0, 30, 50, 75, 100]
 // Selama fase ini tvoc_kalman_ppb dan tvoc_baseline_ppb dikirim null.
 export const SENSOR_WARMUP_SEC = 45
 
-// Peringatan filter: rata-rata debu outlet di atas acuan udara ruangan (debu dari alat)
-// pada N data terakhir melebihi ambang ini. Setel ulang dari data alat sungguhan.
+// Rata-rata debu outlet yang tampil di dashboard dihitung dari N data terakhir.
 export const OUTLET_DUST = {
-  warn_ugm3: 25,
-  window:    30,
+  window: 30,
 }
 
 // Data mentah (per 5 detik) yang lebih tua dari ini diringkas per jam ke sensor_hourly lalu dihapus.

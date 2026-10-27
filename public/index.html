@@ -106,7 +106,7 @@
   .info-value{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--text-strong);line-height:1.1}
   .info-value small{font-size:12px;font-weight:500;color:var(--muted-2);margin-left:2px}
   .info-note{font-size:12.5px;color:var(--muted)}
-  .info-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .info-bottom{display:grid;grid-template-columns:1fr;gap:14px}
   .link-btn{align-self:flex-start;margin-top:2px;padding:0;border:0;background:none;font-family:var(--sans);font-size:13px;font-weight:800;color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
   .link-btn:hover{text-decoration-thickness:3px}
   .filter-form{display:flex;align-items:flex-end;gap:12px 16px;flex-wrap:wrap;margin:-4px 0 16px;padding:16px;border:2px solid var(--line);border-radius:10px;background:var(--surface-2);box-shadow:var(--sh-sm)}
@@ -125,12 +125,6 @@
   .guide ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13.5px;line-height:1.5}
   .guide ol li::marker{color:var(--accent);font-weight:800}
   .guide strong{color:var(--text-strong)}
-  .filter-status{--st-tint:var(--surface-2);--st-ink:var(--muted);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--border-soft);background:var(--st-tint)}
-  .filter-status[data-state="ok"]{--st-tint:var(--tint-aman);--st-ink:var(--ink-aman)}
-  .filter-status[data-state="warn"]{--st-tint:var(--tint-waspada);--st-ink:var(--ink-waspada);border:2px solid var(--line)}
-  .filter-status .fs-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;background:var(--surface);border:2px solid var(--line);color:var(--st-ink)}
-  .filter-status .fs-title{font-size:14px;font-weight:800;color:var(--st-ink);margin-bottom:4px}
-  .filter-status .fs-desc{font-size:13px;color:var(--text);line-height:1.5}
 
   /* LOG TERAKHIR */
   .log-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:16px}
@@ -160,7 +154,6 @@
     .chart-head{flex-direction:column;gap:10px}
     .legend{justify-content:flex-start}
     .chart-wrap{flex:none;height:240px;min-height:0}
-    .info-bottom{grid-template-columns:1fr}
     .filter-form .field{flex:1 1 100%}
     .filter-form .field input{width:100%}
     .ff-actions{width:100%}
@@ -257,7 +250,7 @@
         <div class="bar slate"><i id="dustBar" style="width:0%"></i></div>
       </div>
       <div class="metric-foot">
-        <span class="range" id="dustRange">Batas filter: —</span>
+        <span class="range" id="dustRange">Puncak: —</span>
         <span class="trend flat" id="dustTrend">—</span>
       </div>
     </article>
@@ -396,15 +389,8 @@
         <ol>
           <li>Letakkan alat di <strong>samping titik solder</strong>.</li>
           <li>Arahkan <strong>inlet menghadap sumber asap</strong>, berjarak ±<span class="js-inlet">5</span> cm dari titik solder.</li>
-          <li>Susunan filter: <strong>HEPA → kipas → karbon aktif</strong>. Periksa filter bila muncul peringatan debu outlet.</li>
+          <li>Susunan filter: <strong>HEPA → kipas → karbon aktif</strong>. Periksa filter bila debu outlet naik dari biasanya.</li>
         </ol>
-      </div>
-      <div class="filter-status" id="filterStatus" data-state="unknown">
-        <div class="fs-icon" id="filterIcon" aria-hidden="true"></div>
-        <div>
-          <div class="fs-title" id="filterTitle">Status filter belum diketahui</div>
-          <div class="fs-desc" id="filterDesc">Menunggu data debu outlet.</div>
-        </div>
       </div>
     </div>
   </section>
@@ -491,7 +477,6 @@ const ICON={
   off:c=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
 };
 
-const smallIcon=svg=>svg.replace('width="22" height="22"','width="16" height="16"');
 
 /* CONFIG (dari /api/config — ambang & metadata tidak di-hardcode) */
 window.CFG=null;
@@ -523,10 +508,8 @@ function thresholdText(){
     :`Ambang: baseline + ${off.waspada} / + ${off.berbahaya} ppb`;
 }
 function applyConfigText(){
-  const dust=CFG.outlet_dust;
   $('intervalText').textContent=`Interval: setiap ${CFG.poll_interval_ms/1000} detik`;
   $('tvocRange').textContent=thresholdText();
-  $('dustRange').textContent=`Batas filter: ${fmtNum(dust.warn_ugm3)} µg/m³`;
   $('chartSub').textContent=`${CHART_POINTS} data terakhir · ±${fmtNum(CHART_POINTS*CFG.poll_interval_ms/60000,1)} menit`;
   $('statsSub').textContent=`Agregat ${CHART_POINTS} pembacaan terakhir · TVOC Kalman`;
   renderLegend();
@@ -568,6 +551,7 @@ function setConnection(state){
 
 /* CHART */
 const CHART_POINTS=30;
+const DUST_BAR_MAX=50; // skala batang kartu debu (µg/m³)
 let chartHoverX=null;
 function renderLegend(){
   // Garis ambang hanya ada kalau baseline alat sudah diketahui
@@ -753,32 +737,22 @@ function renderLastSeen(lastIso,ageMs){
   $('infoLastSeen').textContent=lastIso?fmtAge(ageMs):'—';
   $('infoLastSeenAt').textContent=lastIso?fmtDateTime(lastIso):'Belum ada data dari perangkat';
 }
-function renderFilterStatus(data){
-  const {warn_ugm3,window:win}=CFG.outlet_dust;
+/** Rata-rata dan puncak debu outlet pada `window` data terakhir (kartu debu + Info Perangkat). */
+function renderDustStats(data){
+  const win=CFG.outlet_dust.window;
   const vals=data.slice(0,win).map(d=>d.dust_outlet_ugm3).filter(v=>v!=null);
-  const box=$('filterStatus'), icon=$('filterIcon');
   if(!vals.length){
-    box.dataset.state='unknown';
-    icon.innerHTML=smallIcon(ICON.off('currentColor'));
-    $('filterTitle').textContent='Status filter belum diketahui';
-    $('filterDesc').textContent='Perangkat belum mengirim data debu outlet.';
     $('infoDustAvg').textContent='—';
     $('infoDustNote').textContent=`${win} data terakhir`;
     $('dustAvg').innerHTML='Rata-rata: —';
-    return null;
+    $('dustRange').textContent='Puncak: —';
+    return;
   }
   const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
-  const warn=avg>warn_ugm3;
-  box.dataset.state=warn?'warn':'ok';
-  icon.innerHTML=smallIcon((warn?ICON.warn:ICON.check)('currentColor'));
-  $('filterTitle').textContent=warn?'Debu outlet naik — periksa filter':'Filter bekerja baik';
-  $('filterDesc').textContent=warn
-    ?`Rata-rata debu outlet ${fmtNum(avg,1)} µg/m³ pada ${vals.length} data terakhir, melebihi batas ${fmtNum(warn_ugm3)} µg/m³. Filter HEPA mungkin jenuh atau tidak terpasang rapat.`
-    :`Rata-rata debu outlet ${fmtNum(avg,1)} µg/m³ pada ${vals.length} data terakhir, di bawah batas ${fmtNum(warn_ugm3)} µg/m³.`;
   $('infoDustAvg').innerHTML=`${fmtNum(avg,1)}<small>µg/m³</small>`;
-  $('infoDustNote').textContent=`${vals.length} data terakhir · batas ${fmtNum(warn_ugm3)}`;
+  $('infoDustNote').textContent=`${vals.length} data terakhir`;
   $('dustAvg').innerHTML=`Rata-rata ${vals.length} data: <strong>${fmtNum(avg,1)}</strong>`;
-  return avg;
+  $('dustRange').textContent=`Puncak: ${fmtNum(Math.max(...vals),1)} µg/m³`;
 }
 
 /* DASHBOARD UPDATE */
@@ -845,12 +819,9 @@ function updateDashboard(data,serverTime){
   setTrend('tvocTrend',calcTrend(tv,prev&&tvocOf(prev)));
 
   // Kartu debu outlet
-  const warnDust=CFG.outlet_dust.warn_ugm3, dustMax=warnDust*2;
   $('dustValue').textContent=fmtNum(lat.dust_outlet_ugm3,1);
-  $('dustBar').style.width=lat.dust_outlet_ugm3==null?'0%':Math.min(lat.dust_outlet_ugm3/dustMax*100,100)+'%';
-  const dustAvg=renderFilterStatus(data);
-  $('dustBar').style.background=dustAvg!=null&&dustAvg>warnDust?statusColor('WASPADA'):'';
-  barTicks('dustBarWrap',[{v:warnDust,c:statusColor('WASPADA'),title:`Batas filter ${warnDust} µg/m³`}],dustMax);
+  $('dustBar').style.width=lat.dust_outlet_ugm3==null?'0%':Math.min(lat.dust_outlet_ugm3/DUST_BAR_MAX*100,100)+'%';
+  renderDustStats(data);
   setTrend('dustTrend',calcTrend(lat.dust_outlet_ugm3,prev?.dust_outlet_ugm3));
 
   // Suhu & RH

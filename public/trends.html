@@ -50,7 +50,6 @@
   .legend-pill .sw{width:14px;height:3px;border-radius:2px;background:currentColor}
   .legend-pill .sw.box{width:10px;height:10px;border-radius:2px}
   .legend-pill .sw.faint{opacity:.45;height:8px}
-  .legend-pill .sw.dash{background:none;background-image:linear-gradient(to right,currentColor 60%,transparent 0);background-size:5px 3px;background-repeat:repeat-x}
   .chart-wrap{position:relative;height:260px;touch-action:pan-y}
   .chart-wrap svg{display:block;width:100%;height:100%}
   .chart-empty{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 24px;color:var(--muted);font-size:13.5px;border:2px dashed var(--border-soft);border-radius:10px}
@@ -321,21 +320,19 @@ function renderTvoc(days){
   });
 }
 
-/* GRAFIK 3 — debu outlet harian + batas filter */
+/* GRAFIK 3 — debu outlet harian */
 function renderDust(days){
-  const wrap=$('dustChart'), n=days.length, warn=CFG.outlet_dust.warn_ugm3;
-  const warnColor=statusColor('WASPADA'), series=cssVar('--series');
-  $('dustLegend').innerHTML=`<span class="legend-pill" style="color:${series}"><span class="sw"></span><span style="color:var(--muted)">Rata-rata</span></span><span class="legend-pill" style="color:${warnColor}"><span class="sw dash"></span><span style="color:var(--muted)">Batas filter ${fmtNum(warn)}</span></span>`;
+  const wrap=$('dustChart'), n=days.length, series=cssVar('--series');
+  $('dustLegend').innerHTML=`<span class="legend-pill" style="color:${series}"><span class="sw"></span><span style="color:var(--muted)">Rata-rata</span></span>`;
   if(!days.some(d=>d.dust_avg_ugm3!=null)){wrap.innerHTML='<div class="chart-empty">Belum ada data debu outlet pada rentang ini (sensor GP2Y belum mengirim data)</div>';return;}
-  const f=frame(wrap,n,niceMax(Math.max(warn,...days.map(d=>d.dust_avg_ugm3??0)),warn*1.2),'µg/m³');
+  const f=frame(wrap,n,niceMax(Math.max(...days.map(d=>d.dust_avg_ugm3??0)),10),'µg/m³');
   let path='', pen=false;
   days.forEach((d,i)=>{
     if(d.dust_avg_ugm3==null){pen=false;return;}
     path+=`${pen?'L':'M'}${f.xAt(i).toFixed(1)} ${f.yAt(d.dust_avg_ugm3).toFixed(1)} `; pen=true;
   });
-  const dots=f.band<8?'':days.map((d,i)=>d.dust_avg_ugm3==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d.dust_avg_ugm3).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${d.dust_avg_ugm3>warn?warnColor:series}" stroke-width="2"/>`).join('');
-  const wy=f.yAt(warn).toFixed(1);
-  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="Debu outlet harian">${hlRect(f)}${f.gridSvg}<line x1="${f.pad.l}" x2="${f.W-f.pad.r}" y1="${wy}" y2="${wy}" stroke="${warnColor}" stroke-width="1.5" stroke-dasharray="5 4"/><path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
+  const dots=f.band<8?'':days.map((d,i)=>d.dust_avg_ugm3==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d.dust_avg_ugm3).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${series}" stroke-width="2"/>`).join('');
+  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="Debu outlet harian">${hlRect(f)}${f.gridSvg}<path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
   attachHover(wrap,f,n,i=>{
     const d=days[i];
     return `<div class="tip-date">${fmtDay(d.date,true)}</div>`

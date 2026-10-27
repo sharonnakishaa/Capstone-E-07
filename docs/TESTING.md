@@ -49,7 +49,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 |---|---|---|---|---|---|
 | B-01 | Kartu TVOC | Bandingkan kartu TVOC dengan baris terbaru di terminal simulator. | Angka besar = TVOC **Kalman** (dibulatkan). Teks kecil "Mentah: … ppb" = TVOC mentah. | | |
 | B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 207** dan **baseline + 359** ppb. Teks bawah: "Ambang: <baseline+207> / <baseline+359> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
-| B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai (debu dari alat, "—" selama pemanasan), dan "Rata-rata 30 data" tampil. Teks bawah: "Batas filter: 25 µg/m³". | | |
+| B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai, dan "Rata-rata 30 data" tampil. Teks bawah: "Puncak: … µg/m³" (nilai tertinggi 30 data terakhir). Tidak ada teks atau penanda batas filter. | | |
 | B-04 | Kartu Suhu | Bandingkan dengan data terbaru di halaman log. | Nilai °C sesuai (1 desimal). | | |
 | B-05 | Kartu Kelembapan | Bandingkan dengan data terbaru di halaman log. | Nilai % sesuai (1 desimal). | | |
 | B-06 | Indikator tren | Amati badge persentase di tiap kartu selama beberapa pembaruan. | Badge menunjukkan perubahan terhadap data sebelumnya. Kenaikan TVOC dan debu ditandai merah. | | |
@@ -83,8 +83,8 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | E-02 | Jam operasi filter | Bandingkan dengan `filter_runtime_hours` di `GET /api/devices`. | Nilai jam sesuai, disertai tanggal pemasangan filter (WIB). | | |
 | E-03 | Data terakhir | Amati item "Data Terakhir". | Menampilkan umur data (misalnya "3 detik lalu") dan tanggal-jam WIB. | | |
 | E-04 | Panduan penggunaan | Baca panduan. | Ada 3 poin: posisi alat di samping titik solder, inlet menghadap sumber asap, dan susunan filter HEPA → kipas → karbon aktif. | | |
-| E-05 | Status filter normal | Jalankan simulator `normal` selama ≥ 3 menit. | Kotak status berwarna netral/hijau: "Filter bekerja baik" dengan rata-rata < 25 µg/m³. | | |
-| E-06 | Peringatan filter | Jalankan simulator `spike` selama ≥ 3 menit. | Kotak berubah kuning: "Debu outlet naik — periksa filter" dengan rata-rata > 25 µg/m³. | | |
+| E-05 | Debu outlet rata-rata | Jalankan simulator `normal` selama ≥ 3 menit. | Item "Debu Outlet Rata-rata" menampilkan rata-rata 30 data terakhir dengan keterangan "30 data terakhir", sama dengan angka "Rata-rata 30 data" di kartu debu. | | |
+| E-06 | Tanpa batas filter | Jalankan simulator `spike` selama ≥ 3 menit. | Walaupun debu tinggi, tidak ada kotak status filter, warna peringatan, atau teks "periksa filter". Panduan tampil selebar panel. | | |
 | E-07 | Catat penggantian filter | Masuk sebagai Pengelola Lab. Klik **Filter diganti…**, biarkan waktu default (sekarang), lalu klik **Simpan**. | Form tertutup dan muncul pesan hijau "Penggantian filter tercatat". Jam operasi filter kembali ke ±0 jam, dan tanggal pemasangan berubah ke waktu sekarang dengan keterangan "dicatat oleh <nama>". Nilainya tetap sama setelah halaman dimuat ulang. | | |
 | E-08 | Catat penggantian mundur | Klik **Filter diganti…**, isi waktu 1 jam yang lalu, lalu klik **Simpan**. | Jam operasi filter menjadi ±1 jam (kalau simulator berjalan selama satu jam itu). | | |
 | E-09 | Validasi waktu filter | Klik **Filter diganti…**, ubah waktu ke besok (ketik manual kalau pemilih tanggal membatasi), lalu klik **Simpan**. | Muncul pesan merah "installed_at tidak boleh di masa depan", dan data tidak berubah. Tombol **Batal** menutup form tanpa menyimpan. | | |
@@ -196,7 +196,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | L-04 | Ringkasan atas | Hitung kartu per status. | Pill BERBAHAYA/WASPADA/AMAN/OFFLINE menunjukkan jumlah yang sama. Judul menyebut status terburuk, misalnya "1 dari 4 alat BERBAHAYA". | | |
 | L-05 | Judul tab | Amati judul tab browser saat ada alat BERBAHAYA. | Judul tab diawali "(1 BERBAHAYA)". | | |
 | L-06 | OFFLINE per alat | Tunggu fase offline alat dengan skenario `offline`. | Hanya kartu alat itu yang berubah jadi OFFLINE (pudar, "Data terakhir … lalu"). Kartu lain tidak terpengaruh. | | |
-| L-07 | Periksa filter | Tunggu ±3 menit pada alat dengan skenario `spike`. | Kartu alat itu menampilkan chip "⚠ Periksa filter". | | |
+| L-07 | Tanpa chip filter | Tunggu ±3 menit pada alat dengan skenario `spike`. | Kartu alat itu **tidak** menampilkan chip "⚠ Periksa filter", tetapi nilai debu tetap tampil. | | |
 | L-08 | Buka detail | Klik salah satu kartu. | Dashboard detail terbuka untuk alat yang diklik (nama di dropdown sesuai), dan URL berisi `?device=<id>`. | | |
 | L-09 | Navigasi | Dari dashboard detail, buka "Lihat Semua Data", lalu kembali dengan "Dashboard", lalu "‹ Ringkasan Lab". | Halaman log dan dashboard tetap menampilkan alat yang sama, dan tombol terakhir kembali ke Ringkasan Lab. | | |
 | L-10 | Banyak lokasi | Di Prisma Studio, ubah `location` salah satu device menjadi lokasi lain. | Kartu dikelompokkan per lokasi dengan judul grup dan jumlah alat. | | |
@@ -251,7 +251,7 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | O-03 | Hari tanpa data | Pilih rentang yang mencakup hari tanpa data. | Hari itu tetap tampil di sumbu tanggal. Batang kosong, dan garis TVOC/debu terputus (tidak dihubungkan melewati celah). | | |
 | O-04 | Ringkasan | Bandingkan kotak ringkasan dengan grafik durasi status. | "Alat menyala" sama dengan jumlah semua batang. Jam Berbahaya dan Waspada sama dengan jumlah segmen merah dan kuning, dan "Terbanyak" menunjuk hari dengan segmen merah tertinggi. | | |
 | O-05 | Tooltip | Arahkan kursor (atau sentuh) ke beberapa hari di ketiga grafik. | Kolom hari tersorot, dan tooltip menampilkan tanggal lengkap serta nilai hari itu (jam per status, rata-rata/puncak TVOC, rata-rata/puncak debu). | | |
-| O-06 | Debu outlet | Lihat grafik debu outlet. | Garis putus-putus batas filter (25 µg/m³) tampil. Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
+| O-06 | Debu outlet | Lihat grafik debu outlet. | Garis rata-rata tampil tanpa garis putus-putus batas filter, dan legenda hanya berisi "Rata-rata". Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
 | O-07 | Melewati retensi | Setelah ada data > 60 hari (atau setelah uji K-02), pilih **90 hari**. | Hari-hari yang data mentahnya sudah diringkas tetap muncul dengan nilai yang wajar (tidak kosong). | | |
 | O-08 | Tampilan 375 px | DevTools → iPhone SE, pilih 90 hari, tema gelap. | Kotak ringkasan dua kolom, grafik satu kolom, label tanggal terakhir tidak terpotong, dan tidak ada scroll horizontal. | | |
 

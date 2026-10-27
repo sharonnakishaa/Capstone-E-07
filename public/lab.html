@@ -49,7 +49,6 @@
   .dc-stats .k{display:block;font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
   .dc-stats .v{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text-strong);white-space:nowrap}
   .dc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
-  .chip-warn{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:800;background:var(--tint-waspada);color:var(--ink-waspada);border:1.5px solid currentColor}
   .dev-card.offline .dc-value,.dev-card.offline .dc-raw,.dev-card.offline .dc-stats{opacity:.5}
   .badge{flex-shrink:0}
 
@@ -129,7 +128,6 @@ function fmtAge(ms){
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const OFFLINE_COLOR=()=>cssVar('--muted-2');
 const statusColor=k=>k==='OFFLINE'?OFFLINE_COLOR():(isLight()?CFG.statuses[k].text_light:CFG.statuses[k].color);
-const WARN_ICON='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 const BADGE={AMAN:'aman',WASPADA:'waspada',BERBAHAYA:'bahaya',OFFLINE:'off'};
 // Urutan tampil: yang paling perlu ditangani di atas. OFFLINE di atas AMAN karena alat tidak terpantau.
 const SEVERITY={BERBAHAYA:3,WASPADA:2,OFFLINE:1,AMAN:0};
@@ -163,7 +161,6 @@ function deviceState(d,serverTime){
 function cardHtml(d,st){
   const l=d.latest, off=st.status==='OFFLINE';
   const tvoc=l?(l.tvoc_kalman_ppb??l.tvoc_raw_ppb):null;
-  const dustWarn=d.dust_samples>0&&d.dust_outlet_avg_ugm3>CFG.outlet_dust.warn_ugm3;
   const foot=!l
     ?'Belum ada data dari perangkat'
     :off?`Data terakhir ${fmtAge(st.ageMs)}`:`Diperbarui ${fmtAge(st.ageMs)}`;
@@ -186,7 +183,6 @@ function cardHtml(d,st){
       </div>
       <div class="dc-foot">
         <span>${foot}</span>
-        ${dustWarn?`<span class="chip-warn" title="Rata-rata debu outlet ${fmtNum(d.dust_outlet_avg_ugm3,1)} µg/m³ melebihi batas ${fmtNum(CFG.outlet_dust.warn_ugm3)} µg/m³">${WARN_ICON}Periksa filter</span>`:''}
       </div>
     </a>`;
 }

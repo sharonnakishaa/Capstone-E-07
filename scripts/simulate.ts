@@ -109,7 +109,7 @@ async function main() {
         r.air_status.padEnd(9),
         `duty ${String(r.fan_duty_percent).padStart(3)}%`,
         `${String(r.fan_rpm).padStart(4)} rpm`,
-        `debu ${r.dust_outlet_ugm3 === null ? '    —' : r.dust_outlet_ugm3.toFixed(1).padStart(5)}`,
+        `debu ${r.dust_outlet_ugm3.toFixed(1).padStart(5)}`,
       ].join('  ')
 
       if (silent) {

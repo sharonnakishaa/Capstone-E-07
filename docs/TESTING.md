@@ -208,7 +208,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | M-01 | Akses tanpa login | Dalam keadaan belum masuk, buka Ringkasan Lab, dashboard detail, dan halaman log. | Ketiga halaman tampil normal. Di topbar ada tombol **Masuk**. | | |
-| M-02 | Aksi terkunci | Masih tanpa login, lihat panel Info Perangkat dan bagian Ekspor Excel di halaman log. | Di Info Perangkat tertulis "Masuk untuk mencatat penggantian filter" (bukan tombol "Filter diganti…"). Di halaman log tertulis "Ekspor Excel hanya untuk Pengelola Lab", dan form ekspor tidak tampil. | | |
+| M-02 | Aksi terkunci | Masih tanpa login, lihat panel Info Perangkat dan bagian Ekspor Excel di halaman log. | Di Info Perangkat tertulis tautan "Masuk untuk catat filter" dalam satu baris (bukan tombol "Filter diganti…"). Di halaman log tertulis "Ekspor Excel hanya untuk Pengelola Lab", dan form ekspor tidak tampil. | | |
 | M-03 | Password salah | Klik **Masuk**, isi email benar dan password salah. | Muncul pesan merah "Email atau password salah", kolom password dikosongkan, dan pengguna tetap di halaman login. | | |
 | M-04 | Email tidak terdaftar | Isi email yang tidak terdaftar. | Pesan yang sama persis dengan M-03, tanpa memberi tahu apakah emailnya terdaftar. | | |
 | M-05 | Login berhasil | Dari halaman log, klik **Masuk**, lalu isi email dan password yang benar. | Kembali ke halaman log yang sama (device yang sama). Nama pengguna dan tombol **Keluar** tampil di topbar, dan form Ekspor Excel muncul. | | |

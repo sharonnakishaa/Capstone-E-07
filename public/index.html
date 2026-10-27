@@ -727,7 +727,8 @@ EpenAuth.ready.then(u=>{
   const link=document.createElement('a');
   link.className='link-btn';
   link.href=EpenAuth.loginUrl();
-  link.textContent='Masuk untuk mencatat penggantian filter';
+  link.textContent='Masuk untuk catat filter';
+  link.title='Masuk sebagai Pengelola Lab untuk mencatat penggantian filter';
   $('filterOpenBtn').replaceWith(link);
 });
 $('filterCancelBtn').addEventListener('click',closeFilterForm);

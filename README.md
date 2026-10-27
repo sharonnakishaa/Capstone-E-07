@@ -399,7 +399,7 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
   "eco2_ppm": 640,
   "temperature_celsius": 27.4,
   "humidity_percent": 63.1,
-  "dust_outlet_ugm3": null,
+  "dust_outlet_ugm3": 18.5,
   "air_status": "WASPADA",
   "fan_duty_percent": 83,
   "fan_rpm": 2610
@@ -416,7 +416,7 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 | `eco2_ppm` | number | ✅ | Finite, ≥ 0 | eCO₂ dari SGP30, disimpan sebagai data pelengkap |
 | `temperature_celsius` | number \| null | | Finite | Suhu dari SHT31. Kirim `null` (bukan `NaN`) kalau SHT31 gagal dibaca. Data lain tetap disimpan. |
 | `humidity_percent` | number \| null | | Finite, 0–100 | Kelembapan relatif dari SHT31. `null` kalau SHT31 gagal dibaca. |
-| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y). Sementara dikirim `null` oleh firmware. |
+| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu di **outlet** (GP2Y1010AU0F), satu desimal. Firmware mengirim `null` kalau `USE_DUST 0` atau dalam mode simulasi (`USE_SIMULATION 1`). |
 | `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya. `AMAN` selama pemanasan. |
 | `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty kipas hasil fuzzy Sugeno (rata-rata terbobot, kontinu). 0 selama pemanasan. |
 | `fan_rpm` | integer \| null | | Bilangan bulat ≥ 0 | Putaran kipas dari sinyal tacho |
@@ -471,7 +471,7 @@ Contoh request:
 curl -X POST http://localhost:3000/api/sensor \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
-  -d '{"mac_address":"24:6F:28:00:00:01","tvoc_raw_ppb":412,"tvoc_kalman_ppb":286,"tvoc_baseline_ppb":95,"eco2_ppm":640,"temperature_celsius":27.4,"humidity_percent":63.1,"dust_outlet_ugm3":null,"air_status":"WASPADA","fan_duty_percent":83,"fan_rpm":2610}'
+  -d '{"mac_address":"24:6F:28:00:00:01","tvoc_raw_ppb":412,"tvoc_kalman_ppb":286,"tvoc_baseline_ppb":95,"eco2_ppm":640,"temperature_celsius":27.4,"humidity_percent":63.1,"dust_outlet_ugm3":18.5,"air_status":"WASPADA","fan_duty_percent":83,"fan_rpm":2610}'
 ```
 
 **Notifikasi email**

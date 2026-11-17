@@ -23,7 +23,10 @@ export const FW = {
   WARMUP_S:       15,       // SGP30 menahan keluaran 0
   BASELINE_S:     30,       // lama perekaman baseline
   PPB_TO_MGM3:    0.002295, // 56,1 / 24,45 / 1000
-  DT_ON_C:        0.5,      // u = 1 bila (T - T_base) >= 0,5 °C
+  DT_ON_C:        0.5,      // u = 1 bila (T - T_ref) >= 0,5 °C
+  DT_OFF_C:       0.3,      // u kembali 0 bila (T - T_ref) < 0,3 °C (histeresis)
+  TREF_WIN_S:     60,       // T_ref = suhu terendah 60 detik terakhir,
+  TREF_BLOCK_S:   10,       //         dari rata-rata per 10 detik
   CSS:            1.54,     // mg/m³, konsentrasi tunak saat menyolder
   TAU_UP_S:       73,
   TAU_DOWN_S:     37,
@@ -33,8 +36,10 @@ export const FW = {
   P0:             0.01,
   HORIZON_STEPS:  5,
   LAMBDA_UP:      1.0,      // bobot ramalan pada masukan fuzzy, hanya saat u = 1
-  FZ_X_A:         0.3,      // x_hat: Bersih / Sedang / Kotor
-  FZ_X_C:         1.0,
+  FZ_X_A:         0.114750, // x_hat: Bersih penuh = 50 ppb × 0,002295
+  FZ_X_C:         0.459,    //        Kotor penuh = 200 ppb × 0,002295 (Sedang penuh di tengah, ±125 ppb)
+  TVOC_L3_PPB:    100,      // status WASPADA mulai x_hat ≥ 100 ppb (WHO 2000 level 3, 0,10 ppm)
+  TVOC_L4_PPB:    200,      // status BERBAHAYA mulai x_hat ≥ 200 ppb (WHO 2000 level 4, 0,20 ppm)
   FZ_D_A:        -0.05,     // delta: Turun / Stabil / Naik
   FZ_D_C:         0.05,
   PWM: { MIN: 0, LOW: 30, MED: 50, HIGH: 75, MAX: 100 },
@@ -103,13 +108,12 @@ export function fuzzyPwm(xHat: number, delta: number): number {
   return den < 1e-6 ? P.MAX : num / den
 }
 
-/** epen_fuzzy.c — kelas udara dari x_hat (keanggotaan terbesar; seri → kelas lebih tinggi). */
+/** epen_fuzzy.c — kelas udara dari x_hat dalam ppb di atas baseline (bukan dari fungsi keanggotaan). */
 export function airClass(xHat: number): 0 | 1 | 2 {
-  const m = threeClasses(xHat, FW.FZ_X_A, FW.FZ_X_C)
-  let k: 0 | 1 | 2 = 0
-  if (m[1] >= m[k]) k = 1
-  if (m[2] >= m[k]) k = 2
-  return k
+  const ppb = xHat / FW.PPB_TO_MGM3
+  if (ppb >= FW.TVOC_L4_PPB) return 2 // BERBAHAYA
+  if (ppb >= FW.TVOC_L3_PPB) return 1 // WASPADA
+  return 0                            // AMAN
 }
 
 const AIR_CLASS_STATUS: AirStatus[] = ['AMAN', 'WASPADA', 'BERBAHAYA']
@@ -132,6 +136,31 @@ export class FirmwareCore {
   private sumT = 0
   private nBase = 0
   private kf = new FirmwareKalman()
+  private tHist: number[] = []   // rata-rata suhu per blok, jendela T_ref
+  private tAcc = 0
+  private tAccN = 0
+  private uState: 0 | 1 = 0
+
+  /** Isi seluruh jendela acuan dengan satu suhu (dipanggil saat baseline selesai). */
+  private trefFill(t: number) {
+    this.tHist = Array(FW.TREF_WIN_S / FW.TREF_BLOCK_S).fill(t)
+    this.tAcc = 0
+    this.tAccN = 0
+    this.uState = 0
+  }
+
+  /** Tambah satu sampel suhu, kembalikan acuan suhu = blok terendah di jendela. */
+  private trefUpdate(t: number): number {
+    this.tAcc += t
+    this.tAccN++
+    if (this.tAccN >= FW.TREF_BLOCK_S) {
+      this.tHist.shift()
+      this.tHist.push(this.tAcc / this.tAccN)
+      this.tAcc = 0
+      this.tAccN = 0
+    }
+    return Math.min(...this.tHist)
+  }
 
   step(tvocPpb: number, tempC: number): CoreOutput {
     const out: CoreOutput = { phase: this.phase, u: 0, xHat: 0, delta: 0, pwm: 0 }
@@ -155,6 +184,7 @@ export class FirmwareCore {
       if (this.nBase >= FW.BASELINE_S) {
         this.cBasePpb = this.sumTvoc / this.nBase
         this.tBaseC   = this.sumT / this.nBase
+        this.trefFill(this.tBaseC)
         this.phase = 'RUN'
       }
       out.phase = this.phase
@@ -162,7 +192,11 @@ export class FirmwareCore {
     }
 
     // RUN
-    const u: 0 | 1 = tempC - this.tBaseC >= FW.DT_ON_C ? 1 : 0
+    // Pemicu menyolder: suhu naik di atas acuan (suhu terendah 60 s terakhir), dengan histeresis
+    const dT = tempC - this.trefUpdate(tempC)
+    if (!this.uState && dT >= FW.DT_ON_C) this.uState = 1
+    else if (this.uState && dT < FW.DT_OFF_C) this.uState = 0
+    const u = this.uState
     const z = Math.max(0, (tvocPpb - this.cBasePpb) * FW.PPB_TO_MGM3) // di bawah baseline = bersih
     this.kf.step(z, u)
 

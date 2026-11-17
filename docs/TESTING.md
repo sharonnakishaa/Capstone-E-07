@@ -49,7 +49,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 |---|---|---|---|---|---|
 | B-01 | Kartu TVOC | Bandingkan kartu TVOC dengan baris terbaru di terminal simulator. | Angka besar = TVOC **Kalman** (dibulatkan). Teks kecil "Mentah: … ppb" = TVOC mentah. | | |
 | B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 100** dan **baseline + 200** ppb. Teks bawah: "Ambang: <baseline+100> / <baseline+200> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
-| B-03 | Kartu Debu Outlet | Bandingkan dengan nilai `debu` di terminal simulator. | Nilai µg/m³ sesuai, dan "Rata-rata 30 data" tampil. Teks bawah: "Puncak: … µg/m³" (nilai tertinggi 30 data terakhir). Tidak ada teks atau penanda batas filter. | | |
+| B-03 | Kartu Kenaikan Debu Outlet | Bandingkan dengan baris terbaru di halaman log (kolom Debu Mentah dan Kenaikan). | Angka besar = kenaikan (sama dengan kolom Kenaikan). Teks kecil: "Nilai diam ±… · mentah … µg/m³", dengan nilai mentah = kolom Debu Mentah. Teks bawah: "Rata-rata … · puncak …" (kenaikan 30 data terakhir). Kursor di atas kartu menampilkan "Perkiraan dari data 10 menit terakhir; angka OLED bisa berbeda beberapa µg/m³." Pada ±30 detik pertama setelah alat lama mati, angka besar = nilai mentah dengan teks "Mentah · nilai diam belum cukup data". Tidak ada teks atau penanda batas filter. | | |
 | B-04 | Kartu Suhu | Bandingkan dengan data terbaru di halaman log. | Nilai °C sesuai (1 desimal). | | |
 | B-05 | Kartu Kelembapan | Bandingkan dengan data terbaru di halaman log. | Nilai % sesuai (1 desimal). | | |
 | B-06 | Indikator tren | Amati badge persentase di tiap kartu selama beberapa pembaruan. | Badge menunjukkan perubahan terhadap data sebelumnya. Kenaikan TVOC dan debu ditandai merah. | | |
@@ -83,7 +83,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | E-02 | Jam operasi filter | Bandingkan dengan `filter_runtime_hours` di `GET /api/devices`. | Nilai jam sesuai, disertai tanggal pemasangan filter (WIB). | | |
 | E-03 | Data terakhir | Amati item "Data Terakhir". | Menampilkan umur data (misalnya "3 detik lalu") dan tanggal-jam WIB. | | |
 | E-04 | Panduan penggunaan | Baca panduan. | Ada 3 poin: posisi alat di samping titik solder, inlet menghadap sumber asap, dan susunan filter karbon aktif → kipas → HEPA. | | |
-| E-05 | Debu outlet rata-rata | Jalankan simulator `normal` selama ≥ 3 menit. | Item "Debu Outlet Rata-rata" menampilkan rata-rata 30 data terakhir dengan keterangan "30 data terakhir", sama dengan angka "Rata-rata 30 data" di kartu debu. | | |
+| E-05 | Kenaikan debu rata-rata | Jalankan simulator `normal` selama ≥ 3 menit. | Item "Kenaikan Debu Rata-rata" menampilkan rata-rata kenaikan 30 data terakhir dengan keterangan "30 data terakhir. Perkiraan dari data 10 menit terakhir; …", sama dengan angka "Rata-rata" di kartu debu. | | |
 | E-06 | Tanpa batas filter | Jalankan simulator `spike` selama ≥ 3 menit. | Walaupun debu tinggi, tidak ada kotak status filter, warna peringatan, atau teks "periksa filter". Panduan tampil selebar panel. | | |
 | E-07 | Catat penggantian filter | Masuk sebagai Pengelola Lab. Klik **Filter diganti…**, biarkan waktu default (sekarang), lalu klik **Simpan**. | Form tertutup dan muncul pesan hijau "Penggantian filter tercatat". Jam operasi filter kembali ke ±0 jam, dan tanggal pemasangan berubah ke waktu sekarang dengan keterangan "dicatat oleh <nama>". Nilainya tetap sama setelah halaman dimuat ulang. | | |
 | E-08 | Catat penggantian mundur | Klik **Filter diganti…**, isi waktu 1 jam yang lalu, lalu klik **Simpan**. | Jam operasi filter menjadi ±1 jam (kalau simulator berjalan selama satu jam itu). | | |
@@ -93,7 +93,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
-| F-01 | Kolom tabel | Amati header tabel. | Kolomnya: #, Waktu, TVOC Kalman, TVOC Mentah, Suhu, RH, Debu, **Status Fuzzy**, Kipas (duty %, tanpa label level). Tidak ada teks "AI" maupun "eCO₂". | | |
+| F-01 | Kolom tabel | Amati header tabel. | Kolomnya: #, Waktu, TVOC Kalman, TVOC Mentah, Suhu, RH, Kenaikan Debu (nilai mentah dan nilai diam muncul saat kursor diarahkan ke angka), **Status Fuzzy**, Kipas (duty %, tanpa label level). Tidak ada teks "AI" maupun "eCO₂". | | |
 | F-02 | Isi tabel | Bandingkan 5 baris dengan halaman log. | 5 record terbaru, urut dari yang terbaru, dengan badge status berwarna. | | |
 | F-03 | Tautan ke log | Klik "Lihat Semua Data →". | Halaman log terbuka. | | |
 | F-04 | Ganti perangkat | Kalau ada > 1 device, ganti pilihan di dropdown topbar. | Semua kartu, grafik, statistik, info perangkat, dan tabel berganti ke data device terpilih. | | |
@@ -102,7 +102,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
-| G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, baseline, suhu, RH, debu outlet, status fuzzy (badge), duty %, RPM. Tidak ada kolom level. | | |
+| G-01 | Kolom halaman log | Buka `/logs.html`. | Kolomnya: waktu, TVOC mentah, TVOC Kalman, baseline, suhu, RH, debu mentah, kenaikan (nilai diam muncul saat kursor diarahkan ke angka), status fuzzy (badge), duty %, RPM. Tidak ada kolom level. | | |
 | G-02 | Pagination | Klik halaman 2, halaman terakhir, lalu tombol ‹ dan ›. | 50 baris per halaman. Info "Menampilkan X–Y dari Z" sesuai, dan tombol nonaktif di halaman pertama dan terakhir. | | |
 | G-03 | Default semua data | Buka `/logs.html?device=<id>` tanpa `from`/`to`. | Kedua input tanggal kosong, subjudul "Total N record · semua data", dan total sama dengan jumlah semua log alat itu. | | |
 | G-04 | Filter rentang | Isi "Dari" = kemarin dan "Sampai" = hari ini, lalu klik **Tampilkan**. | Tabel kembali ke halaman 1 dan hanya berisi data dua hari itu (cek baris pertama dan terakhir di halaman terakhir). Subjudul memuat rentang berwarna terakota, dan URL berubah menjadi `…&from=YYYY-MM-DD&to=YYYY-MM-DD`. | | |
@@ -112,7 +112,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | G-08 | Rentang tersimpan di URL | Dengan filter aktif: muat ulang halaman, lalu ganti perangkat di dropdown. | Setelah muat ulang, input dan tabel tetap pada rentang yang sama. Setelah ganti perangkat, rentang tetap dipakai untuk alat baru. URL `?from=abc` atau `from` > `to` diabaikan (kembali ke semua data). | | |
 | G-09 | Tombol Semua data | Dengan filter aktif, klik **Semua data**. | Input dikosongkan, URL tanpa `from`/`to`, dan total kembali seperti G-03. | | |
 | G-10 | Ekspor mengikuti filter | Masuk sebagai Pengelola Lab. Pasang rentang seperti G-04, lalu klik **Ekspor Excel (.xlsx)**. | Keterangan ekspor menyebut rentang dan jumlah baris yang sama dengan subjudul tabel. File `epen-meja-1-<dari>-<sampai>.xlsx` terunduh, dan pesan "N baris diekspor" dengan N = total di tabel. Tanpa filter, nama file berakhiran `-all-all.xlsx`. | | |
-| G-11 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. | | |
+| G-11 | Isi dan tampilan Excel | Buka file di Microsoft Excel. | Sheet bernama sesuai alat. Baris judul tebal, teks putih, latar biru tua, dan tetap terlihat saat di-scroll (freeze). Border hanya di area tabel: sel kosong di dalam tabel tetap berborder, sedangkan sel di bawah baris terakhir dan di kanan kolom RPM tanpa border. Kolom Waktu (WIB) berupa tanggal (bisa difilter per tanggal), dan kolom angka bisa langsung dijumlah dengan `=SUM()`. Data urut dari waktu terlama. Ada 13 kolom; setelah "Debu Outlet Mentah (µg/m³)" ada "Nilai Diam Debu (µg/m³)" dan "Kenaikan Debu (µg/m³)" (format `0.0`), terisi kecuali beberapa baris pertama setelah alat lama mati. | | |
 | G-12 | Batas 50.000 baris | Pilih rentang (atau semua data) yang berisi > 50.000 data (± 69 jam data terus-menerus). | Keterangan ekspor memberi tahu rentang melebihi 50.000 baris dan meminta mempersempit, tombol Ekspor nonaktif. Tabel tetap bisa dibuka per halaman. | | |
 | G-13 | Tanpa login | Keluar, lalu buka halaman log. | Filter rentang tetap bisa dipakai. Kotak ekspor diganti keterangan "hanya untuk Pengelola Lab" dengan tautan Masuk yang kembali ke halaman ini (termasuk rentangnya). | | |
 | G-14 | Kalender pemilih tanggal | Klik bagian tengah kotak "Dari" (bukan ikonnya), pilih tanggal. Lalu buka kalender "Sampai". Ulangi di tema gelap. | Kalender langsung muncul saat kotak diklik. Di kalender "Sampai", tanggal sebelum "Dari" dan setelah hari ini tidak bisa dipilih. Di tema gelap, ikon dan kalendernya ikut gelap dan tetap terbaca. Mengetik tanggal dengan keyboard tetap bisa. | | |
@@ -134,7 +134,7 @@ Jalankan `npm run db:seed` sebelum H-01 supaya `last_alert_at` kembali kosong.
 | H-02 | Cooldown 15 menit | Biarkan simulator `spike` berjalan ±5 menit. | Tidak ada alert tambahan walaupun status tetap WASPADA/BERBAHAYA. | | |
 | H-03 | Eskalasi | Ulangi seed. Jalankan `normal` sampai alert pertama berstatus WASPADA, lalu ganti ke `spike`. | Satu alert tambahan terkirim saat status naik ke BERBAHAYA, walaupun masih dalam masa cooldown. | | |
 | H-04 | Request bersamaan | Ulangi seed, lalu kirim 5 POST BERBAHAYA sekaligus (lihat perintah di bawah tabel). | Kelima request mendapat `201`, tapi alert hanya tercatat **satu kali**. | | |
-| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, baseline, status fuzzy, duty, RPM, debu outlet, suhu, kelembapan, jarak inlet, dan tabel ambang yang dihitung dari baseline (baseline + 100 / + 200). Tidak ada teks eCO₂ maupun level fuzzy. | | |
+| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, baseline, status fuzzy, duty, RPM, "Debu outlet (nilai mentah sensor)", suhu, kelembapan, jarak inlet, dan tabel ambang yang dihitung dari baseline (baseline + 100 / + 200). Tidak ada teks eCO₂ maupun level fuzzy. | | |
 
 Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan MAC alat hasil seed (`24:6F:28:00:00:01`) di `payload.json`:
 
@@ -191,7 +191,7 @@ Prasyarat: `npm run db:seed -- --devices=4`, lalu `npm run simulate -- --all --s
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | L-01 | Halaman utama | Buka `http://localhost:3000/`. | Dialihkan ke `/lab.html`, dan tampil 4 kartu: Epen Meja 1 sampai 4. | | |
-| L-02 | Isi kartu | Bandingkan satu kartu dengan baris terbaru di terminal simulator untuk alat yang sama. | Status, TVOC Kalman (besar), TVOC mentah, duty kipas, RPM, serta debu outlet sesuai. | | |
+| L-02 | Isi kartu | Bandingkan satu kartu dengan baris terbaru di terminal simulator untuk alat yang sama. | Status, TVOC Kalman (besar), TVOC mentah, duty kipas, RPM, serta kenaikan debu outlet sesuai. Mengarahkan kursor ke baris Debu menampilkan nilai mentahnya. | | |
 | L-03 | Urutan kartu | Amati urutan kartu selama beberapa menit. | Kartu BERBAHAYA selalu paling atas, diikuti WASPADA, OFFLINE, lalu AMAN. Status yang sama diurutkan menurut nama (Meja 2 sebelum Meja 10). | | |
 | L-04 | Ringkasan atas | Hitung kartu per status. | Pill BERBAHAYA/WASPADA/AMAN/OFFLINE menunjukkan jumlah yang sama. Judul menyebut status terburuk, misalnya "1 dari 4 alat BERBAHAYA". | | |
 | L-05 | Judul tab | Amati judul tab browser saat ada alat BERBAHAYA. | Judul tab diawali "(1 BERBAHAYA)". | | |
@@ -250,8 +250,8 @@ Prasyarat: alat sudah mengirim data minimal beberapa hari (atau data seed). Buka
 | O-02 | Rentang waktu | Klik **7 hari**, **30 hari**, lalu **90 hari**. | Tombol yang dipilih berwarna aksen. Jumlah hari di grafik dan teks "… s.d. …" berubah sesuai rentang, dan URL ikut berubah (`days=`). | | |
 | O-03 | Hari tanpa data | Pilih rentang yang mencakup hari tanpa data. | Hari itu tetap tampil di sumbu tanggal. Batang kosong, dan garis TVOC/debu terputus (tidak dihubungkan melewati celah). | | |
 | O-04 | Ringkasan | Bandingkan kotak ringkasan dengan grafik durasi status. | "Alat menyala" sama dengan jumlah semua batang. Jam Berbahaya dan Waspada sama dengan jumlah segmen merah dan kuning, dan "Terbanyak" menunjuk hari dengan segmen merah tertinggi. | | |
-| O-05 | Tooltip | Arahkan kursor (atau sentuh) ke beberapa hari di ketiga grafik. | Kolom hari tersorot, dan tooltip menampilkan tanggal lengkap serta nilai hari itu (jam per status, rata-rata/puncak TVOC, rata-rata/puncak debu). | | |
-| O-06 | Debu outlet | Lihat grafik debu outlet. | Garis rata-rata tampil tanpa garis putus-putus batas filter, dan legenda hanya berisi "Rata-rata". Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
+| O-05 | Tooltip | Arahkan kursor (atau sentuh) ke beberapa hari di ketiga grafik. | Kolom hari tersorot, dan tooltip menampilkan tanggal lengkap serta nilai hari itu (jam per status, rata-rata/puncak TVOC, serta puncak kenaikan, nilai diam harian, dan rata-rata/puncak debu mentah). | | |
+| O-06 | Debu outlet | Lihat grafik debu outlet. | Judul "Puncak kenaikan debu outlet harian", legenda "Puncak kenaikan", tanpa garis putus-putus batas filter. Hari yang sudah diringkas per jam tidak punya titik (garis terputus). Kalau tidak ada satu hari pun yang punya nilai kenaikan, judul berubah menjadi "Debu outlet harian (mentah)" dengan legenda "Rata-rata mentah" dan keterangan offset ±50 µg/m³. Kalau GP2Y belum mengirim data, muncul pesan "Belum ada data debu outlet…". | | |
 | O-07 | Melewati retensi | Setelah ada data > 60 hari (atau setelah uji K-02), pilih **90 hari**. | Hari-hari yang data mentahnya sudah diringkas tetap muncul dengan nilai yang wajar (tidak kosong). | | |
 | O-08 | Tampilan 375 px | DevTools → iPhone SE, pilih 90 hari, tema gelap. | Kotak ringkasan dua kolom, grafik satu kolom, label tanggal terakhir tidak terpotong, dan tidak ada scroll horizontal. | | |
 

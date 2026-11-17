@@ -18,7 +18,7 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 ## Fitur
 
 **Ringkasan Lab (`/lab.html`, halaman utama)**
-- Satu kartu per Epen: status fuzzy, TVOC Kalman dan mentah, duty kipas, RPM, debu outlet, serta umur data terakhir. Alat yang baru menyala ditandai "Pemanasan sensor".
+- Satu kartu per Epen: status fuzzy, TVOC Kalman dan mentah, duty kipas, RPM, kenaikan debu outlet (nilai mentah saat kursor diarahkan), serta umur data terakhir. Alat yang baru menyala ditandai "Pemanasan sensor".
 - Kartu diurutkan dari yang paling perlu ditangani: BERBAHAYA → WASPADA → OFFLINE → AMAN. Kalau lokasinya lebih dari satu, kartu dikelompokkan per lokasi.
 - Ringkasan jumlah alat per status di bagian atas, dan judul tab browser ikut menampilkan jumlah alat BERBAHAYA/WASPADA.
 - Klik kartu untuk membuka dashboard detail alat tersebut. Halaman ini bisa dibuka tanpa login, misalnya di monitor lab.
@@ -26,17 +26,17 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 **Dashboard detail (`/index.html?device=<id>`)**
 - Banner status fuzzy terkini (AMAN / WASPADA / BERBAHAYA) sesuai `air_status` yang dikirim ESP32.
 - Indikator koneksi: **TERHUBUNG** kalau umur data terakhir ≤ 15 detik (dihitung terhadap `server_time`), **OFFLINE** kalau lebih lama, lengkap dengan banner "Tidak ada data dari perangkat".
-- Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), debu outlet, suhu, dan kelembapan.
+- Kartu TVOC (nilai Kalman, dengan nilai mentah sebagai pembanding), kenaikan debu outlet (dengan nilai diam dan nilai mentah sebagai pembanding, lihat [Debu outlet: nilai mentah dan kenaikan](#debu-outlet-nilai-mentah-dan-kenaikan)), suhu, dan kelembapan.
 - Grafik tren TVOC dengan dua garis (Kalman dan mentah), garis ambang referensi, dan tooltip saat kursor diarahkan ke grafik.
 - Statistik sesi: TVOC tertinggi, terendah, dan rata-rata, baseline TVOC, duty kipas, serta RPM kipas.
-- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset Pengelola Lab lewat tombol **Filter diganti…**, beserta nama pencatatnya), rata-rata debu outlet pada 30 data terakhir, dan panduan penggunaan. Dashboard tidak memakai batas debu, karena firmware tidak punya batas debu dan belum ada ambang dari data alat.
+- Panel Info Perangkat: jarak inlet yang direkomendasikan, jam operasi filter (bisa direset Pengelola Lab lewat tombol **Filter diganti…**, beserta nama pencatatnya), rata-rata kenaikan debu outlet pada 30 data terakhir, dan panduan penggunaan. Dashboard tidak memakai batas debu, karena firmware tidak punya batas debu dan belum ada ambang dari data alat.
 - Ambang, label, warna, dan interval diambil dari `/api/config`, tidak di-hardcode di frontend.
 - Tema terang/gelap dan tampilan responsif sampai lebar 375 px.
 
 **Tren jangka panjang (`/trends.html?device=<id>`)**
 - Rekap **harian (WIB)** satu alat untuk **7, 30, atau 90 hari**. Bisa dibuka tanpa login, dan ditautkan dari dashboard detail serta halaman log.
 - Kotak ringkasan: total jam alat menyala, jam status Berbahaya dan Waspada (beserta hari terburuknya), dan rata-rata TVOC.
-- Grafik **durasi status per hari** (batang bertumpuk Aman/Waspada/Berbahaya, dalam jam), **TVOC harian** (rata-rata dan puncak), serta **debu outlet harian** (rata-rata dan puncak), untuk memantau filter yang mulai jenuh.
+- Grafik **durasi status per hari** (batang bertumpuk Aman/Waspada/Berbahaya, dalam jam), **TVOC harian** (rata-rata dan puncak), serta **puncak kenaikan debu outlet harian** (tooltip: nilai diam harian, rata-rata dan puncak mentah). Kalau semua hari dalam rentang sudah diringkas per jam, grafik debu kembali ke rata-rata nilai mentah.
 - Data 60 hari terakhir dari log mentah, yang lebih lama dari ringkasan per jam hasil retensi, sehingga rentang 90 hari tetap utuh.
 
 **Halaman log (`/logs.html`)**
@@ -57,6 +57,33 @@ ESP32 pada alat membaca sensor, menyaring nilai TVOC dengan **Kalman filter**, l
 - Validasi payload ESP32: tipe, rentang, dan enum. Semua field yang salah dilaporkan sekaligus.
 - Notifikasi email dengan cooldown 15 menit dan pengecualian eskalasi WASPADA → BERBAHAYA. Klaim alert dilakukan secara atomic supaya email tidak terkirim ganda.
 - Simulator ESP32 dan seed data untuk pengujian tanpa hardware.
+
+## Debu outlet: nilai mentah dan kenaikan
+
+**Kenapa nilai mentah memuat offset.** Firmware mengirim debu **absolut** dari GP2Y1014AU0F:
+
+```
+dust_outlet_ugm3 = (Vo − 0,236 V) / (5 V per mg/m³) × 1000
+```
+
+Angka 0,236 V adalah tegangan udara bersih (Voc) yang dipakai firmware. Padahal Voc berbeda untuk setiap unit sensor (datasheet: 0–1,5 V, tipikal 0,9 V). Pada alat ini Vo saat diam ±0,50 V, jadi nilai absolut selalu memuat **offset ±52 µg/m³**, (0,50 − 0,236) / 5 × 1000. Data expo 6–7 Nov 2026 (4.465 baris) menunjukkan hal itu: saat kipas mati maupun menyala pelan, debu stabil di median 52,7 µg/m³ (IQR 50,8–54,8). Lonjakan hanya muncul saat menyolder, sampai ±730 µg/m³ (batas jenuh sensor).
+
+OLED alat menampilkan debu **relatif** terhadap udara ruangan. Nilai relatif itu tidak dikirim, dan firmware tidak diubah. Karena itu dashboard **memperkirakan** kenaikan yang sama dari data yang tersimpan.
+
+**Algoritma nilai diam** (`lib/dust-core.ts`, konstanta `DUST_RISE`). Untuk setiap sampel debu pada waktu `t`, dipakai sampel alat yang sama di jendela **(t − 10 menit, t]**, termasuk sampel itu sendiri:
+
+1. Kalau ada **≥ 12** sampel debu dengan `fan_duty_percent ≤ 30`, nilai diam = **median** sampel tersebut.
+2. Kalau tidak, dan ada **≥ 6** sampel debu, nilai diam = **persentil ke-20** semua sampel debu di jendela (cadangan saat kipas terus kencang).
+3. Kalau tidak, nilai diam = `null` (misalnya ±30 detik pertama setelah alat menyala).
+
+Lalu `dust_rise_ugm3 = max(0, dust_outlet_ugm3 − nilai diam)` dan `dust_idle_ugm3 = nilai diam`, keduanya dibulatkan 1 desimal. Persentil memakai interpolasi linear, sama dengan `percentile_cont` di PostgreSQL. Pada data expo, nilai diam berada di 49–60 µg/m³ (median 52,7), dan kenaikan saat kipas ≤ 30 % bermedian 0 (p90 4,4 µg/m³).
+
+**Catatan pemakaian.**
+- Kenaikan adalah **perkiraan** dari data 10 menit terakhir. Angkanya bisa berbeda beberapa µg/m³ dari OLED, karena OLED memakai acuan ruangan versinya sendiri.
+- **Data mentah tidak diubah.** `dust_outlet_ugm3` di basis data dan di semua API tetap nilai dari sensor. Nilai diam dan kenaikan dihitung saat dibaca (`GET /api/sensor`, `GET /api/overview`, ekspor Excel). Ekspor Excel memuat ketiganya: debu mentah, nilai diam, dan kenaikan.
+- **Tren harian memakai nilai diam harian**, bukan jendela 10 menit: median debu saat duty ≤ 30 % sepanjang hari. Puncak kenaikan harian = puncak debu mentah hari itu − nilai diam harian. Hari yang sudah diringkas per jam (`sensor_hourly`) tidak menyimpan sampel per 5 detik, jadi tidak punya nilai ini (`null`).
+- **Email peringatan** menampilkan nilai mentah ("Debu outlet (nilai mentah sensor)"), supaya jalur `POST /api/sensor` tidak bertambah query.
+- Uji perhitungan tanpa basis data: `npx tsx scripts/check-dust.ts`.
 
 ## Stack
 
@@ -309,6 +336,8 @@ app/
   layout.tsx, page.tsx  Root layout; "/" dialihkan ke /lab.html
 lib/
   sensor.ts             Satu sumber konfigurasi: status, ambang relatif baseline, interval
+  dust-core.ts          Nilai diam dan kenaikan debu outlet (fungsi murni + konstanta DUST_RISE)
+  dust.ts               Ambil jendela 10 menit dari database lalu hitung kenaikan debu
   validation.ts         Validasi payload POST dari ESP32, input alat, dan input akun
   users.ts              Kolom akun yang aman dikirim ke frontend
   range.ts              Validasi rentang from/to (halaman log, ekspor, hapus data)
@@ -346,6 +375,8 @@ vercel.json             Jadwal Vercel Cron (retensi data harian)
 ## Pengujian
 
 Checklist uji manual, yaitu matriks uji fungsional dashboard, ada di [`docs/TESTING.md`](docs/TESTING.md).
+
+Uji otomatis perhitungan kenaikan debu outlet (tanpa basis data): `npx tsx scripts/check-dust.ts`.
 
 ## Variabel environment
 
@@ -415,7 +446,7 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 | `eco2_ppm` | number | ✅ | Finite, ≥ 0 | eCO₂ dari SGP30, disimpan sebagai data pelengkap |
 | `temperature_celsius` | number \| null | | Finite | Suhu dari SHT31. Kirim `null` (bukan `NaN`) kalau SHT31 gagal dibaca. Data lain tetap disimpan. |
 | `humidity_percent` | number \| null | | Finite, 0–100 | Kelembapan relatif dari SHT31. `null` kalau SHT31 gagal dibaca. |
-| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu **absolut** di **outlet** (GP2Y1014AU0F), satu desimal. Firmware mengirim `null` kalau `USE_DUST 0` di `epen_config.h`. Debu yang dikurangi acuan udara ruangan hanya tampil di OLED, tidak dikirim. |
+| `dust_outlet_ugm3` | number \| null | | Finite, ≥ 0 | Kepadatan debu **absolut** di **outlet** (GP2Y1014AU0F), satu desimal. Firmware mengirim `null` kalau `USE_DUST 0` di `epen_config.h`. Debu yang dikurangi acuan udara ruangan hanya tampil di OLED, tidak dikirim. Disimpan apa adanya; dashboard menghitung kenaikannya saat dibaca (lihat [Debu outlet](#debu-outlet-nilai-mentah-dan-kenaikan)). |
 | `air_status` | string | ✅ | `AMAN` \| `WASPADA` \| `BERBAHAYA` | Keluaran fuzzy di ESP32, disimpan apa adanya. `AMAN` selama pemanasan. |
 | `fan_duty_percent` | number | ✅ | Finite, **0–100** (persen, **bukan** 0–255) | Duty kipas hasil fuzzy Sugeno (rata-rata terbobot, kontinu). 0 selama pemanasan. |
 | `fan_rpm` | integer \| null | | Bilangan bulat ≥ 0 | Putaran kipas dari sinyal tacho. Firmware mengirim `null` kalau `USE_TACH 0` di `epen_config.h`. |
@@ -513,13 +544,18 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
   "eco2_ppm": 640,
   "temperature_celsius": 27.4,
   "humidity_percent": 63.1,
-  "dust_outlet_ugm3": 18.5,
+  "dust_outlet_ugm3": 53.4,
+  "dust_idle_ugm3": 52.7,
+  "dust_rise_ugm3": 0.7,
   "air_status": "WASPADA",
   "fan_duty_percent": 83,
   "fan_rpm": 2610,
   "recorded_at": "2026-10-16T03:12:45.000Z"
 }
 ```
+
+- `dust_outlet_ugm3` tetap nilai mentah sensor (memuat offset ±52 µg/m³ pada alat ini).
+- `dust_idle_ugm3` dan `dust_rise_ugm3`: nilai diam dan kenaikan debu yang dihitung server dari jendela 10 menit (mode terbaru, pagination, dan ekspor). `null` kalau jendela belum punya cukup data atau debunya `null`. Lihat [Debu outlet: nilai mentah dan kenaikan](#debu-outlet-nilai-mentah-dan-kenaikan).
 
 **Mode terbaru — `200 OK`**
 
@@ -571,7 +607,9 @@ Data diurutkan dari `recorded_at` terbaru ke terlama, kecuali pada mode ekspor.
 | eCO₂ (ppm) | `eco2_ppm` | `0` |
 | Suhu (°C) | `temperature_celsius` | `0.0` |
 | RH (%) | `humidity_percent` | `0.0` |
-| Debu Outlet (µg/m³) | `dust_outlet_ugm3` | `0.0` |
+| Debu Outlet Mentah (µg/m³) | `dust_outlet_ugm3` | `0.0` |
+| Nilai Diam Debu (µg/m³) | `dust_idle_ugm3` (dihitung saat ekspor) | `0.0` |
+| Kenaikan Debu (µg/m³) | `dust_rise_ugm3` (dihitung saat ekspor) | `0.0` |
 | Status Fuzzy | `air_status` | teks |
 | Duty (%) | `fan_duty_percent` | `0` |
 | RPM | `fan_rpm` | `0` |
@@ -653,7 +691,8 @@ Semua hari dalam rentang selalu ada di `data`. Hari tanpa data bernilai 0/`null`
       "active_hours": 4, "fan_hours": 3.96,
       "status_hours": { "AMAN": 2.79, "WASPADA": 0.9, "BERBAHAYA": 0.31 },
       "tvoc_avg_ppb": 197, "tvoc_max_ppb": 559.5,
-      "dust_avg_ugm3": 8.2, "dust_max_ugm3": 19,
+      "dust_avg_ugm3": 62.3, "dust_max_ugm3": 731.3,
+      "dust_idle_ugm3": 52.5, "dust_rise_max_ugm3": 678.8,
       "temperature_avg_celsius": 27.8, "humidity_avg_percent": 60.4
     }
   ],
@@ -668,6 +707,8 @@ Semua hari dalam rentang selalu ada di `data`. Hari tanpa data bernilai 0/`null`
 - **Hari dalam WIB.** Durasi = jumlah data × 5 detik, jadi waktu saat alat mati atau offline tidak terhitung.
 - Rata-rata ditimbang dengan jumlah data. TVOC memakai nilai Kalman, atau nilai mentah kalau Kalman kosong.
 - Data dari `sensor_logs` (masa retensi) dan `sensor_hourly` (lebih lama) digabung per hari dalam satu query. Pada data dari ringkasan per jam, rata-rata debu ditimbang dengan jumlah sampel jam itu (perkiraan).
+- `dust_avg_ugm3` dan `dust_max_ugm3` adalah nilai **mentah** sensor (memuat offset).
+- `dust_idle_ugm3` = nilai diam **harian**: median debu mentah saat `fan_duty_percent ≤ 30` sepanjang hari (`percentile_cont(0.5)`). `dust_rise_max_ugm3` = max(0, puncak debu mentah − `dust_idle_ugm3`). Ini berbeda dari dashboard, yang memakai jendela 10 menit per sampel. Keduanya dihitung hanya dari log mentah: hari yang sudah diringkas per jam bernilai `null`, dan hari yang sebagian sudah diringkas hanya memakai bagian yang masih mentah.
 
 ---
 
@@ -692,6 +733,8 @@ Dipakai halaman Ringkasan Lab. Satu request mengembalikan log terakhir setiap de
         "temperature_celsius": 28.1,
         "humidity_percent": 60.2,
         "dust_outlet_ugm3": 31.4,
+        "dust_idle_ugm3": 6.8,
+        "dust_rise_ugm3": 24.6,
         "air_status": "BERBAHAYA",
         "fan_duty_percent": 100,
         "fan_rpm": 3290,
@@ -704,6 +747,7 @@ Dipakai halaman Ringkasan Lab. Satu request mengembalikan log terakhir setiap de
 ```
 
 - `latest` bernilai `null` kalau device belum pernah mengirim data.
+- `dust_idle_ugm3` dan `dust_rise_ugm3` dihitung per alat dari jendela 10 menit sebelum `latest` (satu query kecil per alat, paralel). Lihat [Debu outlet: nilai mentah dan kenaikan](#debu-outlet-nilai-mentah-dan-kenaikan).
 - Status OFFLINE ditentukan di frontend: `server_time − latest.recorded_at > offline_after_ms`.
 
 ---
@@ -792,6 +836,7 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
   "fan_duty_levels_percent": [0, 30, 50, 75, 100],
   "sensor_warmup_sec": 45,
   "outlet_dust": { "window": 30 },
+  "dust_rise": { "window_min": 10, "idle_duty_max": 30 },
   "poll_interval_ms": 5000,
   "offline_after_ms": 15000
 }
@@ -799,7 +844,9 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
 
 `color` dipakai untuk aksen (ikon, garis, badge di tema gelap). `text_light` dipakai untuk teks di latar terang, termasuk email, supaya kontrasnya cukup.
 
-`outlet_dust.window`: jumlah data terakhir yang dipakai untuk rata-rata dan puncak debu outlet di dashboard detail.
+`outlet_dust.window`: jumlah data terakhir yang dipakai untuk rata-rata dan puncak kenaikan debu outlet di dashboard detail.
+
+`dust_rise`: panjang jendela nilai diam (menit) dan batas duty kipas (%) yang dianggap diam, dari `DUST_RISE` di `lib/dust-core.ts`. Dipakai frontend untuk teks keterangan; perhitungannya tetap di server.
 
 `tvoc_threshold_above_baseline_ppb` dipakai untuk garis referensi grafik: garis digambar di `tvoc_baseline_ppb` + nilai ini, per alat. Kalau baseline belum ada (pemanasan), garis tidak digambar. Nilainya harus sama dengan `EPEN_TVOC_L3_PPB` / `EPEN_TVOC_L4_PPB` di firmware (acuan WHO 2000: 0,10 dan 0,20 ppm di atas baseline). Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
 

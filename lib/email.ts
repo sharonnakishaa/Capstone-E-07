@@ -48,7 +48,9 @@ function buildHtml(p: WarningEmailPayload): string {
     ['Status fuzzy',      `${t.emoji} ${t.label}`],
     ['Duty kipas',        fmt(p.fan_duty_percent, '%')],
     ['Putaran kipas',     fmt(p.fan_rpm, 'RPM')],
-    ['Debu outlet',       fmt(p.dust_outlet_ugm3, 'µg/m³', 1)],
+    // Nilai mentah apa adanya: kenaikan di atas nilai diam butuh query jendela 10 menit,
+    // dan jalur POST sengaja tidak ditambah query (lihat lib/dust.ts)
+    ['Debu outlet (nilai mentah sensor)', fmt(p.dust_outlet_ugm3, 'µg/m³', 1)],
     ['Suhu',              fmt(p.temperature_celsius, '°C', 1)],
     ['Kelembapan',        fmt(p.humidity_percent, '%', 1)],
   ]

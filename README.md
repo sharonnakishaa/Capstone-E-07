@@ -195,7 +195,7 @@ Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim 
 
 | Skenario | Perilaku | Dipakai untuk menguji |
 |---|---|---|
-| `normal` | Siklus menyolder biasa, sesekali masuk WASPADA/BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
+| `normal` | Siklus menyolder biasa: satu sesi 40–120 detik setiap ±2–5 menit. Dengan ambang +100/+200 ppb, sekitar separuh waktu AMAN, ±1/3 WASPADA, dan ±1/5 BERBAHAYA; kira-kira dua dari tiga sesi menyolder sempat masuk BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
 | `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu outlet ±26 µg/m³). | Banner merah, email alert dan eskalasi, debu outlet tinggi |
 | `offline` | Seperti `normal`, tapi tiap 60 detik berhenti mengirim selama 30 detik. | Indikator TERHUBUNG/OFFLINE |
 

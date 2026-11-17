@@ -173,8 +173,8 @@
     <article class="card">
       <div class="chart-head">
         <div>
-          <div class="chart-title">Debu outlet harian</div>
-          <div class="chart-sub">Rata-rata debu setelah filter — naik perlahan berarti filter mulai jenuh</div>
+          <div class="chart-title" id="dustTitle">Debu outlet harian</div>
+          <div class="chart-sub" id="dustSub">—</div>
         </div>
         <div class="legend" id="dustLegend"></div>
       </div>
@@ -320,24 +320,37 @@ function renderTvoc(days){
   });
 }
 
-/* GRAFIK 3 — debu outlet harian */
+/* GRAFIK 3 — debu outlet harian.
+   Garis utama = puncak KENAIKAN debu per hari (puncak mentah − nilai diam harian, dihitung server).
+   Hari yang sudah diringkas per jam tidak punya nilai ini; kalau satu rentang pun tidak ada,
+   grafik kembali ke rata-rata nilai mentah (yang memuat offset sensor ±50 µg/m³). */
 function renderDust(days){
   const wrap=$('dustChart'), n=days.length, series=cssVar('--series');
-  $('dustLegend').innerHTML=`<span class="legend-pill" style="color:${series}"><span class="sw"></span><span style="color:var(--muted)">Rata-rata</span></span>`;
+  const hasRise=days.some(d=>d.dust_rise_max_ugm3!=null);
+  const key=hasRise?'dust_rise_max_ugm3':'dust_avg_ugm3';
+  $('dustTitle').textContent=hasRise?'Puncak kenaikan debu outlet harian':'Debu outlet harian (mentah)';
+  $('dustSub').textContent=hasRise
+    ?`Puncak debu di atas nilai diam harian (median saat kipas ≤ ${CFG.dust_rise.idle_duty_max}%). Perkiraan; hari yang sudah diringkas per jam tidak punya nilai ini.`
+    :'Rata-rata nilai mentah sensor, memuat offset ±50 µg/m³. Kenaikan harian tidak tersedia karena data pada rentang ini sudah diringkas per jam.';
+  $('dustLegend').innerHTML=`<span class="legend-pill" style="color:${series}"><span class="sw"></span><span style="color:var(--muted)">${hasRise?'Puncak kenaikan':'Rata-rata mentah'}</span></span>`;
   if(!days.some(d=>d.dust_avg_ugm3!=null)){wrap.innerHTML='<div class="chart-empty">Belum ada data debu outlet pada rentang ini (sensor GP2Y belum mengirim data)</div>';return;}
-  const f=frame(wrap,n,niceMax(Math.max(...days.map(d=>d.dust_avg_ugm3??0)),10),'µg/m³');
+  const f=frame(wrap,n,niceMax(Math.max(...days.map(d=>d[key]??0)),10),'µg/m³');
   let path='', pen=false;
   days.forEach((d,i)=>{
-    if(d.dust_avg_ugm3==null){pen=false;return;}
-    path+=`${pen?'L':'M'}${f.xAt(i).toFixed(1)} ${f.yAt(d.dust_avg_ugm3).toFixed(1)} `; pen=true;
+    if(d[key]==null){pen=false;return;}
+    path+=`${pen?'L':'M'}${f.xAt(i).toFixed(1)} ${f.yAt(d[key]).toFixed(1)} `; pen=true;
   });
-  const dots=f.band<8?'':days.map((d,i)=>d.dust_avg_ugm3==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d.dust_avg_ugm3).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${series}" stroke-width="2"/>`).join('');
-  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="Debu outlet harian">${hlRect(f)}${f.gridSvg}<path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
+  // Titik tetap digambar di layar sempit kalau hanya ada sedikit hari bernilai (garis 1 titik tidak terlihat)
+  const valued=days.filter(d=>d[key]!=null).length;
+  const dots=f.band<8&&valued>2?'':days.map((d,i)=>d[key]==null?'':`<circle cx="${f.xAt(i).toFixed(1)}" cy="${f.yAt(d[key]).toFixed(1)}" r="3.5" fill="${cssVar('--surface')}" stroke="${series}" stroke-width="2"/>`).join('');
+  wrap.innerHTML=`<svg viewBox="0 0 ${f.W} ${f.H}" preserveAspectRatio="none" role="img" aria-label="${hasRise?'Puncak kenaikan debu outlet harian':'Rata-rata debu outlet mentah harian'}">${hlRect(f)}${f.gridSvg}<path d="${path}" fill="none" stroke="${series}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${f.xLabels(days)}</svg>`;
+  const ug=v=>v==null?'—':fmtNum(v,1)+' µg/m³';
   attachHover(wrap,f,n,i=>{
     const d=days[i];
     return `<div class="tip-date">${fmtDay(d.date,true)}</div>`
-      +tipRow('Rata-rata','',d.dust_avg_ugm3==null?'—':fmtNum(d.dust_avg_ugm3,1)+' µg/m³')
-      +tipRow('Puncak','',d.dust_max_ugm3==null?'—':fmtNum(d.dust_max_ugm3,1)+' µg/m³');
+      +(hasRise?tipRow('Puncak kenaikan','',ug(d.dust_rise_max_ugm3))+tipRow('Nilai diam harian','',ug(d.dust_idle_ugm3)):'')
+      +tipRow('Rata-rata mentah','',ug(d.dust_avg_ugm3))
+      +tipRow('Puncak mentah','',ug(d.dust_max_ugm3));
   });
 }
 

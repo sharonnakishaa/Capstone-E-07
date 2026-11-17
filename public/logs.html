@@ -50,7 +50,7 @@
   .export-msg.ok{display:block;background:var(--tint-aman);border:2px solid var(--ink-aman);color:var(--ink-aman);font-weight:600}
 
   /* TABLE */
-  table{min-width:1020px}
+  table{min-width:1120px}
   td.idx{width:56px}
 
   /* PAGINATION */
@@ -156,14 +156,15 @@
             <th class="num">Baseline (ppb)</th>
             <th class="num">Suhu (°C)</th>
             <th class="num">RH (%)</th>
-            <th class="num">Debu Outlet (<span class="nocase">µg/m³</span>)</th>
+            <th class="num">Debu Mentah (<span class="nocase">µg/m³</span>)</th>
+            <th class="num" title="Perkiraan debu di atas nilai diam sensor; arahkan kursor ke angka untuk melihat nilai diamnya">Kenaikan (<span class="nocase">µg/m³</span>)</th>
             <th>Status Fuzzy</th>
             <th class="num">Duty (%)</th>
             <th class="num">RPM</th>
           </tr>
         </thead>
         <tbody id="logTableBody">
-          <tr><td colspan="11" class="empty-row">Memuat data...</td></tr>
+          <tr><td colspan="12" class="empty-row">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -264,12 +265,13 @@ function renderTable(data, page) {
           <td class="num dim">${fmtNum(d.tvoc_baseline_ppb)}</td>
           <td class="num">${fmtNum(d.temperature_celsius, 1)}</td>
           <td class="num">${fmtNum(d.humidity_percent, 1)}</td>
-          <td class="num">${fmtNum(d.dust_outlet_ugm3, 1)}</td>
+          <td class="num dim">${fmtNum(d.dust_outlet_ugm3, 1)}</td>
+          <td class="num" title="${d.dust_idle_ugm3 != null ? `Nilai diam ${fmtNum(d.dust_idle_ugm3, 1)} µg/m³` : 'Nilai diam belum cukup data'}">${fmtNum(d.dust_rise_ugm3, 1)}</td>
           <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${esc(d.air_status)}</span></td>
           <td class="num">${fmtNum(d.fan_duty_percent)}</td>
           <td class="last">${fmtNum(d.fan_rpm)}</td>
         </tr>`).join('')
-    : `<tr><td colspan="11" class="empty-row">${rangeLabel() ? 'Tidak ada data pada rentang ini' : 'Tidak ada data'}</td></tr>`;
+    : `<tr><td colspan="12" class="empty-row">${rangeLabel() ? 'Tidak ada data pada rentang ini' : 'Tidak ada data'}</td></tr>`;
 }
 
 /* RENDER PAGINATION */
@@ -308,7 +310,7 @@ async function loadPage(page) {
   currentPage = page;
 
   $('logTableBody').innerHTML =
-    '<tr><td colspan="11" class="empty-row">Memuat...</td></tr>';
+    '<tr><td colspan="12" class="empty-row">Memuat...</td></tr>';
 
   try {
     const pageQuery = () => new URLSearchParams({ device_id: currentDeviceId, page: currentPage, ...rangeParams() }).toString();
@@ -335,7 +337,7 @@ async function loadPage(page) {
   } catch (e) {
     console.error('[logs]', e);
     $('logTableBody').innerHTML =
-      '<tr><td colspan="11" class="empty-row">Gagal memuat data. Coba muat ulang halaman.</td></tr>';
+      '<tr><td colspan="12" class="empty-row">Gagal memuat data. Coba muat ulang halaman.</td></tr>';
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -553,7 +555,7 @@ async function loadDevices() {
     if (!data.length) {
       sel.innerHTML = '<option>Belum ada perangkat</option>';
       $('toolbarSub').textContent = 'Belum ada perangkat terdaftar';
-      $('logTableBody').innerHTML = '<tr><td colspan="11" class="empty-row">Tidak ada data</td></tr>';
+      $('logTableBody').innerHTML = '<tr><td colspan="12" class="empty-row">Tidak ada data</td></tr>';
       $('exportBtn').disabled = true;
       return;
     }

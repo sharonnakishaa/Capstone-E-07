@@ -234,23 +234,23 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card" id="dustCard">
       <div class="metric-head">
         <div class="metric-label-wrap">
-          <span class="metric-label">Debu Outlet</span>
-          <span class="metric-sub">GP2Y · setelah filter</span>
+          <span class="metric-label">Kenaikan Debu Outlet</span>
+          <span class="metric-sub">GP2Y · perkiraan di atas nilai diam</span>
         </div>
         <div class="metric-icon slate" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="8" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="18" cy="9" r="1.5"/><circle cx="8" cy="15" r="1.5"/><circle cx="15" cy="14" r="1.5"/><circle cx="11" cy="20" r="1.5"/><circle cx="19" cy="19" r="1.5"/></svg>
         </div>
       </div>
       <div class="metric-value"><span class="num" id="dustValue">—</span><span class="unit">µg/m³</span></div>
-      <div class="metric-extra" id="dustAvg">Rata-rata: —</div>
+      <div class="metric-extra" id="dustDetail">Nilai diam: —</div>
       <div class="bar-wrap" id="dustBarWrap">
         <div class="bar slate"><i id="dustBar" style="width:0%"></i></div>
       </div>
       <div class="metric-foot">
-        <span class="range" id="dustRange">Puncak: —</span>
+        <span class="range" id="dustRange">Rata-rata — · puncak —</span>
         <span class="trend flat" id="dustTrend">—</span>
       </div>
     </article>
@@ -357,7 +357,7 @@
         <button type="button" class="link-btn" id="filterOpenBtn">Filter diganti…</button>
       </div>
       <div class="info-item">
-        <span class="info-label">Debu Outlet Rata-rata</span>
+        <span class="info-label">Kenaikan Debu Rata-rata</span>
         <span class="info-value" id="infoDustAvg">—</span>
         <span class="info-note" id="infoDustNote">—</span>
       </div>
@@ -413,7 +413,7 @@
             <th class="num">TVOC Mentah (ppb)</th>
             <th class="num">Suhu (°C)</th>
             <th class="num">RH (%)</th>
-            <th class="num">Debu (<span class="nocase">µg/m³</span>)</th>
+            <th class="num">Kenaikan Debu (<span class="nocase">µg/m³</span>)</th>
             <th>Status Fuzzy</th>
             <th class="num">Kipas</th>
           </tr>
@@ -512,6 +512,7 @@ function applyConfigText(){
   $('tvocRange').textContent=thresholdText();
   $('chartSub').textContent=`${CHART_POINTS} data terakhir · ±${fmtNum(CHART_POINTS*CFG.poll_interval_ms/60000,1)} menit`;
   $('statsSub').textContent=`Agregat ${CHART_POINTS} pembacaan terakhir · TVOC Kalman`;
+  $('dustCard').title=dustNote();
   renderLegend();
 }
 function barTicks(wrapId,ticks,max){
@@ -551,7 +552,10 @@ function setConnection(state){
 
 /* CHART */
 const CHART_POINTS=30;
-const DUST_BAR_MAX=50; // skala batang kartu debu (µg/m³)
+const DUST_BAR_MAX=50; // skala batang kartu debu (kenaikan, µg/m³)
+/* Debu outlet: dashboard menampilkan KENAIKAN di atas nilai diam (dihitung server, lib/dust.ts),
+   karena nilai mentah GP2Y selalu memuat offset ±50 µg/m³. Nilai mentah tetap ditampilkan kecil. */
+const dustNote=()=>`Perkiraan dari data ${CFG.dust_rise.window_min} menit terakhir; angka OLED bisa berbeda beberapa µg/m³.`;
 let chartHoverX=null;
 function renderLegend(){
   // Garis ambang hanya ada kalau baseline alat sudah diketahui
@@ -738,28 +742,47 @@ function renderLastSeen(lastIso,ageMs){
   $('infoLastSeen').textContent=lastIso?fmtAge(ageMs):'—';
   $('infoLastSeenAt').textContent=lastIso?fmtDateTime(lastIso):'Belum ada data dari perangkat';
 }
-/** Rata-rata dan puncak debu outlet pada `window` data terakhir (kartu debu + Info Perangkat). */
+/** Kartu debu: kenaikan besar; nilai diam dan mentah kecil. */
+function renderDustCard(lat,prev){
+  const raw=lat.dust_outlet_ugm3, idle=lat.dust_idle_ugm3, rise=lat.dust_rise_ugm3;
+  if(raw==null){
+    $('dustValue').textContent='—';
+    $('dustDetail').textContent='Sensor debu tidak mengirim data';
+  }else if(idle==null){
+    // Alat baru menyala: jendela nilai diam belum punya cukup data, jadi tampilkan nilai mentah
+    $('dustValue').textContent=fmtNum(raw,1);
+    $('dustDetail').textContent='Mentah · nilai diam belum cukup data';
+  }else{
+    $('dustValue').textContent=fmtNum(rise,1);
+    $('dustDetail').innerHTML=`Nilai diam ±<strong>${fmtNum(idle,1)}</strong> · mentah ${fmtNum(raw,1)} µg/m³`;
+  }
+  $('dustBar').style.width=rise==null?'0%':Math.min(rise/DUST_BAR_MAX*100,100)+'%';
+  setTrend('dustTrend',calcTrend(rise,prev?.dust_rise_ugm3));
+}
+/** Rata-rata dan puncak kenaikan debu pada `window` data terakhir (kartu debu + Info Perangkat). */
 function renderDustStats(data){
   const win=CFG.outlet_dust.window;
-  const vals=data.slice(0,win).map(d=>d.dust_outlet_ugm3).filter(v=>v!=null);
+  const vals=data.slice(0,win).map(d=>d.dust_rise_ugm3).filter(v=>v!=null);
+  const range=$('dustRange');
   if(!vals.length){
     $('infoDustAvg').textContent='—';
-    $('infoDustNote').textContent=`${win} data terakhir`;
-    $('dustAvg').innerHTML='Rata-rata: —';
-    $('dustRange').textContent='Puncak: —';
+    $('infoDustNote').textContent=`${win} data terakhir. ${dustNote()}`;
+    range.textContent='Rata-rata — · puncak —';
+    range.title='';
     return;
   }
   const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
   $('infoDustAvg').innerHTML=`${fmtNum(avg,1)}<small>µg/m³</small>`;
-  $('infoDustNote').textContent=`${vals.length} data terakhir`;
-  $('dustAvg').innerHTML=`Rata-rata ${vals.length} data: <strong>${fmtNum(avg,1)}</strong>`;
-  $('dustRange').textContent=`Puncak: ${fmtNum(Math.max(...vals),1)} µg/m³`;
+  $('infoDustNote').textContent=`${vals.length} data terakhir. ${dustNote()}`;
+  range.textContent=`Rata-rata ${fmtNum(avg,1)} · puncak ${fmtNum(Math.max(...vals),1)}`;
+  range.title=`Rata-rata dan puncak kenaikan debu pada ${vals.length} data terakhir (µg/m³)`;
 }
 
 /* DASHBOARD UPDATE */
 function clearMetrics(){
   ['tvocValue','dustValue','suhuValue','kelembapanValue','tvocMax','tvocMin','tvocAvg','baselineValue','fanDuty','fanRpm'].forEach(id=>$(id).textContent='—');
   $('tvocRaw').textContent='Mentah: —';
+  $('dustDetail').textContent='Nilai diam: —';
   ['tvocBar','dustBar','suhuBar','kelembapanBar'].forEach(id=>$(id).style.width='0%');
   ['tvocTrend','dustTrend','suhuTrend','kelembapanTrend'].forEach(id=>setTrend(id,{text:'—',cls:'flat'}));
 }
@@ -773,7 +796,7 @@ function updateDashboard(data,serverTime){
     $('lastUpdate').textContent='—';
     clearMetrics();
     renderChart([]);
-    renderFilterStatus([]);
+    renderDustStats([]);
     renderLastSeen(null);
     $('logTableBody').innerHTML='<tr><td colspan="9" class="empty-row">Belum ada data</td></tr>';
     return;
@@ -819,11 +842,9 @@ function updateDashboard(data,serverTime){
   ]:[],barMax);
   setTrend('tvocTrend',calcTrend(tv,prev&&tvocOf(prev)));
 
-  // Kartu debu outlet
-  $('dustValue').textContent=fmtNum(lat.dust_outlet_ugm3,1);
-  $('dustBar').style.width=lat.dust_outlet_ugm3==null?'0%':Math.min(lat.dust_outlet_ugm3/DUST_BAR_MAX*100,100)+'%';
+  // Kartu debu outlet (kenaikan di atas nilai diam)
+  renderDustCard(lat,prev);
   renderDustStats(data);
-  setTrend('dustTrend',calcTrend(lat.dust_outlet_ugm3,prev?.dust_outlet_ugm3));
 
   // Suhu & RH
   $('suhuValue').textContent=fmtNum(lat.temperature_celsius,1);
@@ -858,7 +879,7 @@ function updateDashboard(data,serverTime){
       <td class="num dim">${fmtNum(d.tvoc_raw_ppb)}</td>
       <td class="num">${fmtNum(d.temperature_celsius,1)}</td>
       <td class="num">${fmtNum(d.humidity_percent,1)}</td>
-      <td class="num">${fmtNum(d.dust_outlet_ugm3,1)}</td>
+      <td class="num" title="Mentah ${fmtNum(d.dust_outlet_ugm3,1)} µg/m³${d.dust_idle_ugm3!=null?` · nilai diam ${fmtNum(d.dust_idle_ugm3,1)}`:''}">${fmtNum(d.dust_rise_ugm3,1)}</td>
       <td><span class="badge ${badgeMap[d.air_status]??'aman'}"><span class="dot-s"></span>${esc(d.air_status)}</span></td>
       <td class="last">${fmtNum(d.fan_duty_percent)}%</td>
     </tr>`).join('');

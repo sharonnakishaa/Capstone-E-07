@@ -179,7 +179,7 @@ function cardHtml(d,st){
       <div class="dc-stats">
         <div><span class="k">Kipas</span><span class="v">${l?`${fmtNum(l.fan_duty_percent)}%`:'—'}</span></div>
         <div><span class="k">RPM</span><span class="v">${l?fmtNum(l.fan_rpm):'—'}</span></div>
-        <div><span class="k">Debu</span><span class="v">${l?fmtNum(l.dust_outlet_ugm3,1):'—'}</span></div>
+        <div title="${l?`Kenaikan debu outlet di atas nilai diam (perkiraan) · mentah ${fmtNum(l.dust_outlet_ugm3,1)} µg/m³`:''}"><span class="k">Debu</span><span class="v">${l?fmtNum(l.dust_rise_ugm3,1):'—'}</span></div>
       </div>
       <div class="dc-foot">
         <span>${foot}</span>

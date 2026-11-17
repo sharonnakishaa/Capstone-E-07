@@ -165,7 +165,8 @@ async function exportXlsx(device_id: string | null, fromParam: string | null, to
     take: EXPORT_MAX_ROWS,
   })
 
-  const xlsx = await buildSensorLogXlsx(logs, device.device_name)
+  const rises = await dustRiseForLogs(logs)
+  const xlsx = await buildSensorLogXlsx(logs, device.device_name, rises)
 
   // Contoh: epen-meja-1-20261021-20261021.xlsx
   const slug = device.device_name.toLowerCase().replace(/^epen\s*/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

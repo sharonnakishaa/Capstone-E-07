@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { SAMPLE_INTERVAL_SEC } from '@/lib/sensor'
+import { DUST_RISE } from '@/lib/dust-core'
 import { isUuid } from '@/lib/validation'
 
 const ALLOWED_DAYS = [7, 30, 90]
@@ -16,6 +17,8 @@ interface DayRow {
   dust_sum: number | null
   dust_n: number
   dust_max: number | null
+  dust_idle: number | null    // nilai diam debu harian, hanya dari data mentah
+  dust_max_raw: number | null // puncak debu dari data mentah saja
   temp_sum: number | null
   rh_sum: number | null
   temp_n: number            // data yang punya nilai suhu (SHT31 bisa gagal baca)
@@ -38,6 +41,12 @@ function wibDate(offsetDays = 0): string {
  * Data ≤ masa retensi diambil dari sensor_logs, yang lebih lama dari sensor_hourly (hasil retensi),
  * lalu digabung per hari — jadi rentang 90 hari tetap utuh walaupun melewati batas retensi.
  * Rata-rata ditimbang dengan jumlah sampel. Durasi = jumlah sampel × interval kirim (5 detik).
+ *
+ * Kenaikan debu di tren memakai nilai diam HARIAN: median debu saat duty kipas ≤ 30 % sepanjang hari,
+ * lalu puncak kenaikan = puncak debu mentah − nilai diam itu. Ini berbeda dari dashboard, yang memakai
+ * jendela 10 menit per sampel (lib/dust.ts). Hari yang sudah diringkas per jam (sensor_hourly) tidak
+ * menyimpan sampel per 5 detik, jadi tidak punya nilai ini (null). Hari yang sebagian sudah diringkas
+ * hanya memakai bagian yang masih mentah.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -75,7 +84,10 @@ export async function GET(req: NextRequest) {
                COUNT(humidity_percent)                             AS rh_n,
                COUNT(*) FILTER (WHERE air_status = 'AMAN')         AS aman,
                COUNT(*) FILTER (WHERE air_status = 'WASPADA')      AS waspada,
-               COUNT(*) FILTER (WHERE air_status = 'BERBAHAYA')    AS berbahaya
+               COUNT(*) FILTER (WHERE air_status = 'BERBAHAYA')    AS berbahaya,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY dust_outlet_ugm3)
+                 FILTER (WHERE fan_duty_percent <= ${DUST_RISE.idle_duty_max}) AS dust_idle,
+               MAX(dust_outlet_ugm3)                               AS dust_max_raw
         FROM sensor_logs
         WHERE device_id = ${deviceId}::uuid AND recorded_at >= ${fromIso}::timestamptz
         GROUP BY 1
@@ -96,7 +108,10 @@ export async function GET(req: NextRequest) {
                SUM(samples) FILTER (WHERE humidity_avg_percent IS NOT NULL)    AS rh_n,
                SUM(aman_samples)                                  AS aman,
                SUM(waspada_samples)                               AS waspada,
-               SUM(berbahaya_samples)                             AS berbahaya
+               SUM(berbahaya_samples)                             AS berbahaya,
+               -- Ringkasan per jam tidak punya sampel per 5 detik → tidak ada nilai diam harian
+               NULL::float8                                       AS dust_idle,
+               NULL::float8                                       AS dust_max_raw
         FROM sensor_hourly
         WHERE device_id = ${deviceId}::uuid AND hour_start >= ${fromIso}::timestamptz
         GROUP BY 1
@@ -115,7 +130,9 @@ export async function GET(req: NextRequest) {
              COALESCE(SUM(rh_n), 0)::int           AS rh_n,
              SUM(aman)::int                        AS aman,
              SUM(waspada)::int                     AS waspada,
-             SUM(berbahaya)::int                   AS berbahaya
+             SUM(berbahaya)::int                   AS berbahaya,
+             MAX(dust_idle)::float8                AS dust_idle,
+             MAX(dust_max_raw)::float8             AS dust_max_raw
       FROM (SELECT * FROM raw UNION ALL SELECT * FROM hourly) u
       GROUP BY day
       ORDER BY day`
@@ -131,6 +148,7 @@ export async function GET(req: NextRequest) {
           date, active_hours: 0, fan_hours: 0,
           status_hours: { AMAN: 0, WASPADA: 0, BERBAHAYA: 0 },
           tvoc_avg_ppb: null, tvoc_max_ppb: null, dust_avg_ugm3: null, dust_max_ugm3: null,
+          dust_idle_ugm3: null, dust_rise_max_ugm3: null,
           temperature_avg_celsius: null, humidity_avg_percent: null,
         }
       }
@@ -143,6 +161,9 @@ export async function GET(req: NextRequest) {
         tvoc_max_ppb:            round1(r.tvoc_max),
         dust_avg_ugm3:           round1(r.dust_n > 0 && r.dust_sum !== null ? r.dust_sum / r.dust_n : null),
         dust_max_ugm3:           round1(r.dust_max),
+        dust_idle_ugm3:          round1(r.dust_idle),
+        dust_rise_max_ugm3:      round1(r.dust_idle === null || r.dust_max_raw === null
+                                   ? null : Math.max(0, r.dust_max_raw - r.dust_idle)),
         temperature_avg_celsius: round1(r.temp_n > 0 && r.temp_sum !== null ? r.temp_sum / r.temp_n : null),
         humidity_avg_percent:    round1(r.rh_n > 0 && r.rh_sum !== null ? r.rh_sum / r.rh_n : null),
       }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { dustRiseForLatest, type DustRise } from '@/lib/dust'
 
 interface OverviewRow {
   id: string
@@ -39,7 +40,17 @@ export async function GET() {
       WHERE d.is_active
       ORDER BY d.created_at`
 
-    const data = rows.map(r => ({
+    // Kenaikan debu outlet per alat: satu query kecil (jendela 10 menit) per alat, paralel
+    const rises = await Promise.all(rows.map((r): Promise<DustRise | null> =>
+      r.log_id === null || r.recorded_at === null ? Promise.resolve(null) : dustRiseForLatest({
+        id: r.log_id,
+        device_id: r.id,
+        recorded_at: r.recorded_at,
+        dust_outlet_ugm3: r.dust_outlet_ugm3,
+        fan_duty_percent: r.fan_duty_percent ?? 0,
+      })))
+
+    const data = rows.map((r, i) => ({
       id: r.id,
       device_name: r.device_name,
       location: r.location,
@@ -51,6 +62,8 @@ export async function GET() {
         temperature_celsius: r.temperature_celsius,
         humidity_percent: r.humidity_percent,
         dust_outlet_ugm3: r.dust_outlet_ugm3,
+        dust_idle_ugm3: rises[i]?.dust_idle_ugm3 ?? null,
+        dust_rise_ugm3: rises[i]?.dust_rise_ugm3 ?? null,
         air_status: r.air_status,
         fan_duty_percent: r.fan_duty_percent,
         fan_rpm: r.fan_rpm,

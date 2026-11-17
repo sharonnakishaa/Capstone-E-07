@@ -8,6 +8,7 @@ import { sendWarningEmail } from '@/lib/email'
 import { buildSensorLogXlsx } from '@/lib/export-xlsx'
 import { safeEqual } from '@/lib/secure-compare'
 import { parseRange } from '@/lib/range'
+import { dustRiseForLogs, type DustRise } from '@/lib/dust'
 
 const PAGE_SIZE      = 50
 const DEFAULT_LIMIT  = 30
@@ -19,7 +20,8 @@ const XLSX_MIME       = 'application/vnd.openxmlformats-officedocument.spreadshe
 // Ekspor sampai 50.000 baris bisa butuh beberapa detik
 export const maxDuration = 60
 
-const mapLog = (log: sensor_logs) => ({
+// dust_outlet_ugm3 tetap nilai mentah dari sensor; nilai diam dan kenaikan dihitung di lib/dust.ts
+const mapLog = (log: sensor_logs, rise?: DustRise) => ({
   id: log.id.toString(),
   device_id: log.device_id,
   tvoc_raw_ppb: log.tvoc_raw_ppb,
@@ -29,6 +31,8 @@ const mapLog = (log: sensor_logs) => ({
   temperature_celsius: log.temperature_celsius,
   humidity_percent: log.humidity_percent,
   dust_outlet_ugm3: log.dust_outlet_ugm3,
+  dust_idle_ugm3: rise?.dust_idle_ugm3 ?? null,
+  dust_rise_ugm3: rise?.dust_rise_ugm3 ?? null,
   air_status: log.air_status,
   fan_duty_percent: log.fan_duty_percent,
   fan_rpm: log.fan_rpm,
@@ -96,9 +100,10 @@ export async function GET(req: NextRequest) {
         }),
         prisma.sensor_logs.count({ where: pageWhere }),
       ])
+      const rises = await dustRiseForLogs(logs)
 
       return NextResponse.json({
-        data: logs.map(mapLog),
+        data: logs.map(l => mapLog(l, rises.get(l.id.toString()))),
         page,
         total,
         totalPages: Math.ceil(total / PAGE_SIZE),
@@ -117,7 +122,9 @@ export async function GET(req: NextRequest) {
       take: Math.min(limit, MAX_LIMIT),
     })
 
-    return NextResponse.json({ data: logs.map(mapLog), server_time: new Date() })
+    const rises = await dustRiseForLogs(logs)
+
+    return NextResponse.json({ data: logs.map(l => mapLog(l, rises.get(l.id.toString()))), server_time: new Date() })
   } catch (err) {
     return serverError(err)
   }

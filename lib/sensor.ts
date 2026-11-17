@@ -1,6 +1,8 @@
 // Satu sumber konfigurasi untuk status udara dan ambang referensi.
 // Status sebenarnya ditentukan oleh fuzzy di ESP32 — server hanya menyimpan dan menampilkan.
 
+import { DUST_RISE } from './dust-core'
+
 export const AIR_STATUSES = ['AMAN', 'WASPADA', 'BERBAHAYA'] as const
 export type StatusLabel = typeof AIR_STATUSES[number]
 
@@ -81,6 +83,10 @@ export function getPublicConfig() {
     fan_duty_levels_percent:           FAN_DUTY_LEVELS_PERCENT,
     sensor_warmup_sec:                 SENSOR_WARMUP_SEC,
     outlet_dust:                       OUTLET_DUST,
+    dust_rise: {
+      window_min:    DUST_RISE.window_ms / 60_000,
+      idle_duty_max: DUST_RISE.idle_duty_max,
+    },
     poll_interval_ms:                  SAMPLE_INTERVAL_SEC * 1000,
     offline_after_ms:                  OFFLINE_AFTER_MS,
   }

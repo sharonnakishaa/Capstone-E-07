@@ -28,13 +28,14 @@ export const STATUS_META: Record<StatusLabel, {
   },
 }
 
-// Ambang status di firmware v5, dihitung dari TVOC Kalman di ATAS baseline udara bersih tiap alat.
-// Acuan WHO 2000 untuk TVOC: level 3 = 0,10 ppm (100 ppb) dan level 4 = 0,20 ppm (200 ppb)
-// di atas udara bersih. Di firmware: EPEN_TVOC_L3_PPB dan EPEN_TVOC_L4_PPB (epen_config.h).
-// Garis ambang di grafik = tvoc_baseline_ppb + nilai ini. Samakan kalau angka di firmware berubah.
+// Ambang status fuzzy di firmware, dihitung di ATAS baseline udara bersih tiap alat.
+// Status = kelas keanggotaan x_hat terbesar (Bersih/Sedang/Kotor 0,30/0,65/1,00 mg/m3),
+// sehingga batasnya 0,475 dan 0,825 mg/m3 = 206,97 dan 359,48 ppb (dibulatkan; selisih < 1 ppb
+// tidak terlihat di grafik). Garis ambang di grafik = tvoc_baseline_ppb + nilai ini.
+// Samakan dengan EPEN_FZ_X_A / EPEN_FZ_X_C di epen_config.h kalau fungsi keanggotaannya berubah.
 export const TVOC_THRESHOLD_ABOVE_BASELINE_PPB = {
-  waspada:   100,
-  berbahaya: 200,
+  waspada:   207,
+  berbahaya: 359,
 }
 
 // Tingkat keluaran fuzzy Sugeno di firmware (EPEN_PWM_*). Duty yang dikirim berupa rata-rata

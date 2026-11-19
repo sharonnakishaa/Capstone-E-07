@@ -195,7 +195,7 @@ Dengan beberapa alat, setiap baris log diberi awalan nama alat, dan waktu kirim 
 
 | Skenario | Perilaku | Dipakai untuk menguji |
 |---|---|---|
-| `normal` | Siklus menyolder biasa: satu sesi 40–120 detik setiap ±2–5 menit. Dengan ambang +100/+200 ppb, sekitar separuh waktu AMAN, ±1/3 WASPADA, dan ±1/5 BERBAHAYA; kira-kira dua dari tiga sesi menyolder sempat masuk BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
+| `normal` | Siklus menyolder biasa: satu sesi 40–120 detik setiap ±2–5 menit, sesekali masuk WASPADA/BERBAHAYA. Debu outlet rendah (±8 µg/m³). | Tampilan normal, grafik, statistik |
 | `spike` | Asap jauh lebih pekat dan sering, sebagian besar BERBAHAYA. Filter dibuat lebih bocor (debu outlet ±26 µg/m³). | Banner merah, email alert dan eskalasi, debu outlet tinggi |
 | `offline` | Seperti `normal`, tapi tiap 60 detik berhenti mengirim selama 30 detik. | Indikator TERHUBUNG/OFFLINE |
 
@@ -205,8 +205,8 @@ Simulator di `scripts/lib/simulation.ts` terdiri dari dua bagian.
 - **Fase:** pemanasan 15 detik (SGP30 = 0), lalu rekam baseline TVOC dan suhu selama 30 detik. Rekaman diulang kalau suhu naik ≥ 0,5 °C di tengah perekaman.
 - **Pemicu menyolder:** `u = 1` kalau suhu naik ≥ 0,5 °C di atas acuan suhu (suhu terendah 60 detik terakhir, dirata-rata per 10 detik), dan kembali 0 kalau selisihnya < 0,3 °C.
 - **Kalman 1-state** dalam mg/m³ di atas baseline, dengan model proses menuju 1,54 mg/m³ (τ naik 73 s, τ turun 37 s), Q = 0,001, R = 0,0034, dan ramalan 5 detik (`x5`).
-- **Fuzzy Sugeno** 2 masukan (x̂ dan delta = x5 − x̂, 9 aturan, AND = MIN). Masukan x ditambah ramalan hanya saat menyolder (`LAMBDA_UP = 1`). Keanggotaan x̂: Bersih penuh sampai 0,11475 mg/m³ (50 ppb), Sedang penuh di 0,286875 mg/m³ (±125 ppb), Kotor penuh mulai 0,459 mg/m³ (200 ppb).
-- **Status** tidak memakai fungsi keanggotaan. Status dihitung dari x̂ dalam ppb di atas baseline (x̂ / 0,002295): WASPADA mulai **100 ppb**, BERBAHAYA mulai **200 ppb** (acuan WHO 2000: level 3 = 0,10 ppm, level 4 = 0,20 ppm). Payload: `tvoc_kalman_ppb = baseline + x̂ / 0,002295`, dan duty = PWM yang dibulatkan.
+- **Fuzzy Sugeno** 2 masukan (x̂ dan delta = x5 − x̂, 9 aturan, AND = MIN), sesuai Bab 4 C-501. Keanggotaan x̂: Bersih penuh sampai 0,30 mg/m³, Sedang penuh di 0,65 mg/m³, Kotor penuh mulai 1,00 mg/m³.
+- **Status** dari kelas keanggotaan x̂ terbesar (batas 0,475 dan 0,825 mg/m³ = baseline + 206,97 / 359,48 ppb). Payload: `tvoc_kalman_ppb = baseline + x̂ / 0,002295`, dan duty = PWM yang dibulatkan.
 - Kalau firmware berubah, samakan konstanta `FW` dan fungsi-fungsi di bagian ini.
 
 **2. Model lingkungan (perkiraan).** Ini "dunia" yang dibaca sensor:
@@ -455,7 +455,7 @@ ESP32 mengirim satu pembacaan setiap **5 detik** lewat **HTTPS** (`WiFiClientSec
 
 - Field opsional boleh dihilangkan atau diisi `null`. **Jangan kirim `NaN` atau `Infinity`**: keduanya bukan JSON yang valid, sehingga seluruh request ditolak `400 Body bukan JSON valid`. Ganti dengan `null` sebelum diserialisasi. Field yang tidak dikenal diabaikan, misalnya `fuzzy_level` dari firmware lama.
 - **Fase pemanasan (±45 detik setelah alat menyala):** SGP30 pemanasan 15 detik, lalu baseline direkam 30 detik. Selama fase ini firmware mengirim `tvoc_kalman_ppb` dan `tvoc_baseline_ppb` = `null`, `air_status` = `AMAN`, dan kipas mati. Dashboard menampilkan keterangan **"Pemanasan sensor"**.
-- **Ambang status di firmware relatif terhadap baseline:** WASPADA mulai **baseline + 100 ppb**, BERBAHAYA mulai **baseline + 200 ppb** (`TVOC_THRESHOLD_ABOVE_BASELINE_PPB` di `lib/sensor.ts`). Acuannya WHO 2000 untuk TVOC: level 3 = **0,10 ppm** dan level 4 = **0,20 ppm** di atas udara bersih. Di firmware v5 angka ini ada di `EPEN_TVOC_L3_PPB` dan `EPEN_TVOC_L4_PPB` (`epen_config.h`), dan status dihitung dari TVOC Kalman di atas baseline. Kalau angka di firmware berubah, samakan di sini. Server tidak menghitung status. Ambang ini hanya dipakai untuk garis referensi grafik.
+- **Ambang status di firmware relatif terhadap baseline:** WASPADA mulai **baseline + 207 ppb**, BERBAHAYA mulai **baseline + 359 ppb** (`TVOC_THRESHOLD_ABOVE_BASELINE_PPB` di `lib/sensor.ts`). Nilai ini pembulatan dari batas keputusan fuzzy firmware, yaitu **206,97** dan **359,48 ppb** (0,475 dan 0,825 mg/m³ dengan faktor 0,002295 mg/m³ per ppb). Selisihnya di bawah 1 ppb dan tidak terlihat di grafik. Kalau fungsi keanggotaan di `epen_config.h` berubah, samakan angkanya di sini. Server tidak menghitung status. Ambang ini hanya dipakai untuk garis referensi grafik.
 - **Tingkat keluaran fuzzy:** 0 / 30 / 50 / 75 / 100 %. Karena keluarannya rata-rata terbobot, duty yang dikirim bisa bernilai di antaranya (misalnya 55 %). Tidak ada lagi label level.
 
 **Respons sukses — `201 Created`**
@@ -832,7 +832,7 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
     "WASPADA":   { "label": "Waspada",   "headline": "Asap Solder Terdeteksi", "emoji": "🟠", "color": "#F59E0B", "text_light": "#B45309", "description": "..." },
     "BERBAHAYA": { "label": "Berbahaya", "headline": "Kadar Asap Tinggi",      "emoji": "🔴", "color": "#EF4444", "text_light": "#DC2626", "description": "..." }
   },
-  "tvoc_threshold_above_baseline_ppb": { "waspada": 100, "berbahaya": 200 },
+  "tvoc_threshold_above_baseline_ppb": { "waspada": 207, "berbahaya": 359 },
   "fan_duty_levels_percent": [0, 30, 50, 75, 100],
   "sensor_warmup_sec": 45,
   "outlet_dust": { "window": 30 },
@@ -848,6 +848,6 @@ Endpoint ini mengembalikan konfigurasi dari `lib/sensor.ts` supaya frontend tida
 
 `dust_rise`: panjang jendela nilai diam (menit) dan batas duty kipas (%) yang dianggap diam, dari `DUST_RISE` di `lib/dust-core.ts`. Dipakai frontend untuk teks keterangan; perhitungannya tetap di server.
 
-`tvoc_threshold_above_baseline_ppb` dipakai untuk garis referensi grafik: garis digambar di `tvoc_baseline_ppb` + nilai ini, per alat. Kalau baseline belum ada (pemanasan), garis tidak digambar. Nilainya harus sama dengan `EPEN_TVOC_L3_PPB` / `EPEN_TVOC_L4_PPB` di firmware (acuan WHO 2000: 0,10 dan 0,20 ppm di atas baseline). Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
+`tvoc_threshold_above_baseline_ppb` dipakai untuk garis referensi grafik: garis digambar di `tvoc_baseline_ppb` + nilai ini, per alat. Kalau baseline belum ada (pemanasan), garis tidak digambar. Nilainya harus sama dengan fungsi keanggotaan fuzzy di firmware. Status yang tampil tetap berasal dari `air_status` yang dikirim ESP32.
 
 `fan_duty_levels_percent` adalah tingkat keluaran fuzzy Sugeno firmware, hanya sebagai referensi. `sensor_warmup_sec` dipakai untuk teks "Pemanasan sensor".

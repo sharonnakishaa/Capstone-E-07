@@ -35,11 +35,8 @@ export const FW = {
   X0:             0,
   P0:             0.01,
   HORIZON_STEPS:  5,
-  LAMBDA_UP:      1.0,      // bobot ramalan pada masukan fuzzy, hanya saat u = 1
-  FZ_X_A:         0.114750, // x_hat: Bersih penuh = 50 ppb × 0,002295
-  FZ_X_C:         0.459,    //        Kotor penuh = 200 ppb × 0,002295 (Sedang penuh di tengah, ±125 ppb)
-  TVOC_L3_PPB:    100,      // status WASPADA mulai x_hat ≥ 100 ppb (WHO 2000 level 3, 0,10 ppm)
-  TVOC_L4_PPB:    200,      // status BERBAHAYA mulai x_hat ≥ 200 ppb (WHO 2000 level 4, 0,20 ppm)
+  FZ_X_A:         0.3,      // x_hat: Bersih penuh 
+  FZ_X_C:         1.0,      //        Kotor penuh; Sedang penuh di 0,65
   FZ_D_A:        -0.05,     // delta: Turun / Stabil / Naik
   FZ_D_C:         0.05,
   PWM: { MIN: 0, LOW: 30, MED: 50, HIGH: 75, MAX: 100 },
@@ -108,12 +105,13 @@ export function fuzzyPwm(xHat: number, delta: number): number {
   return den < 1e-6 ? P.MAX : num / den
 }
 
-/** epen_fuzzy.c — kelas udara dari x_hat dalam ppb di atas baseline (bukan dari fungsi keanggotaan). */
+/** epen_fuzzy.c — kelas udara dari x_hat (keanggotaan terbesar; seri → kelas lebih tinggi). */
 export function airClass(xHat: number): 0 | 1 | 2 {
-  const ppb = xHat / FW.PPB_TO_MGM3
-  if (ppb >= FW.TVOC_L4_PPB) return 2 // BERBAHAYA
-  if (ppb >= FW.TVOC_L3_PPB) return 1 // WASPADA
-  return 0                            // AMAN
+  const m = threeClasses(xHat, FW.FZ_X_A, FW.FZ_X_C)
+  let k: 0 | 1 | 2 = 0
+  if (m[1] >= m[k]) k = 1
+  if (m[2] >= m[k]) k = 2
+  return k
 }
 
 const AIR_CLASS_STATUS: AirStatus[] = ['AMAN', 'WASPADA', 'BERBAHAYA']
@@ -203,8 +201,7 @@ export class FirmwareCore {
     out.u = u
     out.xHat = this.kf.x
     out.delta = this.kf.x5 - this.kf.x
-    const xFuzzy = out.xHat + (u ? FW.LAMBDA_UP * out.delta : 0) // bobot ramalan, hanya saat menyolder
-    out.pwm = fuzzyPwm(xFuzzy, out.delta)
+    out.pwm = fuzzyPwm(out.xHat, out.delta) // masukan x_hat dan tren ramalan 5 detik
     return out
   }
 }

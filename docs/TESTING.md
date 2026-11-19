@@ -48,7 +48,7 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | B-01 | Kartu TVOC | Bandingkan kartu TVOC dengan baris terbaru di terminal simulator. | Angka besar = TVOC **Kalman** (dibulatkan). Teks kecil "Mentah: … ppb" = TVOC mentah. | | |
-| B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 100** dan **baseline + 200** ppb. Teks bawah: "Ambang: <baseline+100> / <baseline+200> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
+| B-02 | Bar dan ambang TVOC | Perhatikan bar TVOC dan nilai "Baseline TVOC" di Statistik Sesi. | Ada dua penanda ambang di **baseline + 207** dan **baseline + 359** ppb. Teks bawah: "Ambang: <baseline+207> / <baseline+359> ppb". Warna bar mengikuti status (hijau, kuning, atau merah). | | |
 | B-03 | Kartu Kenaikan Debu Outlet | Bandingkan dengan baris terbaru di halaman log (kolom Debu Mentah dan Kenaikan). | Angka besar = kenaikan (sama dengan kolom Kenaikan). Teks kecil: "Nilai diam ±… · mentah … µg/m³", dengan nilai mentah = kolom Debu Mentah. Teks bawah: "Rata-rata … · puncak …" (kenaikan 30 data terakhir). Kursor di atas kartu menampilkan "Perkiraan dari data 10 menit terakhir; angka OLED bisa berbeda beberapa µg/m³." Pada ±30 detik pertama setelah alat lama mati, angka besar = nilai mentah dengan teks "Mentah · nilai diam belum cukup data". Tidak ada teks atau penanda batas filter. | | |
 | B-04 | Kartu Suhu | Bandingkan dengan data terbaru di halaman log. | Nilai °C sesuai (1 desimal). | | |
 | B-05 | Kartu Kelembapan | Bandingkan dengan data terbaru di halaman log. | Nilai % sesuai (1 desimal). | | |
@@ -60,8 +60,8 @@ Karena hardware belum tersambung, data perangkat berasal dari simulator ESP32 (`
 | ID | Komponen | Langkah | Hasil yang diharapkan | Hasil | Catatan |
 |---|---|---|---|---|---|
 | C-01 | Dua garis | Amati grafik. | Ada garis tebal (TVOC Kalman) dan garis tipis pudar (TVOC mentah). Garis Kalman lebih halus daripada garis mentah. | | |
-| C-02 | Legend | Amati legend di atas grafik. | Ada 4 item: TVOC Kalman, TVOC mentah, Waspada (<baseline+100> ppb), Berbahaya (<baseline+200> ppb). | | |
-| C-03 | Garis ambang | Amati garis putus-putus. | Garis kuning di baseline + 100 ppb dan garis merah di baseline + 200 ppb, sesuai sumbu Y. Saat TVOC Kalman melewati garis merah, status di banner BERBAHAYA (selisih ±1 data karena pembulatan). | | |
+| C-02 | Legend | Amati legend di atas grafik. | Ada 4 item: TVOC Kalman, TVOC mentah, Waspada (<baseline+207> ppb), Berbahaya (<baseline+359> ppb). | | |
+| C-03 | Garis ambang | Amati garis putus-putus. | Garis kuning di baseline + 207 ppb dan garis merah di baseline + 359 ppb, sesuai sumbu Y. Saat TVOC Kalman melewati garis merah, status di banner BERBAHAYA (selisih ±1 data karena pembulatan). | | |
 | C-04 | Jumlah data | Amati sumbu X. | Grafik berisi 30 data terakhir (±2,5 menit), dan titik terbaru berada di ujung kanan. | | |
 | C-05 | Tooltip | Arahkan kursor (atau sentuh, di ponsel) ke beberapa titik grafik. | Garis bantu vertikal dan tooltip muncul berisi jam (WIB), nilai Kalman, nilai mentah, dan status. Tooltip hilang saat kursor keluar dari grafik. | | |
 | C-06 | Skala otomatis | Jalankan simulator `spike` (TVOC > 1.000 ppb). | Sumbu Y menyesuaikan nilai tertinggi, dan garis tidak terpotong. | | |
@@ -134,7 +134,7 @@ Jalankan `npm run db:seed` sebelum H-01 supaya `last_alert_at` kembali kosong.
 | H-02 | Cooldown 15 menit | Biarkan simulator `spike` berjalan ±5 menit. | Tidak ada alert tambahan walaupun status tetap WASPADA/BERBAHAYA. | | |
 | H-03 | Eskalasi | Ulangi seed. Jalankan `normal` sampai alert pertama berstatus WASPADA, lalu ganti ke `spike`. | Satu alert tambahan terkirim saat status naik ke BERBAHAYA, walaupun masih dalam masa cooldown. | | |
 | H-04 | Request bersamaan | Ulangi seed, lalu kirim 5 POST BERBAHAYA sekaligus (lihat perintah di bawah tabel). | Kelima request mendapat `201`, tapi alert hanya tercatat **satu kali**. | | |
-| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, baseline, status fuzzy, duty, RPM, "Debu outlet (nilai mentah sensor)", suhu, kelembapan, jarak inlet, dan tabel ambang yang dihitung dari baseline (baseline + 100 / + 200). Tidak ada teks eCO₂ maupun level fuzzy. | | |
+| H-05 | Isi email | Isi `ALERT_EMAIL_TO` dengan email penguji, lalu ulangi H-01. | Subject `[EPEN <STATUS>] TVOC <n> ppb — Epen #1`. Isi email memuat TVOC Kalman dan mentah, baseline, status fuzzy, duty, RPM, "Debu outlet (nilai mentah sensor)", suhu, kelembapan, jarak inlet, dan tabel ambang yang dihitung dari baseline (baseline + 207 / + 359). Tidak ada teks eCO₂ maupun level fuzzy. | | |
 
 Perintah untuk H-04 (PowerShell 7). Simpan payload BERBAHAYA dengan MAC alat hasil seed (`24:6F:28:00:00:01`) di `payload.json`:
 
